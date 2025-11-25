@@ -1,0 +1,380 @@
+import { Fragment, useEffect, useState } from 'react';
+
+import Tippy from '@tippyjs/react';
+import 'tippy.js/dist/tippy.css';
+import { DataTable, DataTableSortStatus } from 'mantine-datatable';
+import IconMobile from '@/components/Icon/IconMobile';
+import IconNotesEdit from '@/components/Icon/IconNotesEdit';
+import IconEye from '@/components/Icon/IconEye';
+import IconEdit from '@/components/Icon/IconEdit';
+import { useRouter } from 'next/router';
+import QuickEdit from '@/components/QuickEdit';
+import { Dialog, Transition } from '@headlessui/react';
+import IconCode from '@/components/Icon/IconCode';
+import IconX from '@/components/Icon/IconX';
+import IconTrash from '@/components/Icon/IconTrash';
+import Models from '@/imports/models.import';
+import IconArrowBackward from '@/components/Icon/IconArrowBackward';
+import IconArrowForward from '@/components/Icon/IconArrowForward';
+import { Success, useSetState } from '@/utils/functions.utils';
+import * as Yup from 'yup';
+import { Validation } from '@/utils/imports.utils';
+import IconBell from '@/components/Icon/IconBell';
+import { describe } from 'node:test';
+import { Descriptions } from 'antd';
+import Modal from '@/common_component/modal';
+import IconLoader from '@/components/Icon/IconLoader';
+import TextInput from '@/components/TextInput';
+import TextArea from '@/components/TextArea';
+import Pagination from '@/components/Pagination';
+
+const stages = () => {
+    const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
+        columnAccessor: 'name',
+        direction: 'asc',
+    });
+
+    const router = useRouter();
+
+    const [state, setState] = useSetState({
+        state: [],
+        loading: false,
+        role: '',
+        currentPage: 1,
+        totalRecords: 0,
+        next: null,
+        previous: null,
+        allData: null,
+        expandedRow: null,
+        data: [],
+        create: '',
+        modalManage: false,
+        pageSize: 5,
+        EditId: null,
+        errors: {},
+        logLoad: false,
+        description: '',
+        stage: '',
+        probability: null,
+        submitLoad: false,
+        isDeleteOpen: false,
+        isOpen: false,
+        isDeleteLoad: false,
+    });
+
+    useEffect(() => {
+        getMasterData(state.currentPage);
+    }, []);
+
+    // useEffect(() => {
+    //     getMasterData(state.currentPage);
+    // }, [state.currentPage]);
+
+    const getMasterData = async (page) => {
+        try {
+            setState({ loading: true });
+            const response: any = await Models.master.getstages(page);
+            tableData(response);
+            setState({
+                loading: false,
+            });
+        } catch (error) {
+            setState({ loading: false });
+        }
+    };
+
+    const tableData = (res: any) => {
+        const Data: any = res?.results?.map((item: any) => {
+            return {
+                ...item,
+                allData: item,
+                stage: item.stage,
+                probability: item.probability,
+            };
+        });
+
+        setState({ data: Data, allData: res, totalRecords: res.count, next: res.next, previous: res.previous, count: res?.count });
+    };
+
+    const clearLogData = () => {
+        setState({
+            EditId: '',
+            create: '',
+            errors: {},
+            stage: '',
+            isOpen: false,
+            isDeleteOpen: false,
+            isDeleteLoad: false,
+            submitLoad: false,
+            description: '',
+            probability: '',
+        });
+    };
+
+    const handleCreateAndUpdate = async () => {
+        try {
+            setState({ submitLoad: true });
+            const body = {
+                stage: state?.stage,
+                probability: state?.probability,
+                description: state?.description,
+            };
+            await Validation.Createstages.validate(body, { abortEarly: false });
+            if (state.EditId) {
+                await Models.master.updatestages(body, state.EditId);
+                Success('Stages Updated successfully');
+            } else {
+                await Models.master.createstages(body);
+                Success('Stages created successfully');
+            }
+            clearLogData();
+            getMasterData(state.currentPage);
+        } catch (error) {
+            if (error instanceof Yup.ValidationError) {
+                const validationErrors = {};
+                error.inner.forEach((err) => {
+                    validationErrors[err.path] = err?.message;
+                });
+
+                setState({ errors: validationErrors });
+                setState({ submitLoad: false });
+            } else {
+                console.log('Error: ', error?.message);
+                setState({ submitLoad: false });
+            }
+            setState({ submitLoad: false });
+        }
+    };
+
+    const handleDelete = async () => {
+        try {
+            setState({ isDeleteLoad: true });
+            const body = {
+                is_active: 'False',
+            };
+
+            await Models.master.deletestages(body, state.EditId);
+            Success('Stages Deleted successfully');
+            clearLogData();
+            getMasterData(state.currentPage);
+        } catch (error) {
+            setState({ isDeleteLoad: false, isDeleteOpen: false });
+
+            console.log('error: ', error);
+        }
+    };
+
+    const handleNextPage = () => {
+        if (state.next) {
+            setState({ currentPage: state.currentPage + 1 });
+        }
+    };
+
+    const handlePreviousPage = () => {
+        if (state.previous) {
+            setState({ currentPage: state.currentPage - 1 });
+        }
+    };
+
+    return (
+        <div className="p-2">
+            <div className="panel mb-3 flex items-center justify-between gap-5">
+                {/* Title Section */}
+                <div className="flex items-center pl-3">
+                    <h5 className="text-lg font-semibold">Opportunity Stages</h5>
+                </div>
+
+                {/* <div className="mb-5"> */}
+                <div className="flex ">
+                    <button
+                        type="button"
+                        className="btn btn-primary w-auto"
+                        onClick={() => {
+                            setState({ modalManage: false, EditId: null, create: '', isOpen: true });
+                        }}
+                    >
+                        + Create
+                    </button>
+                </div>
+
+                {/* </div> */}
+            </div>
+
+            {state.data?.length > 0 ? (
+                <>
+                    <div className="flex items-center justify-end pb-2 pr-3">
+                        <div className="rounded-lg bg-gray-300 p-1 font-semibold">
+                            {state.currentPage}-{Math.min(state.currentPage * 10, state.totalRecords)} of {state.totalRecords}
+                        </div>
+                    </div>
+                    <div>
+                        <DataTable
+                            className="table-responsive"
+                            records={state.data}
+                            columns={[
+                                // {
+                                //     accessor: 'id',
+                                //     width: 70,
+                                //     // ,
+                                //     title: 'ID',
+                                //     render: (row, index) => (
+                                //         <>
+                                //             <div className="">{row.id}</div>
+                                //         </>
+                                //     ),
+                                // },
+
+                                {
+                                    accessor: 'stage',
+                                    // width: 170,
+                                    // ,
+                                    title: 'Stages',
+                                },
+                                {
+                                    accessor: 'probability',
+                                    // width: 170,
+                                    // ,
+                                    title: 'Probability In Percentage',
+                                },
+
+                                {
+                                    accessor: 'actions',
+                                    title: 'Actions',
+                                    render: (row: any) => (
+                                        <div className=" flex w-max items-center gap-4">
+                                            <Tippy content="Quick Edit" className="rounded-lg bg-black p-1 text-sm text-white">
+                                                <button
+                                                    type="button"
+                                                    className="flex hover:text-primary"
+                                                    onClick={() => {
+                                                        setState({ modalManage: true, EditId: row.id, stage: row.stage, probability: row.probability, isOpen: true, description: row?.description });
+                                                    }}
+                                                >
+                                                    <IconNotesEdit />
+                                                </button>
+                                            </Tippy>
+
+                                            <button
+                                                className="flex hover:text-info"
+                                                onClick={() => {
+                                                    setState({
+                                                        modalManage: true,
+                                                        EditId: row.id,
+                                                        isDeleteOpen: true,
+                                                    });
+                                                }}
+                                            >
+                                                <IconTrash className="h-4.5 w-4.5" />
+                                            </button>
+                                        </div>
+                                    ),
+                                },
+                            ]}
+                            highlightOnHover
+                            totalRecords={state.data?.length}
+                            recordsPerPage={state.pageSize}
+                            minHeight={200}
+                            page={null}
+                            onPageChange={(p) => {}}
+                            withBorder={true}
+                            styles={{
+                                root: {
+                                    overflowX: 'auto', // Enable horizontal scroll
+                                },
+                            }}
+                            paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
+                        />
+                    </div>
+                    {/* <div className="mt-5 flex justify-end gap-3">
+                        <button disabled={!state.previous} onClick={handlePreviousPage} className={`btn ${!state.previous ? 'btn-disabled' : 'btn-primary'}`}>
+                            <IconArrowBackward />
+                        </button>
+                        <button disabled={!state.next} onClick={handleNextPage} className={`btn ${!state.next ? 'btn-disabled' : 'btn-primary'}`}>
+                            <IconArrowForward />
+                        </button>
+                    </div> */}
+
+                    <div className="mt-5 flex justify-center gap-3">
+                        <Pagination
+                            currentPage={state.currentPage}
+                            totalRecords={state.count}
+                            onPageChange={(page) => {
+                                getMasterData(page);
+                                setState({ currentPage: page });
+                            }}
+                            hasNext={state.next !== null}
+                            hasPrevious={state.previous !== null}
+                            recordsPerPage={10}
+                        />
+                    </div>
+                </>
+            ) : (
+                <div className="mt-20 flex items-center justify-center">No Record Found</div>
+            )}
+            <Modal
+                open={state.isOpen}
+                addHeader={state.EditId ? 'Update Stage' : 'Create Stage'}
+                close={() => setState({ isOpen: false, stage: '', errors: {} })}
+                renderComponent={() => (
+                    <div className="flex flex-col gap-3 p-5">
+                        <TextInput title={'Stage Name'} placeholder={'Stage Name'} value={state.stage} onChange={(e) => setState({ stage: e })} error={state.errors?.stage} required />
+
+                        <TextInput
+                            title={'Probability In Percentage'}
+                            placeholder={'Probability In Percentage'}
+                            value={state.probability}
+                            onChange={(e) => setState({ probability: e })}
+                            error={state.errors?.probability}
+                            required
+                        />
+
+                        <TextArea title={'Description'} placeholder={'Description'} value={state.description} onChange={(e) => setState({ description: e })} />
+
+                        <div className="mt-8 flex items-center justify-end ">
+                            <button type="button" className="btn btn-outline-danger" onClick={() => setState({ isOpen: false, stage: '', errors: {} })}>
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-primary ltr:ml-4 rtl:mr-4"
+                                onClick={() => {
+                                    handleCreateAndUpdate();
+                                }}
+                            >
+                                {state.submitLoad ? <IconLoader className=" h-4  w-4 animate-spin" /> : state.modalManage ? 'Update' : 'Create'}
+                            </button>
+                        </div>
+                    </div>
+                )}
+            />
+
+            <Modal
+                open={state.isDeleteOpen}
+                close={() => setState({ isDeleteOpen: false, department: '' })}
+                renderComponent={() => (
+                    <div className="p-5">
+                        <div className="text-sm text-dark">
+                            <p style={{ fontSize: '18px', fontWeight: '600', lineHeight: '1.5' }}>Are You Sure, Do You want to delete? This process cannot be Reverted.</p>
+                        </div>
+                        <div className="mt-0 flex items-center justify-end">
+                            <button type="button" onClick={() => setState({ isDeleteOpen: false })} className="btn btn-outline-danger">
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    handleDelete();
+                                }}
+                                className="btn btn-primary ltr:ml-4 rtl:mr-4"
+                            >
+                                {state.isDeleteLoad ? <IconLoader className=" h-4  w-4 animate-spin" /> : 'Delete'}
+                            </button>
+                        </div>
+                    </div>
+                )}
+            />
+        </div>
+    );
+};
+
+export default stages;
