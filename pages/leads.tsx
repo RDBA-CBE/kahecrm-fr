@@ -36,15 +36,6 @@ import Pagination from '@/components/Pagination';
 const Leads = () => {
     const dispatch = useDispatch();
 
-    const ReactApexChart = dynamic(() => import('react-apexcharts'), {
-        ssr: false,
-    });
-
-    const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
-        columnAccessor: 'name',
-        direction: 'asc',
-    });
-
     const redux = useSelector((state: IRootState) => state.crmConfig);
 
     const router = useRouter();
@@ -93,7 +84,6 @@ const Leads = () => {
         getData();
         userData();
         statusList();
-        // opportunityList();
         sourceList();
         DMGraphData();
         getOpportunityList();
@@ -117,14 +107,6 @@ const Leads = () => {
         }
     }, [state.role]);
 
-    // useEffect(() => {
-    // const body = bodyData();
-    // if (body) {
-    // filterData();
-    // } else {
-    //     getAllData(state.currentPage);
-    // }
-    // }, [state.currentPage]);
 
     const deps = useMemo(
         () => ({
@@ -211,25 +193,6 @@ const Leads = () => {
         }
     }, [state.from_date, state.end_date]);
 
-    const getAllData = async (page = 1) => {
-        try {
-            setState({ loading: true });
-            const response: any = await Models.lead.list(page);
-            const role: any = await Models.auth.userDetails();
-            setState({ range: [0, response.max_revenue], maxPrice: response.max_revenue });
-            tableData(response?.results, role?.designation);
-            setState({
-                loading: false,
-                totalRecords: response.count,
-                next: response.next,
-                previous: response.previous,
-                role: role?.designation,
-            });
-        } catch (error) {
-            setState({ loading: false });
-        }
-    };
-
     const statusList = async () => {
         try {
             setState({ loading: true });
@@ -239,18 +202,6 @@ const Leads = () => {
         } catch (error) {
             setState({ loading: false });
 
-            console.log('error: ', error);
-        }
-    };
-
-    const opportunityList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.opportunityList();
-            const dropdownList = Dropdown(res.results, 'name');
-            setState({ opportunityList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
             console.log('error: ', error);
         }
     };
@@ -611,363 +562,8 @@ const Leads = () => {
             };
         });
 
-        let columns = [];
-
-        switch (role) {
-            case ROLE.ADMIN:
-                columns = [
-                    { accessor: 'lead' },
-                    { accessor: 'opportunity', title: 'Opportunity', width: 120, sortable: false },
-                    { accessor: 'source' },
-                    { accessor: 'date', title: 'Date', width: 120 },
-                    { accessor: 'contact_person', title: 'Contact Person' },
-                    {
-                        accessor: 'lead_status',
-                        title: 'Last Status',
-
-                        render: (row) => (
-                            <div
-                                className={`flex w-max gap-4 rounded-full px-2 py-1 ${
-                                    row?.lead_status === 'Calls'
-                                        ? 'bg-blue-100 text-blue-800'
-                                        : row?.lead_status === 'Appointments'
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : row?.lead_status === 'Opportunity'
-                                        ? 'bg-green-100 text-green-800'
-                                        : row?.lead_status === 'Proposal'
-                                        ? 'bg-red-100 text-red-800'
-                                        : row?.lead_status === 'Closures'
-                                        ? 'bg-orange-100 text-orange-800'
-                                        : row?.lead_status === 'Leads'
-                                        ? 'bg-teal-100 text-teal-800'
-                                        : 'bg-gray-100 text-gray-800'
-                                }`}
-                            >
-                                {row?.lead_status}
-                            </div>
-                        ),
-                    },
-                    { accessor: 'status_date', title: 'Status Date' },
-                    { accessor: 'remark', title: 'Remark' },
-                    {
-                        accessor: 'actions',
-                        title: 'Actions',
-                        render: (row: any) => (
-                            <div className="mx-auto flex w-max items-center gap-4">
-                                <Tippy content="Assign To" className="rounded-lg bg-black p-1 text-sm text-white">
-                                    <button type="button" className="flex hover:text-primary" onClick={() => setState({ isOpenAssign: true, leadId: row.lead?.id })}>
-                                        <IconUserPlus />
-                                    </button>
-                                </Tippy>
-                                <button type="button" className="flex hover:text-primary" onClick={() => handleView(row.lead?.id)}>
-                                    <IconEye />
-                                </button>
-                                <button className="flex hover:text-info" onClick={() => handleEdit(row.lead?.id)}>
-                                    <IconEdit className="h-4.5 w-4.5" />
-                                </button>
-                            </div>
-                        ),
-                        style: {
-                            position: 'sticky',
-                            right: 0,
-                            background: '#fff',
-                            zIndex: 2,
-                        },
-                    },
-                ];
-                break;
-
-            case ROLE.BDM:
-                columns = [
-                    { accessor: 'lead' },
-                    { accessor: 'opportunity', title: 'Opportunity', width: 120, sortable: false },
-                    { accessor: 'source' },
-                    { accessor: 'date', title: 'Date', width: 120 },
-
-                    { accessor: 'contact_person', title: 'Contact Person' },
-
-                    {
-                        accessor: 'lead_status',
-                        title: 'Last Status',
-
-                        render: (row) => (
-                            <div
-                                className={`flex w-max gap-4 rounded-full px-2 py-1 ${
-                                    row?.lead_status === 'Calls'
-                                        ? 'bg-blue-100 text-blue-800'
-                                        : row?.lead_status === 'Appointments'
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : row?.lead_status === 'Opportunity'
-                                        ? 'bg-green-100 text-green-800'
-                                        : row?.lead_status === 'Proposal'
-                                        ? 'bg-red-100 text-red-800'
-                                        : row?.lead_status === 'Closures'
-                                        ? 'bg-orange-100 text-orange-800'
-                                        : row?.lead_status === 'Leads'
-                                        ? 'bg-teal-100 text-teal-800'
-                                        : 'bg-gray-100 text-gray-800'
-                                }`}
-                            >
-                                {row?.lead_status}
-                            </div>
-                        ),
-                    },
-                    { accessor: 'status_date', title: 'Status Date' },
-                    { accessor: 'remark', title: 'Remark' },
-                    {
-                        accessor: 'actions',
-                        title: 'Actions',
-                        render: (row: any) => (
-                            <div className="mx-auto flex w-max items-center gap-4">
-                                <Tippy content="Assign To" className="rounded-lg bg-black p-1 text-sm text-white">
-                                    <button type="button" className="flex hover:text-primary" onClick={() => setState({ isOpenAssign: true, leadId: row.id })}>
-                                        <IconUserPlus />
-                                    </button>
-                                </Tippy>
-                                <button type="button" className="flex hover:text-primary" onClick={() => handleView(row.id)}>
-                                    <IconEye />
-                                </button>
-                                <button className="flex hover:text-info" onClick={() => handleEdit(row.id)}>
-                                    <IconEdit className="h-4.5 w-4.5" />
-                                </button>
-                            </div>
-                        ),
-                        style: {
-                            position: 'sticky',
-                            right: 0,
-                            background: '#fff',
-                            zIndex: 2,
-                        },
-                    },
-                ];
-                break;
-
-            case ROLE.BDE:
-                columns = [
-                    {
-                        accessor: 'lead',
-
-                        render: (row, index) => (
-                            <>
-                                <div className="">{row.name}</div>
-                            </>
-                        ),
-                    },
-                    { accessor: 'opportunity', title: 'Opportunity', width: 120, sortable: false },
-                    { accessor: 'source', title: 'Source' },
-                    { accessor: 'date', title: 'Date' },
-                    { accessor: 'contact_person', title: 'Contact Person' },
-                    { accessor: 'contact_number', title: 'Contact Number' },
-                    {
-                        accessor: 'lead_status',
-                        title: 'Last Status',
-
-                        render: (row) => (
-                            <div
-                                className={`flex w-max gap-4 rounded-full px-2 py-1 ${
-                                    row?.lead_status === 'Calls'
-                                        ? 'bg-blue-100 text-blue-800'
-                                        : row?.lead_status === 'Appointments'
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : row?.lead_status === 'Opportunity'
-                                        ? 'bg-green-100 text-green-800'
-                                        : row?.lead_status === 'Proposal'
-                                        ? 'bg-red-100 text-red-800'
-                                        : row?.lead_status === 'Closures'
-                                        ? 'bg-orange-100 text-orange-800'
-                                        : row?.lead_status === 'Leads'
-                                        ? 'bg-teal-100 text-teal-800'
-                                        : 'bg-gray-100 text-gray-800'
-                                }`}
-                            >
-                                {row?.lead_status}
-                            </div>
-                        ),
-                    },
-                    { accessor: 'status_date', title: 'Status Date' },
-                    { accessor: 'remark', title: 'Remark' },
-                    {
-                        accessor: 'actions',
-                        title: 'Actions',
-                        render: (row: any) => (
-                            <div className="mx-auto flex w-max items-center gap-4">
-                                <Tippy content="Quick Edit" className="rounded-lg bg-black p-1 text-sm text-white">
-                                    <button
-                                        type="button"
-                                        className="flex hover:text-primary"
-                                        onClick={() => {
-                                            state.expandedRow === row.id ? setState({ expandedRow: null }) : setState({ expandedRow: row.id });
-                                        }}
-                                    >
-                                        <IconNotesEdit />
-                                    </button>
-                                </Tippy>
-
-                                <button type="button" className="flex hover:text-primary" onClick={() => handleView(row.id)}>
-                                    <IconEye />
-                                </button>
-                                <button className="flex hover:text-info" onClick={() => handleEdit(row.id)}>
-                                    <IconEdit className="h-4.5 w-4.5" />
-                                </button>
-                            </div>
-                        ),
-                    },
-                ];
-                break;
-
-            case ROLE.TM:
-                columns = [
-                    {
-                        accessor: 'lead',
-
-                        title: 'Company',
-                    },
-
-                    {
-                        accessor: 'contact_person',
-                        title: 'Contact Person',
-                    },
-                    { accessor: 'contact_number', title: 'Contact Number' },
-
-                    { accessor: 'source', title: 'Source' },
-
-                    { accessor: 'date', title: 'Date', width: 120 },
-                    {
-                        accessor: 'lead_status',
-                        title: 'Last Status',
-
-                        render: (row) => (
-                            <div
-                                className={`flex w-max gap-4 rounded-full px-2 py-1 ${
-                                    row?.lead_status === 'Calls'
-                                        ? 'bg-blue-100 text-blue-800'
-                                        : row?.lead_status === 'Appointments'
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : row?.lead_status === 'Opportunity'
-                                        ? 'bg-green-100 text-green-800'
-                                        : row?.lead_status === 'Proposal'
-                                        ? 'bg-red-100 text-red-800'
-                                        : row?.lead_status === 'Closures'
-                                        ? 'bg-orange-100 text-orange-800'
-                                        : row?.lead_status === 'Leads'
-                                        ? 'bg-teal-100 text-teal-800'
-                                        : 'bg-gray-100 text-gray-800'
-                                }`}
-                            >
-                                {row?.lead_status}
-                            </div>
-                        ),
-                    },
-                    { accessor: 'status_date', title: 'Follow Up', width: 120 },
-                    { accessor: 'remark', title: 'Remark ' },
-                    {
-                        accessor: 'actions',
-                        title: 'Actions',
-                        render: (row: any) => (
-                            <div className="mx-auto flex w-max items-center gap-4">
-                                <Tippy content="Quick Edit" className="rounded-lg bg-black p-1 text-sm text-white">
-                                    <button
-                                        type="button"
-                                        className="flex hover:text-primary"
-                                        onClick={() => {
-                                            state.expandedRow == row.id ? setState({ expandedRow: null }) : setState({ expandedRow: row.id });
-                                        }}
-                                    >
-                                        <IconNotesEdit />
-                                    </button>
-                                </Tippy>
-
-                                <button type="button" className="flex hover:text-primary" onClick={() => handleView(row.id)}>
-                                    <IconEye />
-                                </button>
-                                <button className="flex hover:text-info" onClick={() => handleEdit(row.id)}>
-                                    <IconEdit className="h-4.5 w-4.5" />
-                                </button>
-                            </div>
-                        ),
-                    },
-                ];
-                break;
-
-            case ROLE.DM:
-                columns = [
-                    {
-                        accessor: 'lead',
-                    },
-                    { accessor: 'opportunity', title: 'Opportunity', width: 120, sortable: false },
-                    { accessor: 'source', title: 'Source' },
-                    { accessor: 'date', title: 'Date' },
-                    { accessor: 'contact_person', title: 'Contact Person' },
-                    {
-                        accessor: 'last_status',
-                        title: 'Last Status',
-
-                        render: (row) => (
-                            <div
-                                className={`flex w-max gap-4 rounded-full px-2 py-1 ${
-                                    row?.lastStatus === 'New'
-                                        ? 'bg-blue-100 text-blue-800'
-                                        : row?.lastStatus === 'Contacted'
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : row?.lastStatus === 'Qualified'
-                                        ? 'bg-green-100 text-green-800'
-                                        : row?.lastStatus === 'Disqualified'
-                                        ? 'bg-red-100 text-red-800'
-                                        : row?.lastStatus === 'Follow-Up'
-                                        ? 'bg-orange-100 text-orange-800'
-                                        : row?.lastStatus === 'Converted'
-                                        ? 'bg-teal-100 text-teal-800'
-                                        : 'bg-gray-100 text-gray-800'
-                                }`}
-                            >
-                                {row?.lastStatus}
-                            </div>
-                        ),
-                    },
-                    { accessor: 'status_date', title: 'Status Date' },
-                    { accessor: 'remark', title: 'Remark' },
-
-                    {
-                        accessor: 'actions',
-                        title: 'Actions',
-                        render: (row: any) => (
-                            <div className="mx-auto flex w-max items-center gap-4">
-                                <Tippy content="Quick Edit" className="rounded-lg bg-black p-1 text-sm text-white">
-                                    <button
-                                        type="button"
-                                        className="flex hover:text-primary"
-                                        onClick={() => {
-                                            // Toggle row expansion
-                                            state.expandedRow === row.id ? setState({ expandedRow: null }) : setState({ expandedRow: row.id });
-                                        }}
-                                    >
-                                        <IconNotesEdit />
-                                    </button>
-                                </Tippy>
-
-                                <button type="button" className="flex hover:text-primary" onClick={() => handleView(row.id)}>
-                                    <IconEye />
-                                </button>
-                                <button className="flex hover:text-info" onClick={() => handleEdit(row.id)}>
-                                    <IconEdit className="h-4.5 w-4.5" />
-                                </button>
-                            </div>
-                        ),
-                        style: {
-                            position: 'sticky', // Sticky position
-                            right: 0, // Fix to the right side
-                            background: '#fff', // Background color for better visibility
-                            zIndex: 2, // Ensure it's above other elements
-                        },
-                    },
-                ];
-                break;
-
-            default:
-                console.warn('Invalid role provided!');
-                break;
-        }
-        setState({ data: data, allData: res, columns: columns });
+   
+        setState({ data: data, allData: res});
     };
 
     const getData = async () => {
@@ -998,20 +594,6 @@ const Leads = () => {
     };
 
     const orderFilter = ['Year', 'Last Month', 'This Month', 'Last 7 Days', 'Custom'];
-
-    const handleNextPage = () => {
-        if (state.next) {
-            const newPage = state.currentPage + 1;
-            filterData(newPage);
-        }
-    };
-
-    const handlePreviousPage = () => {
-        if (state.previous) {
-            const newPage = state.currentPage - 1;
-            filterData(newPage);
-        }
-    };
 
     const clearFilter = () => {
         setState({
@@ -1253,11 +835,6 @@ const Leads = () => {
         if (state.end_date) {
             body.end_date = moment(state.end_date).format('YYYY-MM-DD');
         }
-
-        // if (state.range[0] > 0 || state.range[1] != state.maxPrice) {
-        //     (body.min_revenue = state.range[0]), (body.max_revenue = state.range[1]);
-        // }
-
         return body;
     };
 
@@ -1627,68 +1204,8 @@ const Leads = () => {
                             />
                         </>
                     )}
-                    {ROLE.BDM == state.role && (
-                        <>
-                            <CustomSelect
-                                options={state.bdeList}
-                                value={state.bde}
-                                onChange={(e) => setState({ bde: e })}
-                                disabled={state?.tm?.value || state.dm?.value}
-                                isMulti={false}
-                                placeholder="BDE"
-                                className="w-full"
-                            />
-                            <CustomSelect
-                                options={state.assignList}
-                                value={state.tm}
-                                onChange={(e) => setState({ tm: e })}
-                                disabled={state?.bde?.value || state.dm?.value}
-                                isMulti={false}
-                                placeholder="TM"
-                                className="w-full"
-                            />
+                    
 
-                            <CustomSelect
-                                options={state.dmList}
-                                value={state.dm}
-                                onChange={(e) => setState({ dm: e })}
-                                disabled={state?.bde?.value || state.tm?.value}
-                                isMulti={false}
-                                placeholder="DM"
-                                className="w-full"
-                            />
-                        </>
-                    )}
-                    {
-                        ROLE.TM == state.role || ROLE.DM === state.role ? (
-                            <>
-                                <CustomSelect
-                                    value={state.assignRole}
-                                    onChange={(e) => setState({ assignRole: e, assigned_to: '', assignList: [] })}
-                                    placeholder={'Choose Role'}
-                                    options={[
-                                        { value: 'owner', label: 'Owner' },
-                                        { value: 'bdm', label: 'BDM' },
-                                        { value: 'bde', label: 'BDE' },
-                                    ]}
-                                    required
-                                    className="w-full"
-                                />
-                                <CustomSelect
-                                    value={state.assigned_to}
-                                    onChange={(e) => setState({ assigned_to: e })}
-                                    placeholder={'Assign To'}
-                                    options={state.assignList}
-                                    error={state.errors?.assigned_to}
-                                    className="w-full"
-                                    required
-                                />
-                            </>
-                        ) : null
-                        
-                    }
-
-                    {/* {(ROLE.BDE == state.role || ROLE.TM == state.role || ROLE.DM === state.role) && ( */}
                     <CustomSelect
                         value={state.lead_source}
                         onChange={(e) => setState({ lead_source: e })}
@@ -1698,9 +1215,7 @@ const Leads = () => {
                         className="w-full"
                         required
                     />
-                    {/* )} */}
 
-                    {/* {ROLE.BDE == state.role && ( */}
                     <CustomSelect
                         value={state.lead_status}
                         onChange={(e) => setState({ lead_status: e })}
@@ -1710,7 +1225,6 @@ const Leads = () => {
                         className="w-full"
                         required
                     />
-                    {/* )} */}
 
                     <CustomSelect
                         value={state.opportunity}
@@ -1721,57 +1235,10 @@ const Leads = () => {
                         required
                     />
 
-                    {/* <button className="btn btn-primary w-full lg:w-auto" onClick={() => setState({ isOpen: true })}>
-                        <IconFilter />
-                    </button> */}
                 </div>
             </div>
 
-            {state.role !== ROLE.DM && (
-                <div className="pb-2 pt-2">
-                    <SimpleGrid
-                        cols={state.role == ROLE.BDE || state.role == ROLE.BDM || state.role == ROLE.ADMIN ? 6 : 5}
-                        spacing="sm"
-                        breakpoints={[
-                            { maxWidth: 768, cols: 2 },
-                            { maxWidth: 576, cols: 1 },
-                        ]}
-                    >
-                        {state.cardData.map((card: any, index: any) => (
-                            <div className="panel">
-                                <div className="mb-5 flex items-center font-semibold">
-                                    <div className="grid h-6 w-6 shrink-0 place-content-center rounded-full md:h-8 md:w-8">
-                                        <IconBitcoin />
-                                    </div>
-                                    <div className="ltr:ml-2 rtl:mr-2">
-                                        <h6 className="text-sm  font-bold  text-dark dark:text-white-light lg:text-lg">{card.title}</h6>
-                                        {/* <p className="text-xs text-white-dark">Bitcoin</p> */}
-                                    </div>
-                                </div>
-
-                                {/* {ROLE.DM == state.role && (  
-                            <div className="mb-5">{state.loading && <ReactApexChart series={bitcoin.series} options={bitcoin.options} type="line" height={45} width={'100%'} />}</div>
-                            )} */}
-
-                                <div className="flex items-center justify-between text-base font-bold">
-                                    <div >
-                                        <div className="text-sm font-normal ">{card.name1}</div>
-                                        <div>
-                                            <span className="text-xl font-bold  text-success">{card.todayCount ? card.todayCount : 0}</span>
-                                        </div>
-                                    </div>
-                                    <div >
-                                        <div className="text-sm font-normal "> {card.name2}</div>
-                                        <div>
-                                            <span className="text-xl font-bold text-success">{card.monthCount ? card.monthCount : 0}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </SimpleGrid>
-                </div>
-            )}
+         
 
             {ROLE.ADMIN == state.role ? (
                 <>
@@ -2163,14 +1630,7 @@ const Leads = () => {
                             }}
                         />
                     </div>
-                    {/* <div className="mt-5 flex justify-center gap-3">
-                        <button disabled={!state.previous} onClick={handlePreviousPage} className={`btn ${!state.previous ? 'btn-disabled' : 'btn-primary'}`}>
-                            <IconArrowBackward />
-                        </button>
-                        <button disabled={!state.next} onClick={handleNextPage} className={`btn ${!state.next ? 'btn-disabled' : 'btn-primary'}`}>
-                            <IconArrowForward />
-                        </button>
-                    </div> */}
+                
 
                     <div className="mt-5 flex justify-center gap-3">
                         <Pagination
@@ -2185,46 +1645,9 @@ const Leads = () => {
                         />
                     </div>
                 </>
-            {/* ) : (
-                <div className="mt-20 flex items-center justify-center">No Record Found</div>
-            )} */}
+         
 
-            <SideMenu
-                title="Filter"
-                open={state.isOpen}
-                close={() => setState({ isOpen: false })}
-                cancelOnClick={() => clearFilter()}
-                submitOnClick={() => filterData(state?.currentPage)}
-                submitLoading={state.loading}
-                canceTitle="Reset"
-                renderComponent={() => (
-                    <div>
-                        <div className=" mb-5 mt-5 flex flex-col gap-4 md:mt-0  md:justify-between">
-                            <CustomeDatePicker error={state.errors?.closing_date} value={state.opp_closing_date} placeholder="Date" title="Date" onChange={(e) => setState({ opp_closing_date: e })} />
-                            <CustomSelect
-                                title="Opportunity"
-                                value={state.tags}
-                                isMulti={true}
-                                onChange={(e) => setState({ tags: e })}
-                                placeholder={'Opportunity'}
-                                options={state.tagList}
-                                error={state.errors?.tags}
-                            />
-                            <CustomSelect
-                                title="Status"
-                                value={state.tags}
-                                isMulti={true}
-                                onChange={(e) => setState({ tags: e })}
-                                placeholder={'Status'}
-                                options={state.tagList}
-                                error={state.errors?.tags}
-                            />
-
-                            {/*CustomSelect  */}
-                        </div>
-                    </div>
-                )}
-            />
+          
         </div>
     );
 };

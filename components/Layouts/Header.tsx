@@ -109,9 +109,9 @@ const Header = () => {
     }, []);
 
     useEffect(() => {
-        taskList(state.duration);
-        getUserData();
-        contactList();
+        // taskList(state.duration);
+        // getUserData();
+        // contactList();
     }, []);
 
     const taskList = async (e) => {

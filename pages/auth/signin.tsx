@@ -1,19 +1,13 @@
 import Link from 'next/link';
 import { useDispatch, useSelector } from 'react-redux';
-import { IRootState } from '../../store';
 import { useEffect, useState } from 'react';
 import { setPageTitle, toggleLocale, toggleRTL } from '../../store/themeConfigSlice';
 import { useRouter } from 'next/router';
 import BlankLayout from '@/components/Layouts/BlankLayout';
-import Dropdown from '@/components/Dropdown';
-import { useTranslation } from 'react-i18next';
-import IconCaretDown from '@/components/Icon/IconCaretDown';
+
 import IconMail from '@/components/Icon/IconMail';
 import IconLockDots from '@/components/Icon/IconLockDots';
-import IconInstagram from '@/components/Icon/IconInstagram';
-import IconFacebookCircle from '@/components/Icon/IconFacebookCircle';
-import IconTwitter from '@/components/Icon/IconTwitter';
-import IconGoogle from '@/components/Icon/IconGoogle';
+
 import * as Yup from 'yup';
 import { Failure, Success, useSetState } from '@/utils/functions.utils';
 import Models from '@/imports/models.import';
@@ -72,9 +66,6 @@ const LoginBoxed = () => {
     //     }
     // };
     const submitForm = (e) => {
-        localStorage.setItem("crmToken","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY0MTQ2MjIzLCJpYXQiOjE3NjQwNTk4MjMsImp0aSI6ImEyYWM3NGNiYjdlMDQyNTU5OGE1NTJlMjU1YzFhNWE4IiwidXNlcl9pZCI6IjEiLCJlbWFpbCI6ImFkbWluQGdtYWlsLmNvbSIsImZpcnN0X25hbWUiOiIiLCJsYXN0X25hbWUiOiIiLCJpc19zdGFmZiI6dHJ1ZX0.OycaRGbH1eLonllnT1Ld2Oj3xzGSwu2-bMppLUlrTns")
-        localStorage.setItem("refreshToken","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc2NDY2NDYyMywiaWF0IjoxNzY0MDU5ODIzLCJqdGkiOiIxYjk1NDM5NWFiZTk0N2ZjYmJmMDAwMmUxOWJiNzYzYyIsInVzZXJfaWQiOiIxIiwiZW1haWwiOiJhZG1pbkBnbWFpbC5jb20iLCJmaXJzdF9uYW1lIjoiIiwibGFzdF9uYW1lIjoiIiwiaXNfc3RhZmYiOnRydWV9.esLSvdyJUY_hLT2bIICGYLQL17uAX1iQHK2c4wTSQH0")
-                    router.replace('/dashboards');
 
         e.preventDefault();
         setState({ loading: true });

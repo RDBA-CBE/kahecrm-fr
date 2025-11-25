@@ -94,7 +94,7 @@ const Sidebar = () => {
         if (window.innerWidth < 1024 && themeConfig.sidebar) {
             dispatch(toggleSidebar());
         }
-        getUserDetails();
+        // getUserDetails();
     }, [router.pathname]);
 
     useEffect(() => {
@@ -360,7 +360,7 @@ console.log('✌️res --->', res);
                     </div>
                     <PerfectScrollbar className="relative h-[calc(100vh-80px)]">
                         <ul className="relative space-y-0.5 p-4 py-0 font-semibold">
-                            {(role == 'ADMIN' || role == 'BDM') && (
+                            {/* {(role == 'ADMIN' || role == 'BDM') && ( */}
                                 <>
                                     {/* <div
                                         className="flex items-center justify-between"
@@ -788,216 +788,11 @@ console.log('✌️res --->', res);
                                         </ul>
                                     </li>
                                 </>
-                            )}
-                            {(role == 'BDE' || role == 'TM') && (
-                                <li className="nav-item">
-                                    <ul>
-                                        <li className="nav-item">
-                                            <Link href="/dashboards" className="group">
-                                                <div className="flex items-center">
-                                                    <IconMenuDashboard className="shrink-0 group-hover:!text-primary" />
-                                                    <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Dashboard')}</span>
-                                                </div>
-                                            </Link>
-                                        </li>
+                            {/* )} */}
+                        
+                          
 
-                                        <li className="menu nav-item">
-                                            <button
-                                                type="button"
-                                                className={`${currentMenu === 'Calendar' ? 'active' : ''} nav-link group w-full`}
-                                                onClick={() => {
-                                                    toggleMenu('Calendar');
-                                                }}
-                                            >
-                                                <div className="flex items-center">
-                                                    <IconMenuCalendar className="shrink-0 group-hover:!text-primary" />
-                                                    <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Tasks')}</span>
-                                                </div>
-
-                                                <div className={currentMenu !== 'Calendar' ? '-rotate-90 rtl:rotate-90' : ''}>
-                                                    <IconCaretDown />
-                                                </div>
-                                            </button>
-
-                                            <AnimateHeight duration={300} height={currentMenu === 'Calendar' ? 'auto' : 0}>
-                                                <ul className="sub-menu text-gray-500">
-                                                    <li>
-                                                        <Link href="/tasks">{t('My Tasks')}</Link>
-                                                    </li>
-                                                    <li>
-                                                        <Link href="/assigned_task">{t('Assigned Tasks')}</Link>
-                                                    </li>
-                                                    <li>
-                                                        <Link
-                                                            href="/tasks"
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                setState({ isOpenTask: true });
-                                                                assignList();
-                                                                leadList();
-                                                            }}
-                                                            className="cursor-pointer"
-                                                        >
-                                                            {t('Create Task')}
-                                                        </Link>
-                                                    </li>
-                                                </ul>
-                                            </AnimateHeight>
-                                        </li>
-                                        <li className="menu nav-item">
-                                            <button
-                                                type="button"
-                                                className={`${currentMenu === 'Contacts' ? 'active' : ''} nav-link group w-full`}
-                                                onClick={() => {
-                                                    toggleMenu('Contacts');
-                                                }}
-                                            >
-                                                <div className="flex items-center">
-                                                    <IconMenuUsers className="shrink-0 group-hover:!text-primary" />
-                                                    <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Contacts')}</span>
-                                                </div>
-
-                                                <div className={currentMenu !== 'Contacts' ? '-rotate-90 rtl:rotate-90' : ''}>
-                                                    <IconCaretDown />
-                                                </div>
-                                            </button>
-
-                                            <AnimateHeight duration={300} height={currentMenu === 'Contacts' ? 'auto' : 0}>
-                                                <ul className="sub-menu text-gray-500">
-                                                    <li>
-                                                        <Link href="/contacts">{t('My Contacts')}</Link>
-                                                    </li>
-                                                    <li>
-                                                        <Link href="/archive_contact">{t('Archive Contact')}</Link>
-                                                    </li>
-                                                    <li>
-                                                        <Link href="/create_contact">{t('Create Contact')}</Link>
-                                                    </li>
-                                                </ul>
-                                            </AnimateHeight>
-                                        </li>
-                                        <li className="menu nav-item">
-                                            <button
-                                                type="button"
-                                                className={`${currentMenu === 'Leads' ? 'active' : ''} nav-link group w-full`}
-                                                onClick={() => {
-                                                    toggleMenu('Leads');
-                                                }}
-                                            >
-                                                <div className="flex items-center">
-                                                    <IconLeads className="shrink-0 group-hover:!text-primary" />
-                                                    <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Leads')}</span>
-                                                </div>
-
-                                                <div className={currentMenu !== 'Leads' ? '-rotate-90 rtl:rotate-90' : ''}>
-                                                    <IconCaretDown />
-                                                </div>
-                                            </button>
-                                            {role == 'BDE' && (
-                                                <>
-                                                    <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
-                                                        <ul className="sub-menu text-gray-500">
-                                                            <li>
-                                                                <Link href="/leads">{t('All Leads')}</Link>
-                                                            </li>
-                                                        </ul>
-                                                    </AnimateHeight>
-                                                    <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
-                                                        <ul className="sub-menu text-gray-500">
-                                                            <li>
-                                                                <Link href="/assign-lead">{t('Assigned Leads')}</Link>
-                                                            </li>
-                                                        </ul>
-                                                    </AnimateHeight>
-                                                </>
-                                            )}
-                                            {role == 'TM' && (
-                                                <>
-                                                    <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
-                                                        <ul className="sub-menu text-gray-500">
-                                                            <li>
-                                                                <Link href="/leads">{t('All Leads')}</Link>
-                                                            </li>
-                                                        </ul>
-                                                    </AnimateHeight>
-                                                    {/* <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
-                                                        <ul className="sub-menu text-gray-500">
-                                                            <li>
-                                                                <Link href="/assign-lead">{t('Assigned Leads')}</Link>
-                                                            </li>
-                                                        </ul>
-                                                    </AnimateHeight> */}
-                                                </>
-                                            )}
-                                            <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
-                                                <ul className="sub-menu text-gray-500">
-                                                    <li>
-                                                        <Link href="/create_contact">{t('Create Lead')}</Link>
-                                                    </li>
-                                                </ul>
-                                            </AnimateHeight>
-                                        </li>
-                                    </ul>
-                                </li>
-                            )}
-                            {role == 'DM' && (
-                                <li className="nav-item">
-                                    <ul>
-                                        <li className="nav-item">
-                                            <Link href="/dashboards" className="group">
-                                                <div className="flex items-center">
-                                                    <IconMenuDashboard className="shrink-0 group-hover:!text-primary" />
-                                                    <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Dashboard')}</span>
-                                                </div>
-                                            </Link>
-                                        </li>
-
-                                        <li className="menu nav-item">
-                                            <button
-                                                type="button"
-                                                className={`${currentMenu === 'Leads' ? 'active' : ''} nav-link group w-full`}
-                                                onClick={() => {
-                                                    // router.push('leads');
-                                                    toggleMenu('Leads');
-                                                }}
-                                            >
-                                                <div className="flex items-center">
-                                                    <IconLeads className="shrink-0 group-hover:!text-primary" />
-                                                    <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Leads')}</span>
-                                                </div>
-
-                                                <div className={currentMenu !== 'Leads' ? '-rotate-90 rtl:rotate-90' : ''}>
-                                                    <IconCaretDown />
-                                                </div>
-                                            </button>
-                                            <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
-                                                <ul className="sub-menu text-gray-500">
-                                                    <li>
-                                                        <Link href="/leads">{t('All Leads')}</Link>
-                                                    </li>
-                                                </ul>
-                                            </AnimateHeight>
-                                            {/* <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
-                                                <ul className="sub-menu text-gray-500">
-                                                    <li>
-                                                        <Link href="/assign-lead">{t('Assigned Leads')}</Link>
-                                                    </li>
-                                                </ul>
-                                            </AnimateHeight> */}
-                                            <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
-                                                <ul className="sub-menu text-gray-500">
-                                                    <li>
-                                                        <Link href="/create_contact">{t('Create Lead')}</Link>
-                                                    </li>
-                                                </ul>
-                                            </AnimateHeight>
-                                        </li>
-                                    </ul>
-                                </li>
-                            )}
-
-                            {/* ..............masters................... */}
-                            {/* {(role == 'ADMIN' || role == 'BDM') && ( */}
+             
                                 <li className="menu nav-item">
                                     <button
                                         type="button"
@@ -1046,67 +841,7 @@ console.log('✌️res --->', res);
                                                 <Link href="/contact-status">{t('Contact Status')}</Link>
                                             </li>
 
-                                            {/* <li>
-                                                <Link href="/opportunity-name">{t('Opportunity Name')}</Link>
-                                            </li>
-                                            <li>
-                                                <Link href="/opportunity-status">{t('Opportunity Status')}</Link>
-                                            </li>
-                                            <li>
-                                                <Link href="/department">{t('Department')}</Link>
-                                            </li>
-                                            <li>
-                                                <Link href="/vertical">{t('Verticals')}</Link>
-                                            </li>
-                                            <li>
-                                                <Link href="/focus-segments">{t('Company Segments')}</Link>
-                                            </li>
-                                            <li>
-                                                <Link href="/market-segmants">{t('Income Segment')}</Link>
-                                            </li>
-                                            <li>
-                                                <Link href="/tags">{t('Tags')}</Link>
-                                            </li>
-                                            <li>
-                                                <Link href="/contact-status">{t('Contact Status')}</Link>
-                                            </li>
-                                            <li>
-                                                <Link href="/stages">{t('Opportunity Stages')}</Link>
-                                            </li>
-                                            <li>
-                                                <Link href="/log-stages">{t('Log Stages')}</Link>
-                                            </li>
-                                            <li>
-                                                <Link href="/countries">{t('Countries')}</Link>
-                                            </li>
-                                            <li>
-                                                <Link href="/state">{t('State')}</Link>
-                                            </li>
-                                            <li>
-                                                <Link href="/city">{t('City')}</Link>
-                                            </li> */}
-                                            {/* <li>
-                                                            <Link
-                                                                href="/salutation"
-                                                                
-                                                            >
-                                                                {t('Salutation')}
-                                                            </Link>
-                                                        </li> */}
-                                            {/* <li>
-                                                <Link href="/lead-source">{t('Lead Source')}</Link>
-                                            </li> */}
-                                            {/* <li>
-                                                            <Link
-                                                                href="/lead-source-from"
-                                                                
-                                                            >
-                                                                {t('Lead Source From')}
-                                                            </Link>
-                                                        </li> */}
-                                            {/* <li>
-                                                <Link href="/bdm">{t('BDM')}</Link>
-                                            </li> */}
+                                           
                                         </ul>
                                     </AnimateHeight>
                                 </li>
