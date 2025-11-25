@@ -72,6 +72,10 @@ const LoginBoxed = () => {
     //     }
     // };
     const submitForm = (e) => {
+        localStorage.setItem("crmToken","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY0MTQ2MjIzLCJpYXQiOjE3NjQwNTk4MjMsImp0aSI6ImEyYWM3NGNiYjdlMDQyNTU5OGE1NTJlMjU1YzFhNWE4IiwidXNlcl9pZCI6IjEiLCJlbWFpbCI6ImFkbWluQGdtYWlsLmNvbSIsImZpcnN0X25hbWUiOiIiLCJsYXN0X25hbWUiOiIiLCJpc19zdGFmZiI6dHJ1ZX0.OycaRGbH1eLonllnT1Ld2Oj3xzGSwu2-bMppLUlrTns")
+        localStorage.setItem("refreshToken","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc2NDY2NDYyMywiaWF0IjoxNzY0MDU5ODIzLCJqdGkiOiIxYjk1NDM5NWFiZTk0N2ZjYmJmMDAwMmUxOWJiNzYzYyIsInVzZXJfaWQiOiIxIiwiZW1haWwiOiJhZG1pbkBnbWFpbC5jb20iLCJmaXJzdF9uYW1lIjoiIiwibGFzdF9uYW1lIjoiIiwiaXNfc3RhZmYiOnRydWV9.esLSvdyJUY_hLT2bIICGYLQL17uAX1iQHK2c4wTSQH0")
+                    router.replace('/dashboards');
+
         e.preventDefault();
         setState({ loading: true });
         if (state.email == '' && state.password == '') {
@@ -84,8 +88,9 @@ const LoginBoxed = () => {
             };
 
             axios
-                .post(`${process.env.NEXT_PUBLIC_BASE_URL}accounts/login/`, body)
+                .post(`${process.env.NEXT_PUBLIC_BASE_URL}login/`, body)
                 .then((res) => {
+                    console.log("first",res)
                     localStorage.setItem('crmToken', res.data.access);
                     localStorage.setItem('refreshToken', res.data.refresh);
                     localStorage.setItem('crmUser', JSON.stringify(res.data.user));
