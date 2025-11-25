@@ -139,7 +139,9 @@ export const createContact = Yup.object().shape({
     phone_number: Yup.string()
         .nullable()
         .required('Phone number is required')
-        .matches(/^[+]?[0-9]{10,15}$/, 'Please enter a valid phone number')
+        .matches(/^[+]?[0-9]{10,15}$/, 'Please enter a valid phone number'),
+    status:Yup.string().required('Status is required')
+
     // address: Yup.string().required('Address is required'),
     // city: Yup.string().required('City is required'),
 });

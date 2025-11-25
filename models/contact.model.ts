@@ -3,7 +3,7 @@ import instance from '@/utils/axios.utils';
 const contact = {
     list: (page, userId = null) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `college/contacts/?is_archive=false&page=${page}&page_size=10&lead_is_null=True`;
+            let url = `crm/contacts/?page=${page}&page_size=10`;
             if (userId) {
                 url += `&created_by=${encodeURIComponent(userId)}`;
             }
@@ -31,7 +31,7 @@ const contact = {
     filter: (page, body, userId = null) => {
 
         let promise = new Promise((resolve, reject) => {
-            let url = `college/contacts/?page=${page}&page_size=10&is_archive=false&lead_is_null=True`;
+            let url = `crm/contacts/?page=${page}&page_size=10`;
 
             if (!userId && body.team) {
                 if (body.team) {
@@ -92,7 +92,7 @@ const contact = {
 
     archive_list: (page, userId = null) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `leads/contacts/?is_archive=true&page=${page}&page_size=10&lead_is_null=True`;
+            let url = `crm/contacts/?is_archive=true&page=${page}&page_size=10&lead_is_null=True`;
             if (userId) {
                 url += `&created_by=${encodeURIComponent(userId)}`;
             }
@@ -115,7 +115,7 @@ const contact = {
 
     archive_filter: (page, body, userId = null) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `leads/contacts/?page=${page}&page_size=10&is_archive=true&lead_is_null=True`;
+            let url = `crm/contacts/?page=${page}&page_size=10&is_archive=true&lead_is_null=True`;
 
             if (!userId && body.team) {
                 if (body.team) {
@@ -169,7 +169,7 @@ const contact = {
 
     status: () => {
         let promise = new Promise((resolve, reject) => {
-            let url = `leads/contact_statuses/?is_active=true`;
+            let url = `crm/contact_statuses/?is_active=true`;
             instance()
                 .get(url)
                 .then((res) => {
@@ -188,7 +188,7 @@ const contact = {
 
     details: (contactId) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `leads/contacts/${contactId}`;
+            let url = `crm/contacts/${contactId}/`;
             instance()
                 .get(url)
                 .then((res) => {
@@ -226,7 +226,7 @@ const contact = {
 
     create: (data: any) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `college/contacts/`;
+            let url = `crm/contacts/`;
             instance()
                 .post(url, data)
                 .then((res) => {
@@ -251,7 +251,7 @@ const contact = {
 
     update: (data: any, id: any) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `leads/contacts/${id}/`;
+            let url = `crm/contacts/${id}/`;
 
             instance()
                 .patch(url, data)
@@ -273,7 +273,7 @@ const contact = {
 
     import: (data: any) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `leads/import_contacts/`;
+            let url = `crm/import_contacts/`;
             instance()
                 .post(url, data)
                 .then((res) => {

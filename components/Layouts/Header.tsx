@@ -109,6 +109,8 @@ const Header = () => {
     }, []);
 
     useEffect(() => {
+        const token= localStorage.getItem("crmToken")
+        setState({token})
         // taskList(state.duration);
         // getUserData();
         // contactList();

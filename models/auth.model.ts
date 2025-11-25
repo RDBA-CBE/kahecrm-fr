@@ -85,7 +85,7 @@ const auth = {
 
     logOut: (data) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `accounts/logout/`;
+            let url = `logout/`;
             instance()
                 .post(url, data)
                 .then((res) => {

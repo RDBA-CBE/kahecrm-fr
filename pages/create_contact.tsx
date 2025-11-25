@@ -322,6 +322,7 @@ const CreateContact = () => {
             source_detail: state.source_detail,
             score_in_subject: state.score_in_subject,
             relation_to_student: state.relation_to_student,
+            status:state.status?.value
         };
 
         try {

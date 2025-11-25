@@ -38,7 +38,7 @@ export const createApiInstance = () => {
                 }
 
                 axios
-                    .post(`${baseURL}accounts/token/refresh/`, { refresh: refreshToken })
+                    .post(`${baseURL}token/refresh/`, { refresh: refreshToken })
                     .then((response) => {
                         console.log('Refresh token response:', response.data);
 

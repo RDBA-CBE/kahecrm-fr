@@ -127,7 +127,7 @@ const Contacts = () => {
     useEffect(() => {
         if (state.role == 'BDM') {
             telecallerList();
-            BDEList();
+            // BDEList();
             assignList();
         }
     }, [state.role]);
@@ -204,21 +204,22 @@ const Contacts = () => {
 
     const contactList = async (page, sortStatus = null) => {
         setState({ loading: true });
-        const role: any = await Models.auth.userDetails();
+        // const role: any = await Models.auth.userDetails();
 
-        let res: any;
-        const sortParams = sortStatus ? {
-            ordering: sortStatus.direction === 'desc' ? `-${sortStatus.columnAccessor}` : sortStatus.columnAccessor
-        } : {};
+        // let res: any;
+        // const sortParams = sortStatus ? {
+        //     ordering: sortStatus.direction === 'desc' ? `-${sortStatus.columnAccessor}` : sortStatus.columnAccessor
+        // } : {};
 
-        if (ROLE.ADMIN == role?.designation || ROLE.BDM == role?.designation) {
-            res = await Models.contact.list(page);
-        } else {
-            res = await Models.contact.list(page, role?.id);
-        }
+        // if (ROLE.ADMIN == role?.designation || ROLE.BDM == role?.designation) {
+          const  res:any = await Models.contact.list(page);
+console.log('✌️res --->', res);
+        // } else {
+        //     res = await Models.contact.list(page, role?.id);
+        // }
 
-        setState({ role: role?.designation, loading: false, currentPage: page, count: res.count, next: res.next, previous: res.previous, isFirstLoad: false });
-        tableData(res, role?.designation);
+        setState({  loading: false, currentPage: page, count: res.count, next: res.next, previous: res.previous, isFirstLoad: false });
+        tableData(res);
 
         try {
         } catch (error) {
@@ -247,16 +248,16 @@ const Contacts = () => {
         // if (sortStatus) {
         //     body.ordering = sortStatus.direction === 'desc' ? `-${sortStatus.columnAccessor}` : sortStatus.columnAccessor;
         // }
-        const role: any = await Models.auth.userDetails();
+        // const role: any = await Models.auth.userDetails();
 
         let res: any;
-        if (ROLE.ADMIN == role?.designation || ROLE.BDM == role?.designation) {
+        // if (ROLE.ADMIN == role?.designation || ROLE.BDM == role?.designation) {
             res = await Models.contact.filter(page, body);
-        } else {
-            res = await Models.contact.filter(page, body, role?.id);
-        }
-        setState({ role: role?.designation, isFirstLoad: false });
-        tableData(res, role?.designation);
+        // } else {
+        //     res = await Models.contact.filter(page, body, role?.id);
+        // }
+        // setState({ role: role?.designation, isFirstLoad: false });
+        // tableData(res, role?.designation);
         setState({ loading: false, totalRecords: res.count, count: res?.count, next: res.next, previous: res.previous, isOpen: false, currentPage: page });
 
         try {
@@ -267,11 +268,11 @@ const Contacts = () => {
         }
     };
 
-    const tableData = (res: any, role: string) => {
+    const tableData = (res: any) => {
         const data = res?.results?.map((item) => {
             return {
                 ...item,
-                company_name: item?.company_name ? capitalizeFLetter(item?.company_name) : '',
+                student_name: item?.student_name ? capitalizeFLetter(item?.student_name) : '',
                 contact_person: item?.name ? capitalizeFLetter(item?.name) : '',
                 contact_number: item?.phone_number,
                 designation: item?.designation ? capitalizeFLetter(item?.designation) : '',
@@ -286,27 +287,7 @@ const Contacts = () => {
         setState({ contactList: data, next: res.next, previous: res.previous, totalRecords: res.count });
     };
 
-    const handleNextPage = () => {
-        if (state.next) {
-            const newPage = state.currentPage + 1;
-            if (!objIsEmpty(bodyData())) {
-                filter(newPage);
-            } else {
-                contactList(newPage);
-            }
-        }
-    };
-
-    const handlePreviousPage = () => {
-        if (state.previous) {
-            const newPage = state.currentPage - 1;
-            if (!objIsEmpty(bodyData())) {
-                filter(newPage);
-            } else {
-                contactList(newPage);
-            }
-        }
-    };
+   
 
     const userData = async () => {
         try {
@@ -1264,8 +1245,8 @@ const Contacts = () => {
                             loaderBackgroundBlur={0}
 
                             columns={[
-                                { accessor: 'company_name', title: 'Company Name' },
-                                { accessor: 'contact_person', title: 'Contact Person' },
+                                // { accessor: 'student_name', title: 'Student Name' },
+                                { accessor: 'student_name', title: 'Student Name' },
                                 { accessor: 'phone_number', title: 'Contact Number' },
                                 { accessor: 'date', title: 'Date', width: 120 },
 

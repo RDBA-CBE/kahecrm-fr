@@ -312,7 +312,7 @@ const master = {
     //------- contact status start
     lead_status_list: (page) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `statuses/?is_active=true&page=${page}&page_size=10`;
+            let url = `crm/status/?is_active=true&page=${page}&page_size=10`;
             instance()
                 .get(url)
                 .then((res) => {
@@ -331,7 +331,7 @@ const master = {
 
     create_lead_status: (body) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `statuses/`;
+            let url = `crm/status/`;
             instance()
                 .post(url, body)
                 .then((res) => {
@@ -350,7 +350,7 @@ const master = {
 
     update_lead_status: (id, body) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `statuses/${id}/`;
+            let url = `crm/status/${id}/`;
 
             instance()
                 .patch(url, body)
@@ -370,7 +370,7 @@ const master = {
 
     delete_lead_status: (id) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `statuses/${id}/`;
+            let url = `crm/status/${id}/`;
             instance()
                 .delete(url)
                 .then((res) => {
