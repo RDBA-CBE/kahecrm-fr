@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { setPageTitle } from '../store/themeConfigSlice';
 import { useRouter } from 'next/router';
-import { Dropdown, Failure, Success, objIsEmpty, useSetState } from '@/utils/functions.utils';
+import { Dropdown, Failure, Success, capitalizeFLetter, objIsEmpty, useSetState } from '@/utils/functions.utils';
 import TextInput from '@/components/TextInput';
 import NumberInput from '@/components/NumberInput';
 import CustomSelect from '@/components/Select';
@@ -90,6 +90,7 @@ const UpdateContact = () => {
         leadStatusList();
         contactStatusList();
         qualificationList();
+        usersList();
     }, []);
 
     const getDetail = async () => {
@@ -302,6 +303,45 @@ const UpdateContact = () => {
         }
     };
 
+    const usersList = async () => {
+        try {
+            setState({ loading: true });
+            const res: any = await Models.user.userList(1, null);
+            console.log('usersList --->', res);
+            const dropdownList = res?.results?.map((item) => ({
+                label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}`,
+                value: item?.id,
+            }));
+
+            setState({ usersList: dropdownList, loading: false, userPage: 1, userHasNext: res?.next });
+        } catch (error) {
+            setState({ loading: false });
+            console.log('error: ', error);
+        }
+    };
+
+    const usersListLoadMore = async () => {
+        try {
+            setState({ leadStatusloadMore: true });
+            const res: any = await Models.master.lead_status_list(state.leadStatusPage + 1);
+            const dropdownList = res?.results?.map((item) => ({
+                label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}`,
+                value: item?.id,
+            }));
+            setState({ usersList: dropdownList, loading: false, userPage: 1, userHasNext: res?.next });
+
+            setState({
+                usersList: [...state.usersList, ...dropdownList],
+                leadStatusloadMore: false,
+                userPage: state.userPage + 1,
+                userHasNext: res.next,
+            });
+        } catch (error) {
+            setState({ leadStatusloadMore: false });
+            console.log('error: ', error);
+        }
+    };
+
     const countryList = async () => {
         try {
             setState({ loading: true });
@@ -397,7 +437,7 @@ const UpdateContact = () => {
 
                 await Models.contact.update(buildContactPayload, id);
                 Success('Contact updated successfully');
-                router.push('/contacts');
+                router.push('/myContacts');
             }
         } catch (error) {
             if (error?.inner) {
@@ -436,6 +476,16 @@ const UpdateContact = () => {
                 await createOpportunity(res?.id);
             }
         } catch (error) {
+             if (error?.inner) {
+                const validationErrors = {};
+                error.inner.forEach((err) => {
+                    validationErrors[err.path] = err?.message;
+                });
+                console.log('validationErrors', validationErrors);
+                setState({ errors: validationErrors });
+            } else {
+                Failure(error?.message || 'Something went wrong');
+            }
             console.log('✌️error --->', error);
         }
     };
@@ -553,6 +603,7 @@ const UpdateContact = () => {
                                 placeholder={'Contact Status'}
                                 options={state.contactStatusList}
                                 error={state.errors?.status}
+                                loadMore={() => state.contactStatusHasNext && contactStatusLoadMore()}
                             />
                             <TextInput title="Address" value={state.address} onChange={(e) => setState({ address: e })} placeholder={'Address'} error={state.errors?.address} />
                             <CustomSelect
@@ -771,6 +822,7 @@ const UpdateContact = () => {
                                     options={state.collegeList}
                                     loadMore={() => state.collegeHasNext && collegeLoadMore()}
                                     error={state.errors?.colleges_interested}
+                                    required
                                 />
 
                                 <CustomSelect
@@ -781,6 +833,7 @@ const UpdateContact = () => {
                                     options={state.courseList}
                                     loadMore={() => state.courseHasNext && courseLoadMore()}
                                     error={state.errors?.courses_interested}
+                                    required
                                 />
 
                                 <CustomSelect
@@ -791,14 +844,16 @@ const UpdateContact = () => {
                                     options={state.leadStatusList}
                                     error={state.errors?.stage}
                                     loadMore={() => state.leadStatusHasNext && leadStatusLoadMore()}
+                                    required
                                 />
                                 <CustomSelect
                                     title="Assigned To"
                                     value={state.assigned_to}
                                     onChange={(e) => setState({ assigned_to: e })}
                                     placeholder={'Assigned To'}
-                                    options={state.statusList}
+                                    options={state.usersList}
                                     error={state.errors?.assigned_to}
+                                    loadMore={() => state.userHasNext && usersListLoadMore()}
                                 />
                                 <CustomSelect
                                     title="Lead Source Category "
@@ -808,6 +863,7 @@ const UpdateContact = () => {
                                     options={state.sourceList}
                                     error={state.errors?.lead_source_category}
                                     loadMore={() => state.sourceHasNext && sourceLoadMore()}
+                                    required
                                 />
 
                                 <TextInput

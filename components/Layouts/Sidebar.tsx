@@ -370,7 +370,7 @@ const Sidebar = () => {
                                 {role == ROLE.ADMIN && <div className="text-lg">Own</div>}
                                 <li className="nav-item">
                                     <ul>
-                                        <li className="nav-item">
+                                        {/* <li className="nav-item">
                                             <Link href="/own_dashboard" className="group">
                                                 <div className="flex items-center">
                                                     <IconMenuDashboard className="shrink-0 group-hover:!text-primary" />
@@ -420,7 +420,7 @@ const Sidebar = () => {
                                                     </li>
                                                 </ul>
                                             </AnimateHeight>
-                                        </li>
+                                        </li> */}
                                         <li className="menu nav-item">
                                             <button
                                                 type="button"
@@ -445,9 +445,9 @@ const Sidebar = () => {
                                                     <li>
                                                         <Link href="/myContacts">{t('My Contacts')}</Link>
                                                     </li>
-                                                    <li>
+                                                    {/* <li>
                                                         <Link href="/my_archive_contact">{t('Archive Contacts')}</Link>
-                                                    </li>
+                                                    </li> */}
                                                     <li>
                                                         <Link href="/create_contact">{t('Create Contact')}</Link>
                                                     </li>
@@ -529,16 +529,16 @@ const Sidebar = () => {
 
                                         <li className="nav-item">
                                             <ul>
-                                                <li className="nav-item">
+                                                {/* <li className="nav-item">
                                                     <Link href="/dashboards" className="group">
                                                         <div className="flex items-center">
                                                             <IconMenuDashboard className="shrink-0 group-hover:!text-primary" />
                                                             <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Dashboard')}</span>
                                                         </div>
                                                     </Link>
-                                                </li>
+                                                </li> */}
 
-                                                <li className="menu nav-item">
+                                                {/* <li className="menu nav-item">
                                                     <button
                                                         type="button"
                                                         className={`${currentMenu === 'Calendar' ? 'active' : ''} nav-link group w-full`}
@@ -564,23 +564,10 @@ const Sidebar = () => {
                                                             <li>
                                                                 <Link href="/assigned_task">{t('Assigned Tasks')}</Link>
                                                             </li>
-                                                            {/* <li>
-                                                            <Link
-                                                                href="/tasks"
-                                                                onClick={(e) => {
-                                                                    e.preventDefault();
-                                                                    setState({ isOpenTask: true });
-                                                                    assignList();
-                                                                    leadList();
-                                                                }}
-                                                                className="cursor-pointer"
-                                                            >
-                                                                {t('Create Task')}
-                                                            </Link>
-                                                        </li> */}
+                                                            
                                                         </ul>
                                                     </AnimateHeight>
-                                                </li>
+                                                </li> */}
                                                 <li className="menu nav-item">
                                                     <button
                                                         type="button"
@@ -735,14 +722,14 @@ const Sidebar = () => {
                                 </AnimateHeight>
                             </li>
                             {/* )} */}
-                            <li className="nav-item">
+                            {/* <li className="nav-item">
                                 <Link href="/notifications" className="group">
                                     <div className="flex items-center">
                                         <IconMenuChat className="shrink-0 group-hover:!text-primary" />
                                         <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Notifications')}</span>
                                     </div>
                                 </Link>
-                            </li>
+                            </li> */}
                         </ul>
                     </PerfectScrollbar>
                 </div>

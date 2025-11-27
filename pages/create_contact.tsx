@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { setPageTitle } from '../store/themeConfigSlice';
 import { useRouter } from 'next/router';
-import { Dropdown, Failure, Success, objIsEmpty, useSetState } from '@/utils/functions.utils';
+import { Dropdown, Failure, Success, capitalizeFLetter, objIsEmpty, useSetState } from '@/utils/functions.utils';
 import TextInput from '@/components/TextInput';
 import NumberInput from '@/components/NumberInput';
 import CustomSelect from '@/components/Select';
@@ -84,6 +84,7 @@ const CreateContact = () => {
         leadStatusList();
         contactStatusList();
         qualificationList();
+        usersList();
     }, []);
 
     const sourceList = async () => {
@@ -249,6 +250,44 @@ const CreateContact = () => {
         }
     };
 
+    const usersList = async () => {
+        try {
+            setState({ loading: true });
+            const res: any = await Models.user.userList(1, null);
+            const dropdownList = res?.results?.map((item) => ({
+                label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}`,
+                value: item?.id,
+            }));
+
+            setState({ usersList: dropdownList, loading: false, userPage: 1, userHasNext: res?.next });
+        } catch (error) {
+            setState({ loading: false });
+            console.log('error: ', error);
+        }
+    };
+
+    const usersListLoadMore = async () => {
+        try {
+            setState({ leadStatusloadMore: true });
+            const res: any = await Models.master.lead_status_list(state.leadStatusPage + 1);
+            const dropdownList = res?.results?.map((item) => ({
+                label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}`,
+                value: item?.id,
+            }));
+            setState({ usersList: dropdownList, loading: false, userPage: 1, userHasNext: res?.next });
+
+            setState({
+                usersList: [...state.usersList, ...dropdownList],
+                leadStatusloadMore: false,
+                userPage: state.userPage + 1,
+                userHasNext: res.next,
+            });
+        } catch (error) {
+            setState({ leadStatusloadMore: false });
+            console.log('error: ', error);
+        }
+    };
+
     const countryList = async () => {
         try {
             setState({ loading: true });
@@ -333,10 +372,8 @@ const CreateContact = () => {
             setState({ submitLoad: true });
 
             if (state.isMoveToLead) {
-                Validation.createContact.validate(buildContactPayload, { abortEarly: false });
-                console.log('✌️buildContactPayload --->', buildContactPayload);
+                await Validation.createContact.validate(buildContactPayload, { abortEarly: false });
 
-                const res:any = await Models.contact.create(buildContactPayload);
                 const leadBody = {
                     colleges_interested: state.colleges_interested?.value,
                     courses_interested: state.courses_interested?.value,
@@ -349,12 +386,13 @@ const CreateContact = () => {
                 };
 
                 await Validation.createContactWithLead.validate(leadBody, { abortEarly: false });
-                createLead(res?.id);
+                console.log('✌️buildContactPayload --->', buildContactPayload);
 
-                // await Models.contact.createWithLead({ ...buildContactPayload, ...leadBody });
-                Success('Lead created successfully');
-
-                router.push('/my_leads');
+                const res: any = await Models.contact.create(buildContactPayload);
+                if (res) {
+                    console.log('✌️leadBody --->');
+                    createLead(res?.id);
+                }
             } else {
                 await Validation.createContact.validate(buildContactPayload, { abortEarly: false });
                 console.log('✌️buildContactPayload --->', buildContactPayload);
@@ -362,7 +400,7 @@ const CreateContact = () => {
                 const res = await Models.contact.create(buildContactPayload);
                 console.log('✌️res --->', res);
                 Success('Contact created successfully');
-                router.push('/contacts');
+                router.push('/myContacts');
             }
         } catch (error) {
             console.log('✌️error --->', error);
@@ -392,7 +430,8 @@ const CreateContact = () => {
             const leadBody = {
                 colleges_interested: state.colleges_interested?.value,
                 courses_interested: state.courses_interested?.value,
-                stage: state.stage?.value,
+                stage: state.lead_status?.value,
+
                 assigned_to: state.assigned_to?.value,
                 lead_source_category: state.lead_source_category?.value,
                 preferred_location: state.preferred_location?.trim(),
@@ -527,6 +566,7 @@ const CreateContact = () => {
                                 options={state.contactStatusList}
                                 error={state.errors?.status}
                                 loadMore={() => contactStatusLoadMore()}
+                                required
                             />
                             <TextInput title="Address" value={state.address} onChange={(e) => setState({ address: e })} placeholder={'Address'} error={state.errors?.address} />
                             <CustomSelect
@@ -745,6 +785,7 @@ const CreateContact = () => {
                                     options={state.collegeList}
                                     loadMore={() => state.collegeHasNext && collegeLoadMore()}
                                     error={state.errors?.colleges_interested}
+                                    required
                                 />
 
                                 <CustomSelect
@@ -755,6 +796,7 @@ const CreateContact = () => {
                                     options={state.courseList}
                                     loadMore={() => state.courseHasNext && courseLoadMore()}
                                     error={state.errors?.courses_interested}
+                                    required
                                 />
 
                                 <CustomSelect
@@ -763,15 +805,16 @@ const CreateContact = () => {
                                     onChange={(e) => setState({ lead_status: e })}
                                     placeholder={'Lead Status'}
                                     options={state.leadStatusList}
-                                    error={state.errors?.status}
+                                    error={state.errors?.stage}
                                     loadMore={() => state.leadStatusHasNext && leadStatusLoadMore()}
+                                    required
                                 />
                                 <CustomSelect
                                     title="Assigned To"
                                     value={state.assigned_to}
                                     onChange={(e) => setState({ assigned_to: e })}
                                     placeholder={'Assigned To'}
-                                    options={state.statusList}
+                                    options={state.usersList}
                                     error={state.errors?.assigned_to}
                                 />
                                 <CustomSelect
@@ -782,6 +825,7 @@ const CreateContact = () => {
                                     options={state.sourceList}
                                     error={state.errors?.lead_source_category}
                                     loadMore={() => state.sourceHasNext && sourceLoadMore()}
+                                    required
                                 />
 
                                 <TextInput
