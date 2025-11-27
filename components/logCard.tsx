@@ -7,6 +7,7 @@ import Tippy from '@tippyjs/react';
 
 const Timeline = (props: any) => {
     const { data, onEdit, onDelete, editIcon } = props;
+    console.log('✌️data --->', data);
 
     return (
         <div className="w-full ">
@@ -21,9 +22,9 @@ const Timeline = (props: any) => {
                                     <div className={`${item?.details || item?.new_value?.remark ? 'w-1/2 pr-2' : 'w-full pr-0'}`}>
                                         <div className="mt-4 w-full rounded-lg border border-gray-200 bg-white p-4  shadow-lg">
                                             <h3 className="text-lg font-semibold text-blue-700">{item.log_type}</h3>
-                                            <p className="text-sm">
+                                            {/* <p className="text-sm">
                                                 <strong>Contact:</strong> {item?.contact?.name}
-                                            </p>
+                                            </p> */}
 
                                             {item?.follow_up_date_time && (
                                                 <p className="text-sm">
@@ -36,29 +37,41 @@ const Timeline = (props: any) => {
                                                 </p>
                                             )}
                                             <p className="text-sm">
-                                                <strong>Created By:</strong> {capitalizeFLetter(item?.created_by?.username)}
+                                                <strong>Created By:</strong> {capitalizeFLetter(item?.created_by?.first_name)}
                                             </p>
-                                            {item?.opportunity_status ? (
-                                                <p className="text-sm">
-                                                    <strong>Opportunity Status:</strong> {item?.opportunity_status}
-                                                </p>
-                                            ) : (
-                                                <p className="text-sm">
-                                                    <strong>Stage:</strong> {item?.log_stage?.stage}
-                                                </p>
-                                            )}
+
+                                             <p className="text-sm">
+                                                <strong>Created on:</strong> {moment(item?.created_at).format('DD-MM-YYYY')}
+                                            </p>
+                                            
 
                                             {item?.old_value && item?.new_value && (
-                                                <p className="text-sm">
-                                                    {item?.old_value?.opportunity_value && (
-                                                        <>
-                                                            <strong>
-                                                                Opportunity value: <br />
-                                                            </strong>
-                                                            {item?.old_value?.opportunity_value} <strong>to:</strong> {item?.new_value?.opportunity_value}
-                                                        </>
-                                                    )}
-                                                </p>
+                                                <div className="space-y-1 text-sm">
+                                                    {Object.keys(item.old_value).map((key) => {
+                                                        const oldVal = item.old_value[key];
+                                                        const newVal = item.new_value[key];
+
+                                                        // Format Key
+                                                        const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+                                                        const formatValue = (val) => {
+                                                            if (val === null || val === undefined) return '---';
+
+                                                            // If value is object → try to pick readable property
+                                                            if (typeof val === 'object') {
+                                                                return val.name || val.stage || val.label || val.title || val.description || JSON.stringify(val);
+                                                            }
+
+                                                            return val; // primitive value
+                                                        };
+
+                                                        return (
+                                                            <p key={key}>
+                                                                <strong>{formattedKey}:</strong> {formatValue(oldVal)} <strong>→</strong> {formatValue(newVal)}
+                                                            </p>
+                                                        );
+                                                    })}
+                                                </div>
                                             )}
 
                                             {item?.new_value?.updated_by_name && (
@@ -115,7 +128,7 @@ const Timeline = (props: any) => {
                                         </div>
                                     )}
 
-                                    {(item?.new_value?.remark ) && (
+                                    {item?.new_value?.remark && (
                                         <div className="w-1/2">
                                             <div className="mt-4 w-full rounded-lg border border-gray-200 bg-white p-4  shadow-lg">
                                                 {item?.new_value?.remark && (

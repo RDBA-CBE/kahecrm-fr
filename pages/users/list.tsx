@@ -29,6 +29,8 @@ import IconXCircle from '@/components/Icon/IconXCircle';
 import IconInfoCircle from '@/components/Icon/IconInfoCircle';
 import MonthlyTargetCards from '@/components/MonthlyTargetHistory';
 import Pagination from '@/components/Pagination';
+import IconSearch from '@/components/Icon/IconSearch';
+import CustomPhoneInput from '@/components/PhoneInput';
 
 const List = () => {
     const [state, setState] = useSetState({
@@ -71,56 +73,24 @@ const List = () => {
 
     useEffect(() => {
         usersList(1);
-        groupList();
     }, []);
 
     useEffect(() => {
         usersList(1);
     }, [debouncedSearch, state.role]);
 
-    const groupList = async () => {
-        try {
-            const res: any = await Models.user.groupList();
-
-            const dropdownList = Dropdown(res?.results, 'name');
-
-            setState({ groupList: dropdownList.filter((item) => item.label != ROLES.ADMIN) });
-        } catch (error) {
-            console.log('✌️error --->', error);
-        }
-    };
-
-
     const usersList = async (page: any) => {
         try {
-            setState({loading:true})
+            setState({ loading: true });
             const body = bodyData();
             const res: any = await Models.user.userList(page, body);
-            const filterList = res?.results?.filter(
-                (item) => item?.groups?.[0].name != ROLES.ADMIN
-                //  && item?.groups?.length != 0
-            );
-            const data = filterList?.map((item: any) => ({
+            const data = res?.results?.map((item: any) => ({
                 id: item?.id,
                 first_name: item?.first_name,
                 last_name: item?.last_name,
                 email: item.email,
-                // date: moment(item.created_at).format("DD/MM/YYYY HH:mm"),
                 date: formatDate(item.date_joined),
-                target_amount: formatIndianRupees(item?.monthly_target?.target),
-                role: {
-                    role: item?.groups?.[0]?.name,
-                    color:
-                        item?.groups?.[0]?.name == ROLE.BDM
-                            ? 'success'
-                            : item?.groups?.[0]?.name == ROLE.BDE
-                            ? 'secondary'
-                            : item?.groups?.[0]?.name == ROLE.DM
-                            ? 'info'
-                            : item?.groups?.[0]?.name == ROLE.TM
-                            ? 'warning'
-                            : '',
-                },
+
                 ...item,
             }));
 
@@ -133,11 +103,10 @@ const List = () => {
                 previous: res.previous,
                 totalRecords: res.count,
                 count: res.count,
-                loading:false
-
+                loading: false,
             });
         } catch (error: any) {
-            setState({loading:false})
+            setState({ loading: false });
 
             console.log('✌️error --->', error);
         }
@@ -152,23 +121,18 @@ const List = () => {
                 email: state?.email,
                 phone_number: state?.phone_number,
                 password: state?.password,
-                groups: state?.groups ? [state?.groups?.value] : null,
                 address: state?.address,
-                username: `${state?.first_name}`,
-                target_amount: state?.target_amount,
+                is_staff:true
             };
 
             await Validation.createUser.validate(body, {
                 abortEarly: false,
             });
 
-            delete body.target_amount;
-
             // await Utils.Validation.user.validate(body, { abortEarly: false });
 
             const res: any = await Models.user.addUser(body);
 
-            await handleCreateAndUpdate(res);
 
             clearData();
             setState({ btnLoading: false });
@@ -198,19 +162,14 @@ const List = () => {
                 last_name: state?.last_name,
                 email: state?.email,
                 phone_number: state?.phone_number,
-                groups: [state?.groups?.value],
                 address: state?.address,
-                target_amount: state?.target_amount,
             };
 
             await Validation.updateUser.validate(body, {
                 abortEarly: false,
             });
 
-            delete body.target_amount;
-
             const res = await Models.user.updateUser(body, state.editId);
-            await handleCreateAndUpdate(res);
 
             clearData();
             setState({ btnLoading: false });
@@ -230,67 +189,6 @@ const List = () => {
                 Failure(error);
                 setState({ btnLoading: false });
             }
-        }
-    };
-
-    const handleCreateAndUpdate = async (res) => {
-        try {
-            setState({ submitLoad: true });
-
-            const body: any = {
-                target_amount: state?.target_amount,
-                user: res?.id,
-            };
-
-            await Validation.CreateTarget.validate(body, { abortEarly: false });
-
-            delete body.target_amount;
-
-            body.target = state.target_amount;
-
-            if (res.id) {
-                await Models.master.update_target(body, res?.monthly_target?.id);
-                Success('Monthly target updated successfully');
-            }
-        } catch (error) {
-            if (error instanceof Yup.ValidationError) {
-                const validationErrors = {};
-                error.inner.forEach((err) => {
-                    validationErrors[err.path] = err?.message;
-                });
-
-                setState({ errors: validationErrors });
-                setState({ submitLoad: false });
-            } else {
-                if (error?.non_field_errors?.length > 0) {
-                    Failure(error?.non_field_errors[0]);
-                }
-                console.log('Error: ', error);
-                setState({ submitLoad: false });
-            }
-
-            console.log('Error: ', error);
-            setState({ submitLoad: false });
-        }
-    };
-
-    const target_history = async (row) => {
-        try {
-            setState({ loading: true });
-
-            const body = {
-                user: row?.id,
-            };
-
-            const response: any = await Models.master.target_history(body);
-            setState({ target_history: sortedResults(response?.results) });
-
-            // tableData(response);
-            setState({
-                loading: false,
-            });
-        } catch (error) {
-            setState({ loading: false });
         }
     };
 
@@ -331,21 +229,16 @@ const List = () => {
     };
 
     const handleEdit = (row) => {
-
+        console.log('✌️row --->', row);
         setState({
             first_name: row?.first_name,
             last_name: row?.last_name,
             email: row?.email,
-            phone_number: row?.userprofile?.phone_number,
-            groups: {
-                value: row?.groups[0].id,
-                label: row?.groups[0].name,
-            },
-            // group:row?.groups[0].id,
-            target_amount: formatINR(row?.monthly_target?.target),
-            address: row?.userprofile?.address,
+            phone_number: row?.phone_number,
+
             editId: row?.id,
             isOpen: true,
+            address: row?.address,
         });
     };
 
@@ -375,12 +268,10 @@ const List = () => {
     };
 
     const handleActiveStatus = async (row) => {
-
         try {
             const body = {
                 is_active: !row?.is_active,
             };
-
 
             const res = await Models.user.updateUser(body, row.id);
             usersList(state.page);
@@ -428,51 +319,18 @@ const List = () => {
 
             <div className="panel mb-5 mt-5 gap-2 px-2 md:mt-0 md:flex md:justify-between xl:gap-4">
                 {/* Search Input */}
-                <div className="flex-1">
-                    <input type="text" className="w-100 form-input" placeholder="Search..." value={state.search} onChange={(e) => setState({ search: e.target.value })} />
-                </div>
-
-                {/* Category Dropdown */}
-                <div className="flex-1">
-                    <CustomSelect
-                        placeholder="Select Role"
-                        value={state.role}
-                        onChange={(e) => setState({ role: e })}
-                        options={[
-                            {
-                                value: ROLE.BDM,
-                                label: ROLE.BDM,
-                            },
-                            {
-                                value: ROLE.BDE,
-                                label: ROLE.BDE,
-                            },
-                            {
-                                value: ROLE.TM,
-                                label: ROLE.TM,
-                            },
-                            {
-                                value: ROLE.DM,
-                                label: ROLE.DM,
-                            },
-                        ]}
+                <div className="relative flex w-full items-center rounded-full border border-gray-300 dark:border-white-dark/30 md:w-1/3">
+                    <button type="submit" className="flex items-center justify-center px-3 py-2 text-primary">
+                        <IconSearch className="h-6 w-6 font-bold" />
+                    </button>
+                    <input
+                        type="text"
+                        value={state.search}
+                        onChange={(e) => setState({ search: e.target.value })}
+                        placeholder="Search ..."
+                        className="form-input w-full rounded-r-full border-0 bg-white py-1.5 pl-0 text-sm placeholder:tracking-wide focus:shadow-lg focus:outline-none dark:bg-gray-800 dark:shadow-[#1b2e4b] dark:placeholder:text-gray-400"
                     />
                 </div>
-
-                {/* <button
-          type="button"
-          className="btn btn-primary"
-          onClick={() => usersList(1)}
-        >
-          Apply Filter
-        </button>
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={() => clearFilter()}
-        >
-          Clear Filter
-        </button> */}
             </div>
 
             <div className="panel border-white-light px-0 dark:border-[#1b2e4b]">
@@ -498,19 +356,20 @@ const List = () => {
                                             <img className="h-8 w-8 cursor-pointer rounded-full object-cover" src={`/assets/images/dummyUser.png`} alt="" />
                                         </div>
                                         <Link className="cursor-pointer" href={`/real-estate/profile/${row.id}/`}>
-                                            {row.first_name} {row.last_name}
+                                            {capitalizeFLetter(row.first_name)} {row.last_name}
                                         </Link>
                                     </div>
                                 ),
                             },
                             { accessor: 'email', title: 'Email' },
+                            { accessor: 'phone_number', title: 'Phone Number' },
+
                             {
                                 accessor: 'role',
                                 title: 'Role',
-                                render: (row: any) => <span className={`badge badge-outline-${row?.role?.color} `}>{capitalizeFLetter(row?.role?.role)}</span>,
+                                render: (row: any) => <span className={`badge badge-outline-danger`}>Staff</span>,
                             },
                             { accessor: 'date', title: 'Joined Date' },
-                            { accessor: 'target_amount', title: 'Monthly Target' },
 
                             {
                                 accessor: 'action',
@@ -519,18 +378,6 @@ const List = () => {
                                 textAlignment: 'center',
                                 render: (row: any) => (
                                     <div className="mx-auto flex w-max items-center gap-4">
-                                        <Tippy content="Target History" className="rounded-lg bg-black p-1 text-sm text-white">
-                                            <button
-                                                type="button"
-                                                className="flex hover:text-primary"
-                                                onClick={(e) => {
-                                                    target_history(row);
-                                                    state.expandedRow === row?.id ? setState({ expandedRow: null }) : setState({ expandedRow: row?.id });
-                                                }}
-                                            >
-                                                <IconInfoCircle />
-                                            </button>
-                                        </Tippy>
                                         <button
                                             className="flex hover:text-info"
                                             onClick={(e) => {
@@ -558,31 +405,8 @@ const List = () => {
                         page={null}
                         onPageChange={(p) => {}}
                         paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
-                        rowExpansion={{
-                            collapseProps: {
-                                transitionDuration: 500,
-                                animateOpacity: false,
-                                transitionTimingFunction: 'ease-out',
-                            },
-                            allowMultiple: false,
-                            content: ({ record, collapse }) =>
-                                state.expandedRow === record.id ? (
-                                    <div>
-                                        <MonthlyTargetCards key={record.id} data={state.target_history} />
-                                    </div>
-                                ) : null,
-                        }}
                     />
                 </div>
-
-                {/* <div className="me-2 mt-5 flex justify-end gap-3">
-                    <button disabled={!state?.previous} onClick={handlePreviousPage} className={`btn ${!state?.previous ? 'btn-disabled' : 'btn-primary'}`}>
-                        <IconArrowBackward />
-                    </button>
-                    <button disabled={!state?.next} onClick={handleNextPage} className={`btn ${!state?.next ? 'btn-disabled' : 'btn-primary'}`}>
-                        <IconArrowForward />
-                    </button>
-                </div> */}
 
                 <div className="mt-5 flex justify-center gap-3">
                     <Pagination
@@ -654,41 +478,13 @@ const List = () => {
                                     />
                                 )}
 
-                                <TextInput
-                                    name="phone_number"
-                                    type="tel"
-                                    title="Phone Number"
-                                    placeholder="Enter Phone Number"
+                                <CustomPhoneInput
+                                    title={'Phone'}
+                                    placeholder={'Phone Number'}
                                     value={state.phone_number}
-                                    onChange={(e) => handleChange('phone_number', e)}
+                                    onChange={(e) => setState({ phone_number: e, errors: { ...state.errors, phone_number: '' } })}
+                                    error={state.errors?.phone_number}
                                     required
-                                    error={state.error?.phone_number}
-                                />
-
-                                <CustomSelect
-                                    title="Role"
-                                    placeholder="Select Role"
-                                    value={state.groups}
-                                    onChange={(value) => handleChange('groups', value)}
-                                    options={state.groupList}
-                                    required
-                                    error={state.error?.groups}
-                                />
-
-                                <TextInput
-                                    title={'Target (Amount)'}
-                                    placeholder={'Target (Amount)'}
-                                    value={formatINR(state.target_amount)}
-                                    onChange={(value) => {
-                                        const rawValue = value.replace(/,/g, '');
-                                        const numericValue = rawValue === '' ? 0 : parseInt(rawValue) || 0;
-                                        setState({
-                                            target_amount: numericValue,
-                                            error: { ...state.error, target_amount: '' },
-                                        });
-                                    }}
-                                    required
-                                    error={state.error?.target_amount}
                                 />
 
                                 <TextArea name="address" title="Address" placeholder="Enter Address" value={state.address} onChange={(e) => handleChange('address', e)} />

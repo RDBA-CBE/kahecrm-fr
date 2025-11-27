@@ -187,19 +187,19 @@ export const createNewContacts = Yup.object().shape({
 });
 
 export const createContactWithLead = Yup.object().shape({
-    student_name: Yup.string().required('Student name is required'),
-    student_email: Yup.string().required('Email is required').email('Must be a valid email'),
-    phone_number: Yup.string()
-        .nullable()
-        .required('Phone number is required')
-        .matches(/^[0-9]{10}$/, 'Phone number must be exactly 10 digits'),
+    // student_name: Yup.string().required('Student name is required'),
+    // student_email: Yup.string().required('Email is required').email('Must be a valid email'),
+    // phone_number: Yup.string()
+    //     .nullable()
+    //     .required('Phone number is required')
+    //     .matches(/^[0-9]{10}$/, 'Phone number must be exactly 10 digits'),
     // address: Yup.string().required('Address is required'),
     // city: Yup.string().required('City is required'),
     colleges_interested: Yup.string().required('Colleges interested is required'),
     courses_interested: Yup.string().required('Courses interested is required'),
-    lead_status: Yup.string().required('Lead status is required'),
-    assigned_to: Yup.string().required('Assigned to is required'),
-    lead_source: Yup.string().required('Lead source is required'),
+    stage: Yup.string().required('Lead status is required'),
+    // assigned_to: Yup.string().required('Assigned to is required'),
+    lead_source_category: Yup.string().required('Lead source category is required'),
     // preferred_location: Yup.string().required('Preferred location is required'),
 });
 
@@ -271,7 +271,7 @@ export const assignTask = Yup.object().shape({
 
 export const createLeadLog = Yup.object().shape({
     log_type: Yup.string().required('Select log type'),
-    logStage: Yup.string().required('Select log stage type'),
+    // logStage: Yup.string().required('Select log stage type'),
     details: Yup.string().required('Details is required'),
     // focus_segment: Yup.string().required('Select focus segment'),
     // primary_contact: Yup.string().required('Select primary contact'),
@@ -396,9 +396,7 @@ export const createUser = Yup.object().shape({
     first_name: Yup.string().required('First name is required'),
     last_name: Yup.string().required('Last name is required'),
     email: Yup.string().required('Email is required').email('Invalid email format'),
-    groups: Yup.array().required('Role is required').nullable(),
     password: Yup.string().required('Password is required').min(8, 'Min 8 Character'),
-    target_amount: Yup.string().required('Monthly Target is required'),
     phone_number: Yup.string().required('Phone Number is required'),
 });
 
@@ -406,8 +404,6 @@ export const updateUser = Yup.object().shape({
     first_name: Yup.string().required('First name is required'),
     last_name: Yup.string().required('Last name is required'),
     email: Yup.string().required('Email is required').email('Invalid email format'),
-    groups: Yup.array().required('Role is required').nullable(),
-    target_amount: Yup.string().required('Monthly Target is required'),
     phone_number: Yup.string().required('Phone Number is required'),
 });
 

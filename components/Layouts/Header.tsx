@@ -112,7 +112,7 @@ const Header = () => {
         const token= localStorage.getItem("crmToken")
         setState({token})
         // taskList(state.duration);
-        // getUserData();
+        getUserData();
         // contactList();
     }, []);
 
@@ -747,7 +747,7 @@ const Header = () => {
                                             <img className="h-10 w-10 rounded-md object-cover" src="/assets/images/auth/user.png" alt="userProfile" />
                                             <div className="truncate ltr:pl-4 rtl:pr-4">
                                                 <h4 className="text-base">
-                                                    {state.userInfo?.first_name} {state.userInfo?.last_name}
+                                                    {capitalizeFLetter(state.userInfo?.first_name)} {state.userInfo?.last_name}
                                                     {/* <span className="rounded bg-success-light px-1 text-xs text-success ltr:ml-2 rtl:ml-2">Pro</span> */}
                                                 </h4>
                                                 <button type="button" className="text-black/60 hover:text-primary dark:text-dark-light/60 dark:hover:text-white">

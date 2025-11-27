@@ -1051,7 +1051,7 @@ const Contacts = () => {
                                     { accessor: 'phone_number', title: 'Contact Number' },
                                     // { accessor: 'category', title: 'Category',  },
                                     // { accessor: 'created_by', title: 'Assign To',  },
-                                    { accessor: 'designation', title: 'Designation' },
+                                    // { accessor: 'designation', title: 'Designation' },
 
                                     ...(state?.role !== ROLE.BDE ? [{ accessor: 'status', title: 'Status' }] : []),
                                     {

@@ -63,7 +63,7 @@ const countries = () => {
     const getMasterData = async (page) => {
         try {
             setState({ loading: true });
-            const response: any = await Models.master.getCountries(page);
+            const response: any = await Models.master.country_list(page);
             tableData(response);
             setState({
                 loading: false,
@@ -106,10 +106,10 @@ const countries = () => {
             };
             await Validation.CreateCountries.validate(body, { abortEarly: false });
             if (state.EditId) {
-                await Models.master.updateCountries(body, state.EditId);
+                await Models.master.update_country(state.EditId,body);
                 Success('Countries Updated successfully');
             } else {
-                await Models.master.createCountries(body);
+                await Models.master.create_country(body);
                 Success('Countries created successfully');
             }
             clearLogData();
@@ -136,7 +136,7 @@ const countries = () => {
                 is_active: 'False',
             };
 
-            await Models.master.deleteCountries(body, state.EditId);
+            await Models.master.delete_country( state.EditId);
             Success('Countries Deleted successfully');
             clearLogData();
             getMasterData(state.currentPage);

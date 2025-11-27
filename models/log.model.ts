@@ -3,7 +3,7 @@ import instance from '@/utils/axios.utils';
 const log = {
     list: (page) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `contactdetails/?page=${page}&page_size=10`;
+            let url = `crm/logs/?page=${page}&page_size=10`;
             instance()
                 .get(url)
                 .then((res) => {
@@ -20,9 +20,13 @@ const log = {
         return promise;
     },
 
-    listByContactId: (id) => {
+
+    listByLeadId: (id,log_type=null) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `contactlog/${id}`;
+            let url = `crm/logs/?college_lead=${id}`;
+              if (log_type) {
+                url += `&log_type=${encodeURIComponent(log_type)}`;
+            }
             instance()
                 .get(url)
                 .then((res) => {
@@ -60,7 +64,7 @@ const log = {
 
     create: (data: any) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `leads/log/`;
+            let url = `crm/logs/`;
             instance()
                 .post(url, data)
                 .then((res) => {
@@ -79,7 +83,7 @@ const log = {
 
     update: (data: any, id: any) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `leads/log/${id}/`;
+            let url = `crm/logs/${id}/`;
 
             instance()
                 .put(url, data)
@@ -99,7 +103,7 @@ const log = {
 
     delete: (id: any) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `lead/delete/${id}/`;
+            let url = `crm/logs/${id}/`;
 
             instance()
                 .put(url)

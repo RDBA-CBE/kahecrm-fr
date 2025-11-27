@@ -87,7 +87,7 @@ const FocusSegmets = () => {
             const body = {
                 search: state.search,
             };
-            const response: any = await Models.master.getCity(body, page);
+            const response: any = await Models.master.master_city_list();
             tableData(response);
             setState({
                 loading: false,
@@ -134,11 +134,11 @@ const FocusSegmets = () => {
             await Validation.CreateCity.validate(body, { abortEarly: false });
 
             if (state.EditId) {
-                await Models.master.updateCity(body, state.EditId);
+                await Models.master.update_city(state.EditId, body);
 
                 Success('City Updated successfully');
             } else {
-                await Models.master.createCity(body);
+                await Models.master.create_city(body);
                 Success('City created successfully');
             }
             clearLogData();
@@ -167,7 +167,7 @@ const FocusSegmets = () => {
                 is_active: 'False',
             };
 
-            await Models.master.deleteCity(body, state.EditId);
+            await Models.master.delete_city(state.EditId);
 
             Success('City Deleted successfully');
             clearLogData();
@@ -180,7 +180,7 @@ const FocusSegmets = () => {
     const stateList = async () => {
         try {
             setState({ logLoad: true });
-            const response: any = await Models.master.getStates(1);
+            const response: any = await Models.master.master_state_list(1);
             const dropdownList = Dropdown(response.results, 'state_name');
             setState({ stateList: dropdownList, logLoad: false });
         } catch (error) {
@@ -188,16 +188,17 @@ const FocusSegmets = () => {
         }
     };
 
-    const handleNextPage = () => {
-        if (state.next) {
-            setState({ currentPage: state.currentPage + 1 });
-        }
-    };
+    const handleEdit = (row) => {
+        const filter = state.stateList?.find((item) => item?.value == row?.allData?.state);
 
-    const handlePreviousPage = () => {
-        if (state.previous) {
-            setState({ currentPage: state.currentPage - 1 });
-        }
+        setState({
+            modalManage: true,
+            EditId: row.id,
+            city_name: row.city_name,
+            isOpen: true,
+            // state:{value:}
+            state: filter,
+        });
     };
 
     return (
@@ -265,14 +266,7 @@ const FocusSegmets = () => {
                                                     type="button"
                                                     className="flex hover:text-primary"
                                                     onClick={() => {
-                                                        setState({
-                                                            modalManage: true,
-                                                            EditId: row.id,
-                                                            city_name: row.city_name,
-                                                            isOpen: true,
-                                                            // state:{value:}
-                                                            state: { value: row?.allData?.state?.id, label: row?.allData?.state?.state_name },
-                                                        });
+                                                        handleEdit(row);
                                                     }}
                                                 >
                                                     <IconNotesEdit />

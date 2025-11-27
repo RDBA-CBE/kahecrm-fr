@@ -389,7 +389,7 @@ const master = {
 
     contact_status_list: (page) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `crm/contact-statuses/?is_active=true&page=${page}&page_size=10`;
+            let url = `crm/contact-status/?page=${page}&page_size=10`;
             instance()
                 .get(url)
                 .then((res) => {
@@ -406,10 +406,9 @@ const master = {
         return promise;
     },
 
-
     create_contact_status: (body) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `crm/contact-statuses/`;
+            let url = `crm/contact-status/`;
             instance()
                 .post(url, body)
                 .then((res) => {
@@ -428,7 +427,7 @@ const master = {
 
     update_contact_status: (id, body) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `crm/contact-statuses/${id}/`;
+            let url = `crm/contact-status/${id}/`;
 
             instance()
                 .patch(url, body)
@@ -448,7 +447,7 @@ const master = {
 
     delete_contact_status: (id) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `crm/contact-statuses/${id}/`;
+            let url = `crm/contact-status/${id}/`;
             instance()
                 .delete(url)
                 .then((res) => {
@@ -465,8 +464,277 @@ const master = {
         return promise;
     },
 
+    country_list: (page) => {
+        let promise = new Promise((resolve, reject) => {
+            let url = `auth/countries/?page=${page}&page_size=10`;
+            instance()
+                .get(url)
+                .then((res) => {
+                    resolve(res.data);
+                })
+                .catch((error) => {
+                    if (error.response) {
+                        reject(error.response.message);
+                    } else {
+                        reject(error);
+                    }
+                });
+        });
+        return promise;
+    },
+
+    create_country: (body) => {
+        let promise = new Promise((resolve, reject) => {
+            let url = `auth/countries/`;
+            instance()
+                .post(url, body)
+                .then((res) => {
+                    resolve(res.data);
+                })
+                .catch((error) => {
+                    if (error.response) {
+                        reject(error.response.message);
+                    } else {
+                        reject(error);
+                    }
+                });
+        });
+        return promise;
+    },
+
+    update_country: (id, body) => {
+        let promise = new Promise((resolve, reject) => {
+            let url = `auth/countries/${id}/`;
+
+            instance()
+                .patch(url, body)
+                .then((res) => {
+                    resolve(res.data);
+                })
+                .catch((error) => {
+                    if (error.response) {
+                        reject(error.response.message);
+                    } else {
+                        reject(error);
+                    }
+                });
+        });
+        return promise;
+    },
+
+    delete_country: (id) => {
+        let promise = new Promise((resolve, reject) => {
+            let url = `auth/countries/${id}/`;
+
+            instance()
+                .delete(url)
+                .then((res) => {
+                    resolve(res.data);
+                })
+                .catch((error) => {
+                    if (error.response) {
+                        reject(error.response.message);
+                    } else {
+                        reject(error);
+                    }
+                });
+        });
+        return promise;
+    },
+
+    state_list: (countryId: any) => {
+        let promise = new Promise((resolve, reject) => {
+            let url = `auth/states/?country=${countryId}`;
+            instance()
+                .get(url)
+                .then((res) => {
+                    resolve(res.data);
+                })
+                .catch((error) => {
+                    if (error.response) {
+                        reject(error.response.data.message);
+                    } else {
+                        reject(error);
+                    }
+                });
+        });
+        return promise;
+    },
+
+    master_state_list: (countryId: any) => {
+        let promise = new Promise((resolve, reject) => {
+            let url = `auth/states/`;
+            instance()
+                .get(url)
+                .then((res) => {
+                    resolve(res.data);
+                })
+                .catch((error) => {
+                    if (error.response) {
+                        reject(error.response.data.message);
+                    } else {
+                        reject(error);
+                    }
+                });
+        });
+        return promise;
+    },
+
+    create_state: (body) => {
+        let promise = new Promise((resolve, reject) => {
+            let url = `auth/states/`;
+            instance()
+                .post(url, body)
+                .then((res) => {
+                    resolve(res.data);
+                })
+                .catch((error) => {
+                    if (error.response) {
+                        reject(error.response.message);
+                    } else {
+                        reject(error);
+                    }
+                });
+        });
+        return promise;
+    },
+
+    update_state: (id, body) => {
+        let promise = new Promise((resolve, reject) => {
+            let url = `auth/states/${id}/`;
+
+            instance()
+                .patch(url, body)
+                .then((res) => {
+                    resolve(res.data);
+                })
+                .catch((error) => {
+                    if (error.response) {
+                        reject(error.response.message);
+                    } else {
+                        reject(error);
+                    }
+                });
+        });
+        return promise;
+    },
+
+    delete_state: (id) => {
+        let promise = new Promise((resolve, reject) => {
+            let url = `auth/states/${id}/`;
+
+            instance()
+                .delete(url)
+                .then((res) => {
+                    resolve(res.data);
+                })
+                .catch((error) => {
+                    if (error.response) {
+                        reject(error.response.message);
+                    } else {
+                        reject(error);
+                    }
+                });
+        });
+        return promise;
+    },
+
+    city_list: (stateId: any) => {
+        let promise = new Promise((resolve, reject) => {
+            let url = `auth/cities/?state=${stateId}`;
+            instance()
+                .get(url)
+                .then((res) => {
+                    resolve(res.data);
+                })
+                .catch((error) => {
+                    if (error.response) {
+                        reject(error.response.data.message);
+                    } else {
+                        reject(error);
+                    }
+                });
+        });
+        return promise;
+    },
+
+    master_city_list: () => {
+        let promise = new Promise((resolve, reject) => {
+            let url = `auth/cities/`;
+            instance()
+                .get(url)
+                .then((res) => {
+                    resolve(res.data);
+                })
+                .catch((error) => {
+                    if (error.response) {
+                        reject(error.response.data.message);
+                    } else {
+                        reject(error);
+                    }
+                });
+        });
+        return promise;
+    },
+
+    create_city: (body) => {
+        let promise = new Promise((resolve, reject) => {
+            let url = `auth/cities/`;
+            instance()
+                .post(url, body)
+                .then((res) => {
+                    resolve(res.data);
+                })
+                .catch((error) => {
+                    if (error.response) {
+                        reject(error.response.data.message);
+                    } else {
+                        reject(error);
+                    }
+                });
+        });
+        return promise;
+    },
+
+    update_city: (id, body) => {
+        let promise = new Promise((resolve, reject) => {
+            let url = `auth/cities/${id}/`;
+            instance()
+                .patch(url, body)
+                .then((res) => {
+                    resolve(res.data);
+                })
+                .catch((error) => {
+                    if (error.response) {
+                        reject(error.response.data.message);
+                    } else {
+                        reject(error);
+                    }
+                });
+        });
+        return promise;
+    },
+
+    delete_city: (id) => {
+        let promise = new Promise((resolve, reject) => {
+            let url = `auth/cities/${id}/`;
+
+            instance()
+                .delete(url)
+                .then((res) => {
+                    resolve(res.data);
+                })
+                .catch((error) => {
+                    if (error.response) {
+                        reject(error.response.data.message);
+                    } else {
+                        reject(error);
+                    }
+                });
+        });
+        return promise;
+    },
 
     //------- contact status start
-   
 };
 export default master;

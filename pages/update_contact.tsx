@@ -78,9 +78,8 @@ const UpdateContact = () => {
         },
     });
 
-     useEffect(() => {
+    useEffect(() => {
         getDetail();
-       
     }, [id]);
 
     useEffect(() => {
@@ -104,36 +103,35 @@ const UpdateContact = () => {
                 student_name: res?.student_name,
                 email: res?.email,
                 phone_number: res?.phone_number,
+                secondary_phone_number: res?.secondary_phone_number,
                 alternate_email: res?.alternate_email?.trim(),
-                status:{value:res?.status?.id,label:res?.status?.status,
-                    address:res?.address
-}
-
-                // country:res?.country,
-                // state:res?.state,
-                // city:res?.city,
-                // pincode:res?.pincode,
-                // address:res?.address,
-                // parent_name:res?.parent_name,
-                // parent_designation:res?.parent_designation,
-                // siblings_count:res?.siblings_count,
-                // education_qualification:res?.education_qualification,
-                // graduation_year:res?.graduation_year,
-                // board_name:res?.board_name,
-                // school_name:res?.school_name,
-                // tenth_marks:res?.tenth_marks,
-                // twelfth_marks:res?.twelfth_marks,
-                // ug_marks:res?.ug_marks,
-                // entrance_exam_score:res?.entrance_exam_score,
-                // preferred_location:res?.preferred_location,
-                // best_time_to_contact:res?.best_time_to_contact,
-                // interview_rating:res?.interview_rating,
-                // internal_rating:res?.internal_rating,
-                // annual_income:res?.annual_income,
-                // personal_remark:res?.personal_remark,
-                // source_detail:res?.source_detail,
-                // score_in_subject:res?.score_in_subject,
-                // relation_to_student:res?.relation_to_student,
+                status: res?.status ? { value: res?.status?.id, label: res?.status?.status } : null,
+                country: res?.country ? { value: res?.country?.id, label: res?.country?.country_name } : null,
+                state: res?.state ? { value: res?.state?.id, label: res?.state?.state_name } : null,
+                city: res?.city ? { value: res?.city?.id, label: res?.city?.city_name } : null,
+                pincode: res?.pincode,
+                address: res?.address,
+                parent_name: res?.parent_name,
+                parent_designation: res?.parent_designation,
+                siblings_count: res?.siblings_count,
+                education_qualification: res?.education_qualification ? { value: res?.education_qualification?.id, label: res?.education_qualification?.qualification } : null,
+                graduation_year: res?.graduation_year,
+                board_name: res?.board_name,
+                school_name: res?.school_name,
+                tenth_marks: res?.tenth_marks,
+                twelfth_marks: res?.twelfth_marks,
+                ug_marks: res?.ug_marks,
+                entrance_exam_score: res?.entrance_exam_score,
+                preferred_location: res?.preferred_location,
+                best_time_to_contact: res?.best_time_to_contact,
+                interview_rating: res?.interview_rating ? { value: res?.interview_rating, label: res?.interview_rating } : null,
+                internal_rating: res?.internal_rating ? { value: res?.internal_rating, label: res?.internal_rating } : null,
+                annual_income: res?.annual_income,
+                source_details: res?.source_details,
+                score_in_subjects: res?.score_in_subjects,
+                relation_to_student: res?.relation_to_student,
+                remark: res?.remark,
+                personal_remarks: res?.personal_remarks,
                 // status:res?.status
             });
         } catch (error) {
@@ -250,7 +248,7 @@ const UpdateContact = () => {
         try {
             setState({ loading: true });
             const res: any = await Models.master.lead_status_list(1);
-            const dropdownList = Dropdown(res.results, 'name');
+            const dropdownList = Dropdown(res.results, 'stage');
             setState({ leadStatusList: dropdownList, loading: false, leadStatusPage: 1, leadStatusHasNext: res?.next });
         } catch (error) {
             setState({ loading: false });
@@ -262,7 +260,7 @@ const UpdateContact = () => {
         try {
             setState({ leadStatusloadMore: true });
             const res: any = await Models.master.lead_status_list(state.leadStatusPage + 1);
-            const dropdownList = Dropdown(res.results, 'name');
+            const dropdownList = Dropdown(res.results, 'stage');
             setState({
                 leadStatusList: [...state.leadStatusList, ...dropdownList],
                 leadStatusloadMore: false,
@@ -307,7 +305,7 @@ const UpdateContact = () => {
     const countryList = async () => {
         try {
             setState({ loading: true });
-            const res: any = await Models.lead.GetDropdownThree('countries');
+            const res: any = await Models.master.country_list(1);
             const dropdownList = Dropdown(res?.results, 'country_name');
             setState({ countryList: dropdownList, loading: false });
         } catch (error) {
@@ -320,7 +318,7 @@ const UpdateContact = () => {
     const stateList = async (country) => {
         try {
             setState({ stateLoading: true });
-            const res: any = await Models.lead.stateListOne(country?.value);
+            const res: any = await Models.master.state_list(country?.value);
             const dropdownList = Dropdown(res.results, 'state_name');
             setState({ stateList: dropdownList, stateLoading: false });
         } catch (error) {
@@ -332,7 +330,7 @@ const UpdateContact = () => {
 
     const cityList = async (state) => {
         try {
-            const res: any = await Models.lead.cityListOne(state?.value);
+            const res: any = await Models.master.city_list(state?.value);
             const dropdownList = Dropdown(res?.results, 'city_name');
             setState({ cityList: dropdownList });
         } catch (error) {
@@ -345,7 +343,7 @@ const UpdateContact = () => {
     const handleSubmit = async () => {
         const buildContactPayload = {
             phone_number: state.phone_number,
-            lead_source: state.lead_source?.value,
+            lead_source_category: state.lead_source_category?.value,
             remark: state.remark?.trim(),
             is_archive: !!state.is_archive,
             lead_status: state.lead_status?.value,
@@ -372,44 +370,32 @@ const UpdateContact = () => {
             courses_interested: state.courses_interested,
             preferred_location: state.preferred_location?.trim(),
             best_time_to_contact: state.best_time_to_contact ? moment(state.best_time_to_contact).format('YYYY-MM-DD HH:mm:ss') : null,
-            interview_rating: state.interview_rating ? Number(state.interview_rating) : null,
-            internal_rating: state.internal_rating ? Number(state.internal_rating) : null,
+            interview_rating: state.interview_rating ? state.interview_rating?.value : null,
+            internal_rating: state.internal_rating ? state.internal_rating?.value : null,
             annual_income: state.annual_income ? Number(state.annual_income) : null,
-            personal_remark: state.personal_remark?.trim(),
+            personal_remarks: state.personal_remarks?.trim(),
             source_detail: state.source_detail,
-            score_in_subject: state.score_in_subject,
+            score_in_subjects: state.score_in_subjects,
             relation_to_student: state.relation_to_student,
             status: state.status?.value,
+            state: state.state ? state.state?.value : null,
+            country: state.country ? state.country?.value : null,
+            source_details: state.source_details,
         };
 
         try {
             setState({ submitLoad: true });
 
             if (state.isMoveToLead) {
-                const leadBody = {
-                    colleges_interested: state.colleges_interested?.value,
-                    courses_interested: state.courses_interested?.value,
-                    lead_status: state.lead_status?.value,
-                    assigned_to: state.assigned_to?.value,
-                    lead_source: state.lead_source?.value,
-                    preferred_location: state.preferred_location?.trim(),
-                    best_time_to_contact: state.best_time_to_contact ? moment(state.best_time_to_contact).format('YYYY-MM-DD HH:mm:ss') : null,
-                    source_detail: state.source_detail,
-                };
-
-                await Validation.createContactWithLead.validate(leadBody, { abortEarly: false });
-
-                // await Models.contact.createWithLead({ ...buildContactPayload, ...leadBody });
-                Success('Lead created successfully');
-                router.push('/leads');
-            } else {
-                console.log('✌️buildContactPayload --->', buildContactPayload);
-
                 await Validation.createContact.validate(buildContactPayload, { abortEarly: false });
-                console.log('✌️buildContactPayload --->', buildContactPayload);
 
-                const res = await Models.contact.update(buildContactPayload, id);
+                const res: any = await Models.contact.update(buildContactPayload, id);
                 console.log('✌️res --->', res);
+                createLead();
+            } else {
+                await Validation.createContact.validate(buildContactPayload, { abortEarly: false });
+
+                await Models.contact.update(buildContactPayload, id);
                 Success('Contact updated successfully');
                 router.push('/contacts');
             }
@@ -426,6 +412,47 @@ const UpdateContact = () => {
             }
         } finally {
             setState({ submitLoad: false });
+        }
+    };
+
+    const createLead = async () => {
+        try {
+            const leadBody = {
+                colleges_interested: state.colleges_interested?.value,
+                courses_interested: state.courses_interested?.value,
+                stage: state.stage?.value,
+                assigned_to: state.assigned_to?.value,
+                lead_source_category: state.lead_source_category?.value,
+                preferred_location: state.preferred_location?.trim(),
+                best_time_to_contact: state.best_time_to_contact ? moment(state.best_time_to_contact).format('YYYY-MM-DD HH:mm:ss') : null,
+                source_details: state.source_details,
+                remark: state.remark,
+                college_contact: id,
+            };
+
+            await Validation.createContactWithLead.validate(leadBody, { abortEarly: false });
+            const res: any = await Models.lead.create(leadBody);
+            if (res) {
+                await createOpportunity(res?.id);
+            }
+        } catch (error) {
+            console.log('✌️error --->', error);
+        }
+    };
+
+    const createOpportunity = async (id: any) => {
+        try {
+            const body = {
+                college: state.colleges_interested?.value,
+                course: state.courses_interested?.value,
+                college_lead: id,
+            };
+            const res = await Models.opportunity.create(body);
+            console.log('✌️res --->', res);
+            Success('Lead created successfully');
+            router.push('/my_leads');
+        } catch (error) {
+            console.log('✌️error --->', error);
         }
     };
 
@@ -505,20 +532,20 @@ const UpdateContact = () => {
                                 error={state.errors?.phone_number}
                                 required
                             />
-                            <NumberInput
+                            <CustomPhoneInput
                                 title="Secondary Phone Number"
                                 value={state.secondary_phone_number}
                                 onChange={(e) => setState({ secondary_phone_number: e })}
                                 placeholder={'Secondary Phone Number'}
                                 error={state.errors?.secondary_phone_number}
                             />
-                            <TextInput
+                            {/* <TextInput
                                 title="Relation To Student"
                                 value={state.relation_to_student}
                                 onChange={(e) => setState({ relation_to_student: e })}
                                 placeholder={'Relation To Student'}
                                 error={state.errors?.relation_to_student}
-                            />
+                            /> */}
                             <CustomSelect
                                 title="Contact Status"
                                 value={state.status}
@@ -556,6 +583,14 @@ const UpdateContact = () => {
                             />
                             <CustomSelect title="City" value={state.city} onChange={(e) => setState({ city: e })} placeholder={'City'} options={state.cityList} error={state.errors?.city} />
                             <NumberInput title="Pincode" value={state.pincode} onChange={(e) => setState({ pincode: e })} placeholder={'Pincode'} error={state.errors?.pincode} />
+
+                            <TextArea
+                                title="Source Detail"
+                                value={state.source_details}
+                                onChange={(e) => setState({ source_details: e })}
+                                placeholder={'Source Detail'}
+                                error={state.errors?.source_details}
+                            />
                         </div>
                     )}
                 </div>
@@ -653,8 +688,8 @@ const UpdateContact = () => {
                             />
                             <NumberInput
                                 title="Score in Subjects"
-                                value={state.score_in_subject}
-                                onChange={(e) => setState({ score_in_subject: e })}
+                                value={state.score_in_subjects}
+                                onChange={(e) => setState({ score_in_subjects: e })}
                                 placeholder={'Score in Subjects'}
                                 error={state.errors?.tenth_marks}
                             />
@@ -670,28 +705,43 @@ const UpdateContact = () => {
                     </button>
                     {state.openSections?.internal && (
                         <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-3">
-                            <NumberInput
+                            <CustomSelect
                                 title="Interview Rating"
                                 value={state.interview_rating}
                                 onChange={(e) => setState({ interview_rating: e })}
                                 placeholder={'Interview Rating'}
                                 error={state.errors?.interview_rating}
+                                options={[
+                                    { value: 1, label: '1' },
+                                    { value: 2, label: '2' },
+                                    { value: 3, label: '3' },
+                                    { value: 4, label: '4' },
+                                    { value: 5, label: '5' },
+                                ]}
                             />
-                            <NumberInput
+
+                            <CustomSelect
                                 title="Internal Rating"
                                 value={state.internal_rating}
                                 onChange={(e) => setState({ internal_rating: e })}
                                 placeholder={'Internal Rating'}
                                 error={state.errors?.internal_rating}
+                                options={[
+                                    { value: 1, label: '1' },
+                                    { value: 2, label: '2' },
+                                    { value: 3, label: '3' },
+                                    { value: 4, label: '4' },
+                                    { value: 5, label: '5' },
+                                ]}
                             />
 
                             <TextArea title="Remark" value={state.remark} onChange={(e) => setState({ remark: e })} placeholder={'Remark'} error={state.errors?.remark} />
                             <TextArea
                                 title="Personal Remark"
-                                value={state.personal_remark}
-                                onChange={(e) => setState({ personal_remark: e })}
+                                value={state.personal_remarks}
+                                onChange={(e) => setState({ personal_remarks: e })}
                                 placeholder={'Personal Remark'}
-                                error={state.errors?.personal_remark}
+                                error={state.errors?.personal_remarks}
                             />
                         </div>
                     )}
@@ -735,11 +785,11 @@ const UpdateContact = () => {
 
                                 <CustomSelect
                                     title="Lead Status"
-                                    value={state.lead_status}
-                                    onChange={(e) => setState({ lead_status: e })}
+                                    value={state.stage}
+                                    onChange={(e) => setState({ stage: e })}
                                     placeholder={'Lead Status'}
                                     options={state.leadStatusList}
-                                    error={state.errors?.status}
+                                    error={state.errors?.stage}
                                     loadMore={() => state.leadStatusHasNext && leadStatusLoadMore()}
                                 />
                                 <CustomSelect
@@ -751,12 +801,12 @@ const UpdateContact = () => {
                                     error={state.errors?.assigned_to}
                                 />
                                 <CustomSelect
-                                    title="Lead Source "
-                                    value={state.lead_source}
-                                    onChange={(e) => setState({ lead_source: e })}
-                                    placeholder={'Lead Source '}
+                                    title="Lead Source Category "
+                                    value={state.lead_source_category}
+                                    onChange={(e) => setState({ lead_source_category: e })}
+                                    placeholder={'Lead Source Category '}
                                     options={state.sourceList}
-                                    error={state.errors?.lead_source}
+                                    error={state.errors?.lead_source_category}
                                     loadMore={() => state.sourceHasNext && sourceLoadMore()}
                                 />
 
@@ -775,13 +825,6 @@ const UpdateContact = () => {
                                     title="Best Time to Contact"
                                     onChange={(e) => setState({ best_time_to_contact: e })}
                                 />
-                                <TextArea
-                                    title="Source Detail"
-                                    value={state.source_detail}
-                                    onChange={(e) => setState({ source_detail: e })}
-                                    placeholder={'Source Detail'}
-                                    error={state.errors?.personal_remark}
-                                />
                             </div>
                         </div>
                     )}
@@ -792,7 +835,7 @@ const UpdateContact = () => {
                         Cancel
                     </button>
                     <button type="button" onClick={() => handleSubmit()} className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                        {state.isMoveToLead ? 'Create Lead' : 'Create Contact'}
+                        {state.isMoveToLead ? 'Create Lead' : 'Update Contact'}
                     </button>
                 </div>
             </div>

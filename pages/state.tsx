@@ -67,7 +67,7 @@ const states = () => {
     const getMasterData = async (page) => {
         try {
             setState({ loading: true });
-            const response: any = await Models.master.getStates(page);
+            const response: any = await Models.master.master_state_list(page);
             tableData(response);
             setState({
                 loading: false,
@@ -80,7 +80,7 @@ const states = () => {
     const countryList = async () => {
         try {
             setState({ loading: true });
-            const res: any = await Models.lead.GetDropdown('countries');
+            const res: any = await Models.master.country_list(1);
             const dropdownList = Dropdown(res?.results, 'country_name');
             setState({ countryList: dropdownList, loading: false });
         } catch (error) {
@@ -100,7 +100,7 @@ const states = () => {
             };
         });
 
-        setState({ data: Data, allData: res, totalRecords: res.count, next: res.next, previous: res.previous,count:res?.count });
+        setState({ data: Data, allData: res, totalRecords: res.count, next: res.next, previous: res.previous, count: res?.count });
     };
 
     const clearLogData = () => {
@@ -124,10 +124,10 @@ const states = () => {
             };
             await Validation.CreateStates.validate(body, { abortEarly: false });
             if (state.EditId) {
-                await Models.master.updateStates(body, state.EditId);
+                await Models.master.update_state( state.EditId,body);
                 Success('State Updated successfully');
             } else {
-                await Models.master.createStates(body);
+                await Models.master.create_state(body);
                 Success('State created successfully');
             }
             clearLogData();
@@ -150,11 +150,7 @@ const states = () => {
     const handleDelete = async () => {
         try {
             setState({ isDeleteLoad: true });
-            const body = {
-                is_active: 'False',
-            };
-
-            await Models.master.deleteStates(body, state.EditId);
+            await Models.master.delete_state(state.EditId);
             Success('State Deleted successfully');
             clearLogData();
             getMasterData(state.currentPage);
@@ -163,16 +159,17 @@ const states = () => {
         }
     };
 
-    const handleNextPage = () => {
-        if (state.next) {
-            setState({ currentPage: state.currentPage + 1 });
-        }
-    };
-
-    const handlePreviousPage = () => {
-        if (state.previous) {
-            setState({ currentPage: state.currentPage - 1 });
-        }
+    const handleEdit = (row) => {
+console.log('✌️row --->', row);
+        const filter=state.countryList?.find((item)=>item?.value==row?.allData?.country)
+console.log('✌️filter --->', filter);
+        setState({
+            modalManage: true,
+            EditId: row.id,
+            state_name: row.state_name,
+            isOpen: true,
+            country:filter,
+        });
     };
 
     return (
@@ -246,19 +243,13 @@ const states = () => {
                                                     type="button"
                                                     className="flex hover:text-primary"
                                                     onClick={() => {
-                                                        setState({
-                                                            modalManage: true,
-                                                            EditId: row.id,
-                                                            state_name: row.state_name,
-                                                            isOpen: true,
-                                                            country: { value: row?.allData?.country?.id, label: row?.allData?.country?.country_name },
-                                                        });
+                                                        handleEdit(row);
                                                     }}
-                                                // onClick={() => {
-                                                //     state.expandedRow == row.id ? setState({ expandedRow: null }) : setState({ expandedRow: row.id });
-                                                //     console.log("onclick",state.expandedRow);
+                                                    // onClick={() => {
+                                                    //     state.expandedRow == row.id ? setState({ expandedRow: null }) : setState({ expandedRow: row.id });
+                                                    //     console.log("onclick",state.expandedRow);
 
-                                                // }}
+                                                    // }}
                                                 >
                                                     <IconNotesEdit />
                                                 </button>
@@ -286,7 +277,7 @@ const states = () => {
                             recordsPerPage={state.pageSize}
                             minHeight={200}
                             page={null}
-                            onPageChange={(p) => { }}
+                            onPageChange={(p) => {}}
                             withBorder={true}
                             styles={{
                                 root: {

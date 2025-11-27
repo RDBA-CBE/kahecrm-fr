@@ -74,7 +74,7 @@ const Status = () => {
             return {
                 ...item,
                 allData: item,
-                status: item.status,
+                name: item.stage,
             };
         });
 
@@ -103,7 +103,7 @@ const Status = () => {
 
             await Validation.CreateContactStatus.validate(body, { abortEarly: false });
             delete body.status;
-            body['name'] = state?.status;
+            body['stage'] = state?.status;
             if (state.EditId) {
                 await Models.master.update_lead_status(state.EditId, body);
 

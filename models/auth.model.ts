@@ -23,7 +23,7 @@ const auth = {
 
     userDetails: () => {
         let promise = new Promise((resolve, reject) => {
-            let url = `accounts/userdetails/`;
+            let url = `auth/auth/user-college-leads/`;
             instance()
                 .get(url)
                 .then((res) => {

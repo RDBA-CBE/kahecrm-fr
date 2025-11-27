@@ -1,7 +1,7 @@
 import IconBitcoin from '@/components/Icon/IconBitcoin';
 import IconSearch from '@/components/Icon/IconSearch';
 import CustomSelect from '@/components/Select';
-import { Dropdown, chartData, filterByDates, getDateRange, objIsEmpty, pageCounts, useSetState } from '@/utils/functions.utils';
+import { Dropdown, Success, capitalizeFLetter, chartData, filterByDates, getDateRange, objIsEmpty, pageCounts, useSetState } from '@/utils/functions.utils';
 import { Loader, SimpleGrid } from '@mantine/core';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
@@ -32,6 +32,7 @@ import { IRootState } from '@/store';
 import { useDispatch, useSelector } from 'react-redux';
 import { leadIndex } from '@/store/crmConfigSlice';
 import Pagination from '@/components/Pagination';
+import IconTrash from '@/components/Icon/IconTrash';
 
 const Leads = () => {
     const dispatch = useDispatch();
@@ -77,44 +78,23 @@ const Leads = () => {
         // data:
     });
 
-    useEffect(() => {
-        bdmList();
-        dmList();
-        countData();
-        getData();
-        userData();
-        statusList();
-        sourceList();
-        DMGraphData();
-        getOpportunityList();
-    }, []);
-
     const debouncedSearch = useDebounce(state.search, 500);
 
     useEffect(() => {
-        if (state.roles?.value == 'BDE') {
-            bdeList();
-        } else {
-            telecallerList();
-        }
-    }, [state.roles]);
-
-    useEffect(() => {
-        if (state.role == 'BDM') {
-            telecallerList();
-            BDEList();
-            assignList();
-        }
-    }, [state.role]);
-
+        getData();
+        userData();
+        sourceList();
+        leadList();
+        leadStatusList();
+        usersList();
+    }, []);
 
     const deps = useMemo(
         () => ({
             activeTab: state.activeTab,
             search: debouncedSearch,
             assigned_to: state.assigned_to?.value,
-            lead_source: state.lead_source?.value,
-            opportunity: state.opportunity?.value,
+            lead_source_category: state.lead_source_category?.value,
             lead_status: state.lead_status?.value,
             role: state.role,
             bdm: state.bdm?.value,
@@ -124,13 +104,14 @@ const Leads = () => {
             today: state?.today,
             month: state?.month,
             card_lead_status: state?.card_lead_status,
+            from_date: state?.from_date,
+            end_date: state?.end_date,
         }),
         [
             state.activeTab,
             debouncedSearch,
             state.assigned_to,
-            state.lead_source,
-            state.opportunity,
+            state.lead_source_category,
             state.lead_status,
             state.role,
             state.bdm,
@@ -140,12 +121,12 @@ const Leads = () => {
             state?.today,
             state?.month,
             state?.card_lead_status,
+            state.from_date,
+            state.end_date,
         ]
     );
 
     useEffect(() => {
-        if (!state.role) return;
-
         const currentDeps = JSON.stringify(deps);
 
         if (isInitialLoad.current) {
@@ -153,35 +134,15 @@ const Leads = () => {
             if (redux?.leadIndex) {
                 setState({ currentPage: redux.leadIndex });
             }
-            filterData(page);
+            leadList(page);
             isInitialLoad.current = false;
         } else if (prevDeps.current !== currentDeps) {
-            filterData(1);
-            countData();
+            leadList(1);
+            // countData();
         }
 
         prevDeps.current = currentDeps;
     }, [deps]);
-
-    useEffect(() => {
-        if (state.role == ROLE.DM) {
-            DMGraphData();
-        }
-    }, [state.activeTab]);
-
-    useEffect(() => {
-        if (ROLE.TM == state.role || ROLE.DM == state.role) {
-            if (!objIsEmpty(state.assignRole)) {
-                if (state.assignRole?.value == 'owner') {
-                    TelecallerFilterOwnerList();
-                } else if (state.assignRole?.value == 'bdm') {
-                    TelecallerFilterBdmList();
-                } else {
-                    TelecallerFilterBdeList();
-                }
-            }
-        }
-    }, [state.assignRole]);
 
     useEffect(() => {
         setState({ from_date: '', end_date: '' });
@@ -193,61 +154,13 @@ const Leads = () => {
         }
     }, [state.from_date, state.end_date]);
 
-    const statusList = async () => {
+    const leadList = async (page = 1) => {
         try {
             setState({ loading: true });
-            const res: any = await Models.lead.statusList();
-            const dropdownList = Dropdown(res.results, 'name');
-            setState({ statusList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-
-            console.log('error: ', error);
-        }
-    };
-
-    const getOpportunityList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.GetDropdown('opportunity-name');
-            const dropdownList = Dropdown(res.results, 'name');
-            setState({ opportunityList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const assignList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.bdmAndBDE();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const telecallerList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.bdmAndBDE();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ bdeOrTMList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const BDEList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.bdmBasedBde(state?.userId);
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ bdeList: dropdownList, loading: false });
+            const body = bodyData();
+            const res: any = await Models.lead.list(body, page, null);
+            tableData(res);
+            setState({ loading: false, count: res?.count, next: res?.next, previous: res?.previous, currentPage: page });
         } catch (error) {
             setState({ loading: false });
             console.log('error: ', error);
@@ -257,47 +170,95 @@ const Leads = () => {
     const sourceList = async () => {
         try {
             setState({ loading: true });
-            const res: any = await Models.lead.sourceList();
-            const dropdownList = Dropdown(res.results, 'source');
-            setState({ sourceList: dropdownList, loading: false });
+            const res: any = await Models.master.lead_cat_List(1);
+            console.log('✌️res --->', res);
+            const dropdownList = Dropdown(res.results, 'name');
+            setState({ sourceList: dropdownList, loading: false, sourcePage: 1, sourceHasNext: res?.next });
+        } catch (error) {
+            setState({ loading: false });
+
+            console.log('error: ', error);
+        }
+    };
+
+    const sourceLoadMore = async () => {
+        try {
+            setState({ sorceloadMore: true });
+            const res: any = await Models.master.lead_cat_List(state.sourcePage + 1);
+            const dropdownList = Dropdown(res.results, 'name');
+            setState({ sourceList: [...state.sourceList, ...dropdownList], loading: false, sourcePage: state.sourcePage + 1, sourceHasNext: res.next });
         } catch (error) {
             setState({ loading: false });
             console.log('error: ', error);
         }
     };
 
-    const bdmList = async () => {
+    const leadStatusList = async () => {
         try {
             setState({ loading: true });
-            const res: any = await Models.lead.leadManager();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ bdmList: dropdownList, loading: false });
+            const res: any = await Models.master.lead_status_list(1);
+            const dropdownList = Dropdown(res.results, 'stage');
+
+            setState({ leadStatusList: dropdownList, loading: false, leadStatusPage: 1, leadStatusHasNext: res?.next });
         } catch (error) {
             setState({ loading: false });
             console.log('error: ', error);
         }
     };
 
-    const bdeList = async () => {
+    const leadStatusLoadMore = async () => {
+        try {
+            setState({ leadStatusloadMore: true });
+            const res: any = await Models.master.lead_status_list(state.leadStatusPage + 1);
+            const dropdownList = Dropdown(res.results, 'stage');
+
+            setState({
+                leadStatusList: [...state.leadStatusList, ...dropdownList],
+                leadStatusloadMore: false,
+                leadStatusPage: state.leadStatusPage + 1,
+                leadStatusHasNext: res.next,
+            });
+        } catch (error) {
+            setState({ leadStatusloadMore: false });
+            console.log('error: ', error);
+        }
+    };
+
+    const usersList = async () => {
         try {
             setState({ loading: true });
-            const res: any = await Models.lead.bdmBasedBde(state?.bdm?.value);
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ bdeOrTMList: dropdownList, loading: false });
+            const res: any = await Models.user.userList(1, null);
+            console.log('usersList --->', res);
+            const dropdownList = res?.results?.map((item) => ({
+                label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}`,
+                value: item?.id,
+            }));
+
+            setState({ usersList: dropdownList, loading: false, userPage: 1, userHasNext: res?.next });
         } catch (error) {
             setState({ loading: false });
             console.log('error: ', error);
         }
     };
 
-    const dmList = async () => {
+    const usersListLoadMore = async () => {
         try {
-            setState({ loading: true });
-            const res: any = await Models.lead.dmList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ dmList: dropdownList, loading: false });
+            setState({ leadStatusloadMore: true });
+            const res: any = await Models.master.lead_status_list(state.leadStatusPage + 1);
+            const dropdownList = res?.results?.map((item) => ({
+                label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}`,
+                value: item?.id,
+            }));
+            setState({ usersList: dropdownList, loading: false, userPage: 1, userHasNext: res?.next });
+
+            setState({
+                usersList: [...state.usersList, ...dropdownList],
+                leadStatusloadMore: false,
+                userPage: state.userPage + 1,
+                userHasNext: res.next,
+            });
         } catch (error) {
-            setState({ loading: false });
+            setState({ leadStatusloadMore: false });
             console.log('error: ', error);
         }
     };
@@ -311,35 +272,8 @@ const Leads = () => {
             const ROLE = { TM: 'TM', BDE: 'BDE', BDM: 'BDM', ADMIN: 'ADMIN' };
 
             const user: any = await Models.auth.userDetails();
-            // const res: any = await Models.lead.leadCount(body);
 
             let res: any;
-
-            // console.log("state.role", state.role);
-
-            if (user.designation == 'ADMIN' || user.designation == 'BDM') {
-                res = await Models.lead.leadCount(body);
-            } else {
-                res = await Models.lead.leadCount(body, user.id);
-            }
-
-            // const count = [
-            //     { title: 'Leads', monthCount: res?.Leads?.this_month, todayCount: res?.Leads?.today, icon: '🔗', name1: 'Today', name2: 'Month' },
-            //     { title: 'Calls', monthCount: res?.Calls?.this_month, todayCount: res?.Calls?.today, icon: '🔗', name1: 'Today', name2: 'Month' },
-            //     { title: 'Prospect', monthCount: res?.Prospect?.this_month, todayCount: res?.Prospect?.today, icon: '💰', name1: 'Today', name2: 'Month' },
-            //     { title: 'Meetings', monthCount: res?.Meetings?.this_month, todayCount: res?.Meetings?.today, icon: '👨‍💼', name1: 'Today', name2: 'Month' },
-            // ];
-
-            // if (state.role == ROLE.TM) {
-            //     count.push({ title: 'Follow Up', monthCount: res?.['Follow Up']?.this_month, todayCount: res?.['Follow Up']?.today, icon: '⏳', name1: 'Month', name2: 'Target' });
-            // }
-
-            // if (state.role == ROLE.BDE || state.role == ROLE.BDM || state.role == ROLE.ADMIN) {
-            //     count.push(
-            //         { title: 'Proposal', monthCount: res?.Proposal?.this_month, todayCount: res?.Proposal?.today, icon: '⏳', name1: 'Month', name2: 'Target' },
-            //         { title: 'Deal Won', monthCount: res?.['Deal Won']?.this_month, todayCount: res?.['Deal Won']?.today, icon: '💵', name1: 'Month', name2: 'Target' }
-            //     );
-            // }
 
             const count = [
                 { title: 'Leads', id: res?.Lead?.id, monthCount: res?.Lead?.total_count, todayCount: res?.Lead?.today, icon: '🔗', name1: 'Today', name2: 'Total' },
@@ -374,163 +308,6 @@ const Leads = () => {
         }
     };
 
-    const DMGraphData = async () => {
-        try {
-            setState({ chartsLoading: true });
-            const body = bodyData();
-            const res: any = await Models.lead.leadGraph(body?.from_date, body?.end_date);
-            const tableData = chartData(res);
-            const options = {
-                series: [
-                    {
-                        name: 'Leads',
-                        data: tableData.map((data) => data.monthCount),
-                    },
-                ],
-                options: {
-                    chart: {
-                        height: 350,
-                        type: 'bar',
-                    },
-                    plotOptions: {
-                        bar: {
-                            horizontal: false,
-                            columnWidth: '50%',
-                            endingShape: 'rounded',
-                        },
-                    },
-                    stroke: {
-                        width: 2,
-                        colors: ['transparent'],
-                    },
-                    xaxis: {
-                        title: {
-                            text: 'Dates',
-                        },
-                        categories: tableData.map((data) => data.title),
-                    },
-                    yaxis: {
-                        title: {
-                            text: 'Number Of Leads',
-                        },
-                        labels: {
-                            formatter: function (val: number) {
-                                return val.toFixed(0);
-                            },
-                        },
-                        tickAmount: 10,
-                        min: 0,
-                        max: 100,
-                    },
-                    colors: ['#9957B3'],
-                    tooltip: {
-                        y: {
-                            formatter: (val: number) => {
-                                if (val === undefined || val === null) {
-                                    return 'N/A';
-                                }
-                                return val.toString();
-                            },
-                        },
-                    },
-                    responsive: [
-                        {
-                            breakpoint: 576,
-                            options: {
-                                chart: {
-                                    height: 300,
-                                },
-                            },
-                        },
-                    ],
-                },
-            };
-
-            setState({ chartsLoading: false, chartData: options });
-        } catch (error) {
-            setState({ chartsLoading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const DMGraphCustomData = async (body) => {
-        try {
-            setState({ chartsLoading: true });
-            const res: any = await Models.lead.leadGraph(body?.from_date, body?.end_date);
-            const tableData = chartData(res);
-            const options = {
-                series: [
-                    {
-                        name: 'Leads',
-                        data: tableData.map((data) => data.monthCount),
-                    },
-                ],
-                options: {
-                    chart: {
-                        height: 350,
-                        type: 'bar',
-                    },
-                    plotOptions: {
-                        bar: {
-                            horizontal: false,
-                            columnWidth: '50%',
-                            endingShape: 'rounded',
-                        },
-                    },
-                    stroke: {
-                        width: 2,
-                        colors: ['transparent'],
-                    },
-                    xaxis: {
-                        title: {
-                            text: 'Dates',
-                        },
-                        categories: tableData.map((data) => data.title),
-                    },
-                    yaxis: {
-                        title: {
-                            text: 'Number Of Leads',
-                        },
-                        labels: {
-                            formatter: function (val: number) {
-                                return val.toFixed(0);
-                            },
-                        },
-                        tickAmount: 10,
-                        min: 0,
-                        max: 100,
-                    },
-                    colors: ['#9957B3'],
-                    tooltip: {
-                        y: {
-                            formatter: (val: number) => {
-                                if (val === undefined || val === null) {
-                                    return 'N/A';
-                                }
-                                return val.toString();
-                            },
-                        },
-                    },
-                    responsive: [
-                        {
-                            breakpoint: 576,
-                            options: {
-                                chart: {
-                                    height: 300,
-                                },
-                            },
-                        },
-                    ],
-                },
-            };
-
-            setState({ chartsLoading: false, chartData: options });
-        } catch (error) {
-            setState({ chartsLoading: false });
-            console.log('error: ', error);
-        }
-    };
-
     const handleEdit = (id) => {
         dispatch(leadIndex(state.currentPage));
         router.push(`/updateLead?id=${id}`);
@@ -541,29 +318,27 @@ const Leads = () => {
         router.push(`/viewLead?id=${id}`);
     };
 
-    const tableData = (res, role) => {
-        const data = res?.map((item) => {
+    const tableData = (res) => {
+        const data = res?.results?.map((item) => {
             return {
                 ...item,
                 allData: item,
                 lead: item.lead,
-                opportunity: item?.name,
-                // opportunity: item?.opportunities?.length > 0 ? item.opportunities.map((detail) => detail.name).join(', ') : '-',
-                source: item.primary_contact?.lead_source?.source || '',
-                date: item.created_on ? moment(item.created_on).format('DD-MM-YYYY') : '',
-                contact_person: item.primary_contact?.name || '',
-                lead_status: item.lead_status?.name,
+                source: capitalizeFLetter(item.lead_source_category?.name) || '',
+                date: item.created_at ? moment(item.created_at).format('DD-MM-YYYY') : '',
+                contact_person: capitalizeFLetter(item.college_contact?.student_name) || '',
+                lead_status: capitalizeFLetter(item.stage?.stage),
                 status_date: item.status_date ? moment(item.status_date).format('DD-MM-YYYY') : null,
-                remark: item.remark,
+                remark: capitalizeFLetter(item.remark),
                 assigned_to: item.assigned_to?.username,
                 follow_up: moment(item.status_date).format('DD-MM-YYYY'),
                 contact_number: item.primary_contact?.phone_number,
-                updated_on:item?.updated_on ? moment(item?.updated_on).format('DD-MM-YYYY') : '',
+                updated_on: item?.updated_at ? moment(item?.updated_at).format('DD-MM-YYYY') : '',
             };
         });
+        console.log('✌️data --->', data);
 
-   
-        setState({ data: data, allData: res});
+        setState({ data: data, allData: res });
     };
 
     const getData = async () => {
@@ -587,6 +362,7 @@ const Leads = () => {
     const userData = async () => {
         try {
             const res: any = await Models.auth.userDetails();
+            console.log('userData --->', res);
             setState({ role: res?.designation, userId: res?.id });
         } catch (error) {
             console.log('error: ', error);
@@ -609,50 +385,9 @@ const Leads = () => {
         // countData();
     };
 
-    const filterData = async (page) => {
-        try {
-            setState({ loading1: true });
-            let body = bodyData();
-            const res: any = await Models.auth.userDetails();
-            // const response: any = await Models.opportunity.filtersByOwnLead(body, page);
-            
-
-            let response: any;
-
-            if (ROLE.ADMIN == state.role || ROLE.BDM == state.role) {
-                response = await Models.opportunity.filtersByOwnLead(body, page);
-            } else {
-                response = await Models.opportunity.filtersByOwnLead(body, page, state?.userId);
-            }
-
-            tableData(response?.results, state.role);
-            setState({
-                loading1: false,
-                totalRecords: response.count,
-                next: response.next,
-                previous: response.previous,
-                isOpen: false,
-                currentPage: page,
-                count: response.count,
-            });
-            // } else {
-            //     getAllData(state.currentPage);
-            //     countData();
-
-            //     setState({
-            //         loading: false,
-
-            //         isOpen: false,
-            //     });
-            // }
-        } catch (error) {
-            setState({ loading1: false });
-        }
-    };
-
     const filterCustomDate = async () => {
         try {
-            setState({loading1:true})
+            setState({ loading1: true });
             let body = bodyData();
             if (state.from_date) {
                 body.from_date = moment(state.from_date).format('YYYY-MM-DD');
@@ -664,137 +399,57 @@ const Leads = () => {
 
             let response: any;
 
-            if (ROLE.ADMIN == state.role || ROLE.BDM == state.role) {
-                response = await Models.opportunity.filters(body, state.currentPage);
-            } else {
-                response = await Models.opportunity.filters(body, state.currentPage, state?.userId);
-            }
+            // if (ROLE.ADMIN == state.role || ROLE.BDM == state.role) {
+            //     response = await Models.opportunity.filters(body, state.currentPage);
+            // } else {
+            //     response = await Models.opportunity.filters(body, state.currentPage, state?.userId);
+            // }
 
             // const response: any = await Models.opportunity.filters(body, state.currentPage);
-            tableData(response?.results, state.role);
+            tableData(response);
             countData();
-            DMGraphCustomData(body);
             setState({
-                loading1:false,
+                loading1: false,
                 totalRecords: response.count,
                 next: response.next,
                 previous: response.previous,
                 isOpen: false,
             });
         } catch (error) {
-            setState({loading1:false})
+            setState({ loading1: false });
 
             console.log('error: ', error);
         }
     };
-    const filterCards = async (card, date) => {
-        if (date == 'today') {
-            setState({ today: true, card_lead_status: card.title, opporunity_status: card.id });
-        } else {
-            setState({ today: false });
-        }
-
-        if (date == 'month') {
-            setState({ month: true, card_lead_status: card.title, opporunity_status: card.id });
-        } else {
-            setState({ month: false });
-        }
-
-        try {
-            // setState({ loading: true });
-            // let body = bodyData();
-            // console.log('body', body);
-            // // if (!objIsEmpty(body)) {
-            // const response: any = await Models.opportunity.filters(body, state.currentPage);
-            // console.log(response, 'response');
-            // tableData(response?.results, state.role);
-            // setState({
-            //     loading: false,
-            //     // totalRecords: response.count,
-            //     // next: response.next,
-            //     // previous: response.previous,
-            //     // isOpen: false,
-            // });
-        } catch (error) {
-            setState({ loading: false });
-        }
-    };
-
-    // console.log(state.filterCard1, "FilterCard1");
-
-    // const filterCard2 = async (card) => {
-    //     console.log('card', card);
-    //     console.log(card.title, card.name2);
-    //     setState({ filterCard2: card.name2 });
-
-    //     try {
-    //         setState({ loading: true });
-    //         let body = bodyData();
-    //         console.log('body', body);
-
-    //         // if (!objIsEmpty(body)) {
-    //         const response: any = await Models.opportunity.filters(body, state.currentPage);
-    //         console.log(response, 'response');
-
-    //         tableData(response?.results, state.role);
-    //         setState({
-    //             loading: false,
-    //             // totalRecords: response.count,
-    //             // next: response.next,
-    //             // previous: response.previous,
-    //             // isOpen: false,
-    //         });
-    //     } catch (error) {
-    //         setState({ loading: false });
-    //     }
-    // };
 
     const bodyData = () => {
         let body: any = {};
-        body.team = true;
 
-        body.display_date_source = true;
+        if (state.assigned_to) {
+            body.userId = state.assigned_to?.value;
+            body.my_leads = 'Yes';
+        } else {
+            body.team = 'Yes';
+        }
+
+        // body.display_date_source = true;
 
         if (state.search) {
             body.search = state.search;
         }
 
-        if (state.lead_source) {
-            body.lead_source = state.lead_source?.value;
+        // if (state.lead_source) {
+        //     body.lead_source = state.lead_source?.value;
+        // }
+
+        if (state.lead_source_category) {
+            body.lead_source_category = state.lead_source_category?.value;
         }
-        if (state.opportunity) {
-            body.opportunity = state.opportunity?.value;
-        }
+
         if (state.lead_status) {
             body.status = state.lead_status?.value;
         }
-        if (state.assigned_to) {
-            body.assigned_to = state.assigned_to?.value;
-        } else if (state.bdm) {
-            if (state.roles?.label == 'TM') {
-                if (state.tm) {
-                    body.tm = state.tm?.value;
-                } else {
-                    body.bdm = state.bdm?.value;
-                }
-            } else if (state.roles?.label == 'BDE') {
-                if (state.bde) {
-                    body.bde = state.bde?.value;
-                } else {
-                    body.bdm = state.bdm?.value;
-                }
-            } else {
-                body.bdm = state.bdm?.value;
-            }
-        } else if (state.bde) {
-            body.bde = state.bde?.value;
-        } else if (state.dm) {
-            body.dm = state.dm?.value;
-        } else if (state.tm) {
-            body.tm = state.tm?.value;
-        } else {
-            body.created_by = state.userId;
-        }
+
         if (state.today == true && state?.card_lead_status) {
             body.today = state.today;
             body.card_lead_status = state?.card_lead_status;
@@ -838,62 +493,27 @@ const Leads = () => {
         return body;
     };
 
-    const TelecallerFilterOwnerList = async () => {
-        try {
-            const res: any = await Models.lead.ownerList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const TelecallerFilterBdmList = async () => {
-        try {
-            const res: any = await Models.lead.bdmList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const TelecallerFilterBdeList = async () => {
-        try {
-            const res: any = await Models.lead.bdeList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
     const handleRemove = (type) => {
-        if (type == 'bdm') {
-            setState({ bdm: null, roles: null, bde: null, dm: null });
-        } else if (type == 'roles') {
-            setState({ roles: null, bde: null });
-        } else if (type == 'bde') {
-            setState({ bde: null });
-        } else if (type == 'status') {
-            setState({ card_lead_status: null, today: false, month: false, opporunity_status: null });
-        } else if (type == 'dm') {
-            setState({ dm: null });
-        } else if (type == 'tm') {
-            setState({ tm: null });
-        } else if (type == 'lead_source') {
+        if (type == 'lead_source') {
             setState({ lead_source: null });
         } else if (type == 'lead_status') {
             setState({ lead_status: null });
         } else if (type == 'assigned_to') {
             setState({ assigned_to: null });
-        } else if (type == 'assignRole') {
-            setState({ assignRole: null, assigned_to: null, assignList: [] });
-        } else {
-            // setState({ dm: null });
+        }
+    };
+
+    const handleDelete = async (id) => {
+        try {
+            setState({ isDeleteLoading: true });
+            const res = await Models.lead.delete(id);
+            setState({ isDeleteLoading: false, isDeleteOpen: false });
+            Success('Lead deleted successfully');
+            leadList(state.currentPage);
+        } catch (error) {
+            setState({ isDeleteLoading: false });
+            // Failure(error[0]);
+            console.log('error: ', error);
         }
     };
 
@@ -968,11 +588,11 @@ const Leads = () => {
 
                 let response: any;
 
-                if (ROLE.ADMIN == state.role || ROLE.BDM == state.role) {
-                    response = await Models.opportunity.filtersByOwnLead(body, page);
-                } else {
-                    response = await Models.opportunity.filtersByOwnLead(body, page, userId);
-                }
+                // if (ROLE.ADMIN == state.role || ROLE.BDM == state.role) {
+                //     response = await Models.opportunity.filtersByOwnLead(body, page);
+                // } else {
+                //     response = await Models.opportunity.filtersByOwnLead(body, page, userId);
+                // }
                 // const response: any = await Models.opportunity.filtersByOwnLead(body, page, userId);
 
                 if (response?.results && response?.results.length > 0) {
@@ -1002,7 +622,7 @@ const Leads = () => {
                 contact_person: item.primary_contact?.name || '',
                 lead_status: item.lead_status?.name,
                 status_date: item.status_date ? moment(item.status_date).format('DD-MM-YYYY') : null,
-                updated_on :item.updated_on ? moment(item.updated_on).format('DD-MM-YYYY') : null,
+                updated_on: item.updated_on ? moment(item.updated_on).format('DD-MM-YYYY') : null,
                 remark: item.remark,
                 assigned_to: item.assigned_to?.username,
                 follow_up: moment(item.status_date).format('DD-MM-YYYY'),
@@ -1044,15 +664,6 @@ const Leads = () => {
                 <div className="flex items-center pl-3">
                     <h5 className="text-lg font-semibold"> {(state.role == ROLE.ADMIN || state.role == ROLE.BDM) && 'TEAM '}LEADS</h5>
                 </div>
-
-                {/* Button Section */}
-                {state.role !== ROLE.ADMIN && state.role !== ROLE.BDM && (
-                    <div className="flex">
-                        <button type="button" className="btn btn-primary w-auto" onClick={() => router.push('/create_contact')}>
-                            + Create
-                        </button>
-                    </div>
-                )}
             </div>
 
             <div className="panel flex flex-wrap items-center justify-between gap-2 md:gap-4">
@@ -1131,7 +742,7 @@ const Leads = () => {
                         type="text"
                         value={state.search}
                         onChange={(e) => setState({ search: e.target.value })}
-                        placeholder="Search by lead name"
+                        placeholder="Search ..."
                         className="form-input rounded-r-full border-0 bg-white py-1.5 pl-0 text-sm placeholder:tracking-wide focus:shadow-lg focus:outline-none dark:bg-gray-800 dark:shadow-[#1b2e4b] dark:placeholder:text-gray-400"
                     />
                 </div>
@@ -1204,19 +815,24 @@ const Leads = () => {
                             />
                         </>
                     )}
-                    
-
                     <CustomSelect
-                        value={state.lead_source}
-                        onChange={(e) => setState({ lead_source: e })}
-                        placeholder={'Source'}
-                        options={state.sourceList}
-                        error={state.errors?.lead_source}
-                        className="w-full"
-                        required
+                        value={state.assigned_to}
+                        onChange={(e) => setState({ assigned_to: e })}
+                        placeholder={'Select User'}
+                        options={state.usersList}
+                        error={state.errors?.assigned_to}
+                        loadMore={()=>state.userHasNext &&usersListLoadMore()}
+                    />
+                    <CustomSelect
+                        value={state.lead_status}
+                        onChange={(e) => setState({ lead_status: e })}
+                        placeholder={'Lead Status'}
+                        options={state.leadStatusList}
+                        error={state.errors?.status}
+                        loadMore={() => state.leadStatusHasNext && leadStatusLoadMore()}
                     />
 
-                    <CustomSelect
+                    {/* <CustomSelect
                         value={state.lead_status}
                         onChange={(e) => setState({ lead_status: e })}
                         placeholder={'Status'}
@@ -1224,324 +840,67 @@ const Leads = () => {
                         error={state.errors?.lead_status}
                         className="w-full"
                         required
-                    />
+                    /> */}
 
                     <CustomSelect
-                        value={state.opportunity}
-                        onChange={(e) => setState({ opportunity: e })}
-                        placeholder={'Opportunity'}
-                        options={state.opportunityList}
-                        error={state.errors?.opportunity}
-                        required
+                        value={state.lead_source_category}
+                        onChange={(e) => setState({ lead_source_category: e })}
+                        placeholder={'Lead Source Category'}
+                        options={state.sourceList}
+                        loadMore={() => state.sourceHasNext && sourceLoadMore()}
                     />
-
                 </div>
             </div>
 
-         
-
-            {ROLE.ADMIN == state.role ? (
-                <>
-                    {!state?.dm && (state?.bdm || state?.roles || state?.bde || state?.card_lead_status) && (
-                        <p className="flex items-center gap-2 text-sm font-semibold">
-                            Filters:
-                            {state?.bdm?.label && (
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('bdm')}>
-                                    {state?.bdm?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            )}
-                            {state?.roles?.label && <div>/</div>}
-                            {state?.roles?.label && (
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('roles')}>
-                                    {state?.roles?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            )}
-                            {state?.bde?.label && <div>/</div>}
-                            {state?.bde?.label && (
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('bde')}>
-                                    {state?.bde?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            )}
-                            {state?.card_lead_status && <div>,</div>}
-                            {state?.card_lead_status && (
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('status')}>
-                                    {`${state?.card_lead_status} (${state.today ? 'Today' : 'Month'})`}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            )}
-                        </p>
-                    )}
-                    {state?.dm && (
-                        <div className="pb-2 ">
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                Filters:
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('dm')}>
-                                    {state?.dm?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                                {state?.card_lead_status && <div>,</div>}
-                                {state?.card_lead_status && (
-                                    <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('status')}>
-                                        {`${state?.card_lead_status} (${state.today ? 'Today' : 'Month'})`}
-                                        <div>
-                                            <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </>
-            ) : ROLE.BDM == state.role ? (
-                <>
-                    <div className="flex gap-2">
-                        {state?.bde?.label && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('bde')}>
-                                    {state?.bde?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {state?.tm?.label && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('tm')}>
-                                    {state?.tm?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {state?.dm?.label && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('dm')}>
-                                    {state?.dm?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {state?.card_lead_status && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('status')}>
-                                    {`${state?.card_lead_status} (${state.today ? 'Today' : 'Month'})`}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </>
-            ) : ROLE.BDE == state.role ? (
-                <>
-                    <div className="flex gap-2">
-                        {state?.lead_source?.label && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('lead_source')}>
-                                    {state?.lead_source?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {state?.lead_status?.label && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('lead_status')}>
-                                    {state?.lead_status?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {state?.card_lead_status && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('status')}>
-                                    {`${state?.card_lead_status} (${state.today ? 'Today' : 'Month'})`}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </>
-            ) : (
-                <>
-                    <div className="flex gap-2">
-                        {state?.assignRole?.label && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('assignRole')}>
-                                    {state?.assignRole?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {state?.assigned_to?.label && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('assigned_to')}>
-                                    {state?.assigned_to?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {state?.lead_source?.value && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('lead_source')}>
-                                    {`${state?.lead_source?.label}`}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {state?.card_lead_status && (
-                            <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('status')}>
-                                {`${state?.card_lead_status} (${state.today ? 'Today' : 'Month'})`}
-                                <div>
-                                    <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </>
-            )}
-
             {/* {state.data?.length > 0 ? ( */}
-                <>
-                    <div className="flex items-center justify-end pb-2 pr-3">
-                        <div className="rounded-lg bg-gray-300 p-1 font-semibold">{pageCounts(state.currentPage, state.totalRecords)}</div>
-                    </div>
-                    <div>
-                        <DataTable
-                            className="table-responsive"
-                            records={state.data}
-                            fetching={state.loading1 || state.loading || state.subLoading}
-                            loaderSize="lg"
-                            loaderVariant="dots"
-                            loaderColor="blue"
-                            loaderBackgroundBlur={0}
-                            // onRowClick={()=>tableRow(state.data)}
-                            columns={[
-                                {
-                                    accessor: 'lead',
+            <>
+                <div className="flex items-center justify-end pb-2 pr-3">
+                    <div className="rounded-lg bg-gray-300 p-1 font-semibold">{pageCounts(state.currentPage, state.totalRecords)}</div>
+                </div>
+                <div>
+                    <DataTable
+                        className="table-responsive"
+                        records={state.data}
+                        fetching={state.loading1 || state.loading || state.subLoading}
+                        loaderSize="lg"
+                        loaderVariant="dots"
+                        loaderColor="blue"
+                        loaderBackgroundBlur={0}
+                        // onRowClick={()=>tableRow(state.data)}
+                        columns={[
+                            {
+                                accessor: 'contact_person',
+                                title: 'Contact Person',
+                            },
 
-                                    title: `${ROLE.TM == state.role ? 'Company' : 'Lead'}`,
-                                    render: (row: any) => <div>{row?.lead?.name}</div>,
-                                },
-                                ...(state.role === ROLE.BDE || state.role === ROLE.BDM || state.role === ROLE.DM || state.role === ROLE.ADMIN
-                                    ? [
-                                          {
-                                              accessor: 'name',
-                                              title: 'Opportunity',
-                                              sortable: false,
-                                              width: 150,
-                                              render: (row) => (
-                                                  <div>
-                                                      {row?.name?.name} {/* {row?.opportunity_keyword && `(${row?.opportunity_keyword})`} */}
-                                                  </div>
-                                              ),
-                                          },
-                                      ]
-                                    : []),
+                            { accessor: 'source', title: 'Source' },
 
-                                {
-                                    accessor: 'contact_person',
-                                    title: 'Contact Person',
-                                },
+                            { accessor: 'date', title: 'Created Date', width: 120 },
+                            {
+                                accessor: 'lead_status',
+                                title: 'Lead Status',
+                            },
 
-                                ...(state.role == ROLE.BDE || state.role == ROLE.TM ? [{ accessor: 'contact_number', title: 'Contact Number' }] : []),
+                            // { accessor: 'status_date', title: `${ROLE.TM == state.role ? 'Follow Up' : 'Status Date'}` },
 
-                                { accessor: 'source', title: 'Source' },
+                            { accessor: 'updated_on', title: 'Updated Date' },
 
-                                { accessor: 'date', title: 'Created Date', width: 120 },
-                                {
-                                    accessor: 'opportunity_status',
-                                    title: 'Opportunity Status',
-                                    render: (row) => (
-                                        <div
-                                            className={`flex w-max gap-4 rounded-full px-2 py-1 ${
-                                                row?.opportunity_status?.name === 'Inquired'
-                                                    ? 'bg-pink-100 text-pink-800'
-                                                    : row?.opportunity_status?.name === 'Appointments'
-                                                    ? 'bg-yellow-100 text-yellow-800'
-                                                    : row?.opportunity_status?.name === 'Opportunity'
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : row?.opportunity_status?.name === 'Proposal'
-                                                    ? 'bg-orange-100 text-orange-800'
-                                                    : row?.opportunity_status?.name === 'Leads'
-                                                    ? 'bg-teal-100 text-teal-800'
-                                                    : row?.opportunity_status?.name === 'Income'
-                                                    ? 'bg-blue-100 text-blue-800'
-                                                    : row?.opportunity_status?.name === 'Meetings'
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : row?.opportunity_status?.name === 'Prospect'
-                                                    ? 'bg-blue-100 text-blue-800'
-                                                    : row?.opportunity_status?.name === 'Deal Won'
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : row?.opportunity_status?.name === 'Deal Lose'
-                                                    ? 'bg-red-300 text-red-800'
-                                                    : row?.opportunity_status?.name === "Don't have our budget"
-                                                    ? 'bg-red-200 text-red-800'
-                                                    : row?.opportunity_status?.name === 'Idea in hold'
-                                                    ? 'bg-red-100 text-red-800'
-                                                    : row?.opportunity_status?.name === 'Follow Up'
-                                                    ? 'bg-yellow-100 text-yellow-800'
-                                                    : row?.opportunity_status?.name === 'Follow Up'
-                                                    ? 'bg-yellow-100 text-yellow-800'
-                                                    : 'bg-gray-100 text-gray-800'
-                                            }`}
-                                        >
-                                            {row?.opportunity_status?.name}
-                                        </div>
-                                    ),
-                                },
+                            {
+                                accessor: 'remark',
+                                title: 'Remark ',
+                                render: (row: any) => (
+                                    <Tippy content={row?.remark} placement="top" className="rounded-lg bg-black p-1 text-sm text-white">
+                                        <div>{row?.remark?.length > 20 ? `${row.remark.slice(0, 20)}...` : row?.remark}</div>
+                                    </Tippy>
+                                ),
+                            },
 
-                                // { accessor: 'status_date', title: `${ROLE.TM == state.role ? 'Follow Up' : 'Status Date'}` },
-
-                                { accessor: 'updated_on', title:  'Updated Date' },
-
-                                {
-                                    accessor: 'remark',
-                                    title: 'Remark ',
-                                    render: (row: any) => (
-                                        <Tippy content={row?.remark} placement="top" className="rounded-lg bg-black p-1 text-sm text-white">
-                                            <div>{row?.remark?.length > 20 ? `${row.remark.slice(0, 20)}...` : row?.remark}</div>
-                                        </Tippy>
-                                    ),
-                                },
-
-                                {
-                                    accessor: 'actions',
-                                    title: 'Actions',
-                                    render: (row: any) => (
-                                        <div className="mx-auto flex w-max items-center gap-4">
-                                            {/* <Tippy content="Quick Edit" className="rounded-lg bg-black p-1 text-sm text-white">
+                            {
+                                accessor: 'actions',
+                                title: 'Actions',
+                                render: (row: any) => (
+                                    <div className="mx-auto flex w-max items-center gap-4">
+                                        {/* <Tippy content="Quick Edit" className="rounded-lg bg-black p-1 text-sm text-white">
                                                 <button
                                                     type="button"
                                                     className="flex hover:text-primary"
@@ -1553,101 +912,107 @@ const Leads = () => {
                                                 </button>
                                             </Tippy> */}
 
-                                            <button
-                                                type="button"
-                                                className="flex hover:text-primary"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleView(row.lead?.id);
-                                                }}
-                                            >
-                                                <IconEye />
-                                            </button>
-                                            <button
-                                                className="flex hover:text-info"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleEdit(row.lead?.id);
-                                                }}
-                                            >
-                                                <IconEdit className="h-4.5 w-4.5" />
-                                            </button>
-                                        </div>
-                                    ),
-                                },
-                            ]}
-                            highlightOnHover
-                            totalRecords={state.taskList?.length}
-                            recordsPerPage={state.pageSize}
-                            minHeight={200}
-                            page={null}
-                            onPageChange={(p) => {}}
-                            withBorder={true}
-                            // sortStatus={sortStatus}
-                            // onSortStatusChange={setSortStatus}
-                            paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
-                            onRowClick={({ id }) => {
-                                if (state.expandedRow != id) {
-                                    setState({ expandedRow: id });
-                                    // router.push(`/update_contact?id=${id}`);
-                                }
-                            }}
-                            rowExpansion={{
-                                collapseProps: {
-                                    transitionDuration: 500,
-                                    animateOpacity: false,
-                                    transitionTimingFunction: 'ease-out',
-                                },
-                                allowMultiple: false,
+                                        <button
+                                            type="button"
+                                            className="flex hover:text-primary"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleView(row?.id);
+                                            }}
+                                        >
+                                            <IconEye />
+                                        </button>
+                                        <button
+                                            className="flex hover:text-info"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleEdit(row.lead?.id);
+                                            }}
+                                        >
+                                            <IconEdit className="h-4.5 w-4.5" />
+                                        </button>
 
-                                content: ({ record, collapse }) => {
-                                    return (
-                                        <>
-                                            {state.expandedRow === record?.id ? (
-                                                <div className="w-full bg-gray-50 px-4 py-2">
-                                                    <QuickEdit
-                                                        id={state.expandedRow}
-                                                        data={record}
-                                                        collapse={() => {
-                                                            collapse();
-                                                        }}
-                                                        statusList={state.statusList}
-                                                        updateList={() => {
-                                                            collapse();
-                                                            setState({ expandedRow: null });
-                                                            filterData(state?.currentPage);
-                                                            countData();
-                                                        }}
-                                                        resetExpandedRow={() => {
-                                                            setState({ expandedRow: null });
-                                                        }}
-                                                    />
-                                                </div>
-                                            ) : null}
-                                        </>
-                                    );
-                                },
-                            }}
-                        />
-                    </div>
-                
+                                        <button
+                                            className="flex hover:text-info"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDelete(row?.id);
+                                            }}
+                                        >
+                                            <IconTrash className="h-4.5 w-4.5" />
+                                        </button>
+                                    </div>
+                                ),
+                            },
+                        ]}
+                        highlightOnHover
+                        totalRecords={state.taskList?.length}
+                        recordsPerPage={state.pageSize}
+                        minHeight={200}
+                        page={null}
+                        onPageChange={(p) => {}}
+                        withBorder={true}
+                        // sortStatus={sortStatus}
+                        // onSortStatusChange={setSortStatus}
+                        paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
+                        onRowClick={({ id }) => {
+                            if (state.expandedRow != id) {
+                                setState({ expandedRow: id });
+                                // router.push(`/update_contact?id=${id}`);
+                            }
+                        }}
+                        rowExpansion={{
+                            collapseProps: {
+                                transitionDuration: 500,
+                                animateOpacity: false,
+                                transitionTimingFunction: 'ease-out',
+                            },
+                            allowMultiple: false,
 
-                    <div className="mt-5 flex justify-center gap-3">
-                        <Pagination
-                            currentPage={state.currentPage}
-                            totalRecords={state.count}
-                            onPageChange={(page) => {
-                                filterData(page);
-                            }}
-                            hasNext={state.next !== null}
-                            hasPrevious={state.previous !== null}
-                            recordsPerPage={10}
-                        />
-                    </div>
-                </>
-         
+                            content: ({ record, collapse }) => {
+                                return (
+                                    <>
+                                        {state.expandedRow === record?.id ? (
+                                            <div className="w-full bg-gray-50 px-4 py-2">
+                                                <QuickEdit
+                                                    id={state.expandedRow}
+                                                    data={record}
+                                                    collapse={() => {
+                                                        collapse();
+                                                    }}
+                                                    statusList={state.statusList}
+                                                    updateList={() => {
+                                                        collapse();
+                                                        setState({ expandedRow: null });
+                                                        leadList(state?.currentPage);
+                                                        countData();
+                                                    }}
+                                                    resetExpandedRow={() => {
+                                                        setState({ expandedRow: null });
+                                                    }}
+                                                />
+                                            </div>
+                                        ) : null}
+                                    </>
+                                );
+                            },
+                        }}
+                    />
+                </div>
 
-          
+                <div className="mt-5 flex justify-center gap-3">
+                    <Pagination
+                        currentPage={state.currentPage}
+                        totalRecords={state.count}
+                        onPageChange={(page) => {
+                            leadList(page);
+                        }}
+                        hasNext={state.next !== null}
+                        hasPrevious={state.previous !== null}
+                        recordsPerPage={10}
+                    />
+                </div>
+            </>
         </div>
     );
 };

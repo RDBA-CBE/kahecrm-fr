@@ -3,12 +3,12 @@ import instance from '@/utils/axios.utils';
 const user = {
     userList: (page: number, body: any) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `leads/users/?page=${page}/`;
-            if (body.group) {
+            let url = `auth/users/?exclude_admin=true&page=${page}`;
+            if (body?.group) {
                 url += `&group=${encodeURIComponent(body.group)}`;
             }
 
-            if (body.search) {
+            if (body?.search) {
                 url += `&search=${encodeURIComponent(body.search)}`;
             }
 
@@ -30,7 +30,7 @@ const user = {
 
     updateUser: (data: any, id: any) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `leads/users/${id}/`;
+            let url = `auth/users/${id}/`;
             instance()
                 .patch(url, data)
                 .then((res) => {
@@ -49,7 +49,7 @@ const user = {
 
     addUser: (data: any) => {
         let promise = new Promise((resolve, reject) => {
-            let url = 'leads/users/';
+            let url = 'auth/users/';
             instance()
                 .post(url, data)
                 .then((res) => {
@@ -68,7 +68,7 @@ const user = {
 
     getUserId: (id: any) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `leads/users/${id}/`;
+            let url = `auth/users/${id}/`;
             instance()
                 .post(url)
                 .then((res) => {
@@ -87,7 +87,7 @@ const user = {
 
     deleteUser: (id: any) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `leads/users/${id}/`;
+            let url = `auth/users/${id}/`;
             instance()
                 .delete(url)
                 .then((res) => {
@@ -130,25 +130,7 @@ const user = {
         return promise;
     },
 
-    groupList : () => {
-        let promise = new Promise((resolve, reject) => {
-            let url = `leads/groups/`;
-           
-            instance()
-                .get(url)
-                .then((res) => {
-                    resolve(res.data);
-                })
-                .catch((error) => {
-                    if (error.response) {
-                        reject(error.response.message);
-                    } else {
-                        reject(error);
-                    }
-                });
-        });
-        return promise;
-    },
+    
 };
 
 export default user;

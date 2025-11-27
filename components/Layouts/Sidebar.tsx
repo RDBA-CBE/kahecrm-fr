@@ -56,6 +56,7 @@ const Sidebar = () => {
     const router = useRouter();
     const [currentMenu, setCurrentMenu] = useState<string>('');
     const [role, setRole] = useState('');
+    console.log('✌️role --->', role);
     const [errorSubMenu, setErrorSubMenu] = useState(false);
     const themeConfig = useSelector((state: IRootState) => state.themeConfig);
     const semidark = useSelector((state: IRootState) => state.themeConfig.semidark);
@@ -94,73 +95,17 @@ const Sidebar = () => {
         if (window.innerWidth < 1024 && themeConfig.sidebar) {
             dispatch(toggleSidebar());
         }
-        // getUserDetails();
+        getUserDetails();
     }, [router.pathname]);
-
-    useEffect(() => {
-        if (state.assignRole) {
-            if (state.assignRole?.value == 'owner') {
-                ownerList();
-            } else if (state.assignRole?.value == 'bdm') {
-                bdmList();
-            } else if (state.assignRole?.value == 'tm') {
-                telecallerList();
-            } else if (state.assignRole?.value == 'bde') {
-                bdeList();
-            }
-        }
-    }, [state.assignRole]);
-
-    const ownerList = async () => {
-        try {
-            const res: any = await Models.lead.ownerList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const telecallerList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.bdmAndBDE();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const bdmList = async () => {
-        try {
-            const res: any = await Models.lead.bdmList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const bdeList = async () => {
-        try {
-            const res: any = await Models.lead.bdeList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
 
     const getUserDetails = async () => {
         try {
-            const res: any = await Models.auth.userDetails();
-console.log('✌️res --->', res);
-            setRole(res?.designation);
+            const userString = localStorage.getItem('crmUser');
+            const token = localStorage.getItem('crmToken');
+            const user = userString ? JSON.parse(userString) : null;
+            setRole(user?.group);
+
+            setState({ userData: user, token, userId: user.id, role: user.designation });
         } catch (error) {
             console.log('error: ', error);
         }
@@ -264,38 +209,6 @@ console.log('✌️res --->', res);
         }
     };
 
-    const leadListLoadMore = async () => {
-        try {
-            setState({ leadLoading: true });
-
-            if (state.hasMoreLead) {
-                const user = localStorage.getItem('crmUser');
-                let userId = JSON.parse(user)?.id;
-
-                // const res: any = await Models.lead.list(state.currentLeadPage + 1);
-                const res: any = await Models.opportunity.meAndAssigned(userId, state.currentLeadPage);
-
-                // const newOptions = Dropdown(res?.results, 'name');
-                const dropdownList = res?.results?.map((item) => ({ value: item.id, label: item.lead?.name }));
-
-                setState({
-                    leadList: [...state.leadList, ...dropdownList],
-                    hasMoreLead: res.next,
-                    currentLeadPage: state.currentLeadPage + 1,
-                });
-            } else {
-                setState({
-                    leadList: state.leadList,
-                });
-            }
-            setState({ leadLoading: false });
-        } catch (error) {
-            setState({ leadLoading: false });
-
-            console.log('error: ', error);
-        }
-    };
-
     const assignList = async () => {
         try {
             const res: any = await Models.task.assigned_to();
@@ -303,36 +216,6 @@ console.log('✌️res --->', res);
             setState({ assignList: dropdownList, loading: false });
         } catch (error) {
             setState({ loading: false });
-
-            console.log('error: ', error);
-        }
-    };
-
-    const leadList = async () => {
-        try {
-            setState({ leadLoading: true });
-            const user = localStorage.getItem('crmUser');
-            if (user) {
-                let userId = JSON.parse(user)?.id;
-
-                const res: any = await Models.opportunity.meAndAssigned(userId, state.currentLeadPage);
-                const dropdownList = res?.results?.map((item) => ({ value: item.id, label: item.lead?.name }));
-
-                setState({
-                    leadList: dropdownList,
-                    hasMoreLead: res.next,
-                    leadLoading: false,
-                });
-            }
-
-            // const res: any = await Models.lead.list(state.currentLeadPage);
-            // const dropdownList = Dropdown(res?.results, 'name');
-            // setState({
-            //     leadList: dropdownList,
-            //     hasMoreLead: res.next,
-            // });
-        } catch (error) {
-            setState({ leadLoading: false });
 
             console.log('error: ', error);
         }
@@ -361,8 +244,8 @@ console.log('✌️res --->', res);
                     <PerfectScrollbar className="relative h-[calc(100vh-80px)]">
                         <ul className="relative space-y-0.5 p-4 py-0 font-semibold">
                             {/* {(role == 'ADMIN' || role == 'BDM') && ( */}
-                                <>
-                                    {/* <div
+                            <>
+                                {/* <div
                                         className="flex items-center justify-between"
                                         onClick={() => {
                                             toggleMenu('own');
@@ -374,7 +257,7 @@ console.log('✌️res --->', res);
                                         </div>
                                     </div> */}
 
-                                    {/* <li className="nav-item">
+                                {/* <li className="nav-item">
                                         <ul>
                                             <li className="nav-item">
                                                 <Link href="/dashboards" className="group">
@@ -484,129 +367,127 @@ console.log('✌️res --->', res);
                                             </li>
                                         </ul>
                                     </li> */}
-                                    <div className="text-lg">Own</div>
+                                {role == ROLE.ADMIN && <div className="text-lg">Own</div>}
+                                <li className="nav-item">
+                                    <ul>
+                                        <li className="nav-item">
+                                            <Link href="/own_dashboard" className="group">
+                                                <div className="flex items-center">
+                                                    <IconMenuDashboard className="shrink-0 group-hover:!text-primary" />
+                                                    <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Dashboard')}</span>
+                                                </div>
+                                            </Link>
+                                        </li>
 
-                                    <li className="nav-item">
-                                        <ul>
-                                            <li className="nav-item">
-                                                <Link href="/own_dashboard" className="group">
-                                                    <div className="flex items-center">
-                                                        <IconMenuDashboard className="shrink-0 group-hover:!text-primary" />
-                                                        <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Dashboard')}</span>
-                                                    </div>
-                                                </Link>
-                                            </li>
+                                        <li className="menu nav-item">
+                                            <button
+                                                type="button"
+                                                className={`${currentMenu === 'Calendars' ? 'active' : ''} nav-link group w-full`}
+                                                onClick={() => {
+                                                    toggleMenu('Calendars');
+                                                }}
+                                            >
+                                                <div className="flex items-center">
+                                                    <IconMenuCalendar className="shrink-0 group-hover:!text-primary" />
+                                                    <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Task')}</span>
+                                                </div>
 
-                                            <li className="menu nav-item">
-                                                <button
-                                                    type="button"
-                                                    className={`${currentMenu === 'Calendars' ? 'active' : ''} nav-link group w-full`}
-                                                    onClick={() => {
-                                                        toggleMenu('Calendars');
-                                                    }}
-                                                >
-                                                    <div className="flex items-center">
-                                                        <IconMenuCalendar className="shrink-0 group-hover:!text-primary" />
-                                                        <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Task')}</span>
-                                                    </div>
+                                                <div className={currentMenu !== 'Calendars' ? '-rotate-90 rtl:rotate-90' : ''}>
+                                                    <IconCaretDown />
+                                                </div>
+                                            </button>
 
-                                                    <div className={currentMenu !== 'Calendars' ? '-rotate-90 rtl:rotate-90' : ''}>
-                                                        <IconCaretDown />
-                                                    </div>
-                                                </button>
+                                            <AnimateHeight duration={300} height={currentMenu === 'Calendars' ? 'auto' : 0}>
+                                                <ul className="sub-menu text-gray-500">
+                                                    <li>
+                                                        <Link href="/my_tasks">{t('My Tasks')}</Link>
+                                                    </li>
+                                                    <li>
+                                                        <Link href="/my_assigned_task">{t('Assigned Tasks')}</Link>
+                                                    </li>
+                                                    <li>
+                                                        <Link
+                                                            href="/tasks"
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                setState({ isOpenTask: true });
+                                                                assignList();
+                                                            }}
+                                                            className="cursor-pointer"
+                                                        >
+                                                            {t('Create Task')}
+                                                        </Link>
+                                                    </li>
+                                                </ul>
+                                            </AnimateHeight>
+                                        </li>
+                                        <li className="menu nav-item">
+                                            <button
+                                                type="button"
+                                                className={`${currentMenu === 'my_contacts' ? 'active' : ''} nav-link group w-full`}
+                                                onClick={() => {
+                                                    // router.push('contacts');
+                                                    toggleMenu('my_contacts');
+                                                }}
+                                            >
+                                                <div className="flex items-center">
+                                                    <IconMenuUsers className="shrink-0 group-hover:!text-primary" />
+                                                    <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Contacts')}</span>
+                                                </div>
 
-                                                <AnimateHeight duration={300} height={currentMenu === 'Calendars' ? 'auto' : 0}>
-                                                    <ul className="sub-menu text-gray-500">
-                                                        <li>
-                                                            <Link href="/my_tasks">{t('My Tasks')}</Link>
-                                                        </li>
-                                                        <li>
-                                                            <Link href="/my_assigned_task">{t('Assigned Tasks')}</Link>
-                                                        </li>
-                                                        <li>
-                                                            <Link
-                                                                href="/tasks"
-                                                                onClick={(e) => {
-                                                                    e.preventDefault();
-                                                                    setState({ isOpenTask: true });
-                                                                    assignList();
-                                                                    leadList();
-                                                                }}
-                                                                className="cursor-pointer"
-                                                            >
-                                                                {t('Create Task')}
-                                                            </Link>
-                                                        </li>
-                                                    </ul>
-                                                </AnimateHeight>
-                                            </li>
-                                            <li className="menu nav-item">
-                                                <button
-                                                    type="button"
-                                                    className={`${currentMenu === 'my_contacts' ? 'active' : ''} nav-link group w-full`}
-                                                    onClick={() => {
-                                                        // router.push('contacts');
-                                                        toggleMenu('my_contacts');
-                                                    }}
-                                                >
-                                                    <div className="flex items-center">
-                                                        <IconMenuUsers className="shrink-0 group-hover:!text-primary" />
-                                                        <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Contacts')}</span>
-                                                    </div>
+                                                <div className={currentMenu !== 'my_contacts' ? '-rotate-90 rtl:rotate-90' : ''}>
+                                                    <IconCaretDown />
+                                                </div>
+                                            </button>
 
-                                                    <div className={currentMenu !== 'my_contacts' ? '-rotate-90 rtl:rotate-90' : ''}>
-                                                        <IconCaretDown />
-                                                    </div>
-                                                </button>
+                                            <AnimateHeight duration={300} height={currentMenu === 'my_contacts' ? 'auto' : 0}>
+                                                <ul className="sub-menu text-gray-500">
+                                                    <li>
+                                                        <Link href="/myContacts">{t('My Contacts')}</Link>
+                                                    </li>
+                                                    <li>
+                                                        <Link href="/my_archive_contact">{t('Archive Contacts')}</Link>
+                                                    </li>
+                                                    <li>
+                                                        <Link href="/create_contact">{t('Create Contact')}</Link>
+                                                    </li>
+                                                </ul>
+                                            </AnimateHeight>
+                                        </li>
+                                        <li className="menu nav-item">
+                                            <button
+                                                type="button"
+                                                className={`${currentMenu === 'my_leads' ? 'active' : ''} nav-link group w-full`}
+                                                onClick={() => {
+                                                    // router.push('leads');
+                                                    toggleMenu('my_leads');
+                                                }}
+                                            >
+                                                <div className="flex items-center">
+                                                    <IconLeads className="shrink-0 group-hover:!text-primary" />
+                                                    <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Leads')}</span>
+                                                </div>
 
-                                                <AnimateHeight duration={300} height={currentMenu === 'my_contacts' ? 'auto' : 0}>
-                                                    <ul className="sub-menu text-gray-500">
-                                                        <li>
-                                                            <Link href="/myContacts">{t('My Contacts')}</Link>
-                                                        </li>
-                                                        <li>
-                                                            <Link href="/my_archive_contact">{t('Archive Contacts')}</Link>
-                                                        </li>
-                                                        <li>
-                                                            <Link href="/create_contact">{t('Create Contact')}</Link>
-                                                        </li>
-                                                    </ul>
-                                                </AnimateHeight>
-                                            </li>
-                                            <li className="menu nav-item">
-                                                <button
-                                                    type="button"
-                                                    className={`${currentMenu === 'my_leads' ? 'active' : ''} nav-link group w-full`}
-                                                    onClick={() => {
-                                                        // router.push('leads');
-                                                        toggleMenu('my_leads');
-                                                    }}
-                                                >
-                                                    <div className="flex items-center">
-                                                        <IconLeads className="shrink-0 group-hover:!text-primary" />
-                                                        <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Leads')}</span>
-                                                    </div>
+                                                <div className={currentMenu !== 'my_leads' ? '-rotate-90 rtl:rotate-90' : ''}>
+                                                    <IconCaretDown />
+                                                </div>
+                                            </button>
 
-                                                    <div className={currentMenu !== 'my_leads' ? '-rotate-90 rtl:rotate-90' : ''}>
-                                                        <IconCaretDown />
-                                                    </div>
-                                                </button>
+                                            <AnimateHeight duration={300} height={currentMenu === 'my_leads' ? 'auto' : 0}>
+                                                <ul className="sub-menu text-gray-500">
+                                                    <li>
+                                                        <Link href="/my_leads">{t('My Leads')}</Link>
+                                                    </li>
+                                                    <li>
+                                                        <Link href="/my_assign_lead">{t('Assigned Leads')}</Link>
+                                                    </li>
+                                                    <li>
+                                                        <Link href="/create_contact">{t('Create Lead')}</Link>
+                                                    </li>
+                                                </ul>
+                                            </AnimateHeight>
 
-                                                <AnimateHeight duration={300} height={currentMenu === 'my_leads' ? 'auto' : 0}>
-                                                    <ul className="sub-menu text-gray-500">
-                                                        <li>
-                                                            <Link href="/my_leads">{t('My Leads')}</Link>
-                                                        </li>
-                                                        <li>
-                                                            <Link href="/my_assign_lead">{t('Assigned Leads')}</Link>
-                                                        </li>
-                                                        <li>
-                                                            <Link href="/create_contact">{t('Create Lead')}</Link>
-                                                        </li>
-                                                    </ul>
-                                                </AnimateHeight>
-
-                                                {/* <>
+                                            {/* <>
                                                     <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
                                                         <ul className="sub-menu text-gray-500">
                                                             <li>
@@ -622,15 +503,15 @@ console.log('✌️res --->', res);
                                                         </ul>
                                                     </AnimateHeight>
                                                 </> */}
-                                                {/* <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
+                                            {/* <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
                                                     <ul className="sub-menu text-gray-500">
                                                         <li>
                                                             <Link href="/create_contact">{t('Create Lead')}</Link>
                                                         </li>
                                                     </ul>
                                                 </AnimateHeight> */}
-                                            </li>
-                                            {/* {(role == 'ADMIN' || role == 'BDM') && (
+                                        </li>
+                                        {/* {(role == 'ADMIN' || role == 'BDM') && (
                                                 <li className="nav-item">
                                                     <Link href="/users/list" className="group">
                                                         <div className="flex items-center">
@@ -640,49 +521,50 @@ console.log('✌️res --->', res);
                                                     </Link>
                                                 </li>
                                             )} */}
-                                        </ul>
-                                    </li>
+                                    </ul>
+                                </li>
+                                {role == ROLE.ADMIN && (
+                                    <>
+                                        <div className="text-lg">Team</div>
 
-                                    <div className="text-lg">Team</div>
+                                        <li className="nav-item">
+                                            <ul>
+                                                <li className="nav-item">
+                                                    <Link href="/dashboards" className="group">
+                                                        <div className="flex items-center">
+                                                            <IconMenuDashboard className="shrink-0 group-hover:!text-primary" />
+                                                            <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Dashboard')}</span>
+                                                        </div>
+                                                    </Link>
+                                                </li>
 
-                                    <li className="nav-item">
-                                        <ul>
-                                            <li className="nav-item">
-                                                <Link href="/dashboards" className="group">
-                                                    <div className="flex items-center">
-                                                        <IconMenuDashboard className="shrink-0 group-hover:!text-primary" />
-                                                        <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Dashboard')}</span>
-                                                    </div>
-                                                </Link>
-                                            </li>
+                                                <li className="menu nav-item">
+                                                    <button
+                                                        type="button"
+                                                        className={`${currentMenu === 'Calendar' ? 'active' : ''} nav-link group w-full`}
+                                                        onClick={() => {
+                                                            toggleMenu('Calendar');
+                                                        }}
+                                                    >
+                                                        <div className="flex items-center">
+                                                            <IconMenuCalendar className="shrink-0 group-hover:!text-primary" />
+                                                            <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Task')}</span>
+                                                        </div>
 
-                                            <li className="menu nav-item">
-                                                <button
-                                                    type="button"
-                                                    className={`${currentMenu === 'Calendar' ? 'active' : ''} nav-link group w-full`}
-                                                    onClick={() => {
-                                                        toggleMenu('Calendar');
-                                                    }}
-                                                >
-                                                    <div className="flex items-center">
-                                                        <IconMenuCalendar className="shrink-0 group-hover:!text-primary" />
-                                                        <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Task')}</span>
-                                                    </div>
+                                                        <div className={currentMenu !== 'Calendar' ? '-rotate-90 rtl:rotate-90' : ''}>
+                                                            <IconCaretDown />
+                                                        </div>
+                                                    </button>
 
-                                                    <div className={currentMenu !== 'Calendar' ? '-rotate-90 rtl:rotate-90' : ''}>
-                                                        <IconCaretDown />
-                                                    </div>
-                                                </button>
-
-                                                <AnimateHeight duration={300} height={currentMenu === 'Calendar' ? 'auto' : 0}>
-                                                    <ul className="sub-menu text-gray-500">
-                                                        <li>
-                                                            <Link href="/tasks">{t('Tasks')}</Link>
-                                                        </li>
-                                                        <li>
-                                                            <Link href="/assigned_task">{t('Assigned Tasks')}</Link>
-                                                        </li>
-                                                        {/* <li>
+                                                    <AnimateHeight duration={300} height={currentMenu === 'Calendar' ? 'auto' : 0}>
+                                                        <ul className="sub-menu text-gray-500">
+                                                            <li>
+                                                                <Link href="/tasks">{t('Tasks')}</Link>
+                                                            </li>
+                                                            <li>
+                                                                <Link href="/assigned_task">{t('Assigned Tasks')}</Link>
+                                                            </li>
+                                                            {/* <li>
                                                             <Link
                                                                 href="/tasks"
                                                                 onClick={(e) => {
@@ -696,155 +578,162 @@ console.log('✌️res --->', res);
                                                                 {t('Create Task')}
                                                             </Link>
                                                         </li> */}
-                                                    </ul>
-                                                </AnimateHeight>
-                                            </li>
-                                            <li className="menu nav-item">
-                                                <button
-                                                    type="button"
-                                                    className={`${currentMenu === 'Contacts' ? 'active' : ''} nav-link group w-full`}
-                                                    onClick={() => {
-                                                        // router.push('contacts');
-                                                        toggleMenu('Contacts');
-                                                    }}
-                                                >
-                                                    <div className="flex items-center">
-                                                        <IconMenuUsers className="shrink-0 group-hover:!text-primary" />
-                                                        <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Contacts')}</span>
-                                                    </div>
+                                                        </ul>
+                                                    </AnimateHeight>
+                                                </li>
+                                                <li className="menu nav-item">
+                                                    <button
+                                                        type="button"
+                                                        className={`${currentMenu === 'Contacts' ? 'active' : ''} nav-link group w-full`}
+                                                        onClick={() => {
+                                                            // router.push('contacts');
+                                                            toggleMenu('Contacts');
+                                                        }}
+                                                    >
+                                                        <div className="flex items-center">
+                                                            <IconMenuUsers className="shrink-0 group-hover:!text-primary" />
+                                                            <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Contacts')}</span>
+                                                        </div>
 
-                                                    <div className={currentMenu !== 'Contacts' ? '-rotate-90 rtl:rotate-90' : ''}>
-                                                        <IconCaretDown />
-                                                    </div>
-                                                </button>
+                                                        <div className={currentMenu !== 'Contacts' ? '-rotate-90 rtl:rotate-90' : ''}>
+                                                            <IconCaretDown />
+                                                        </div>
+                                                    </button>
 
-                                                <AnimateHeight duration={300} height={currentMenu === 'Contacts' ? 'auto' : 0}>
-                                                    <ul className="sub-menu text-gray-500">
-                                                        <li>
-                                                            <Link href="/contacts">{t('Contacts')}</Link>
-                                                        </li>
-                                                        <li>
-                                                            <Link href="/archive_contact">{t('Archive Contacts')}</Link>
-                                                        </li>
-                                                        {/* <li>
+                                                    <AnimateHeight duration={300} height={currentMenu === 'Contacts' ? 'auto' : 0}>
+                                                        <ul className="sub-menu text-gray-500">
+                                                            <li>
+                                                                <Link href="/contacts">{t('Contacts')}</Link>
+                                                            </li>
+                                                            <li>
+                                                                <Link href="/archive_contact">{t('Archive Contacts')}</Link>
+                                                            </li>
+                                                            {/* <li>
                                                             <Link href="/create_contact">{t('Create Contact')}</Link>
                                                         </li> */}
-                                                    </ul>
-                                                </AnimateHeight>
-                                            </li>
-                                            <li className="menu nav-item">
-                                                <button
-                                                    type="button"
-                                                    className={`${currentMenu === 'Leads' ? 'active' : ''} nav-link group w-full`}
-                                                    onClick={() => {
-                                                        // router.push('leads');
-                                                        toggleMenu('Leads');
-                                                    }}
-                                                >
-                                                    <div className="flex items-center">
-                                                        <IconLeads className="shrink-0 group-hover:!text-primary" />
-                                                        <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Leads')}</span>
-                                                    </div>
-
-                                                    <div className={currentMenu !== 'Leads' ? '-rotate-90 rtl:rotate-90' : ''}>
-                                                        <IconCaretDown />
-                                                    </div>
-                                                </button>
-
-                                                <>
-                                                    <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
-                                                        <ul className="sub-menu text-gray-500">
-                                                            <li>
-                                                                <Link href="/leads">{t('All Leads')}</Link>
-                                                            </li>
                                                         </ul>
                                                     </AnimateHeight>
-                                                    <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
-                                                        <ul className="sub-menu text-gray-500">
-                                                            <li>
-                                                                <Link href="/assign-lead">{t('Assigned Leads')}</Link>
-                                                            </li>
-                                                        </ul>
-                                                    </AnimateHeight>
-                                                </>
-                                                {/* <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
+                                                </li>
+                                                <li className="menu nav-item">
+                                                    <button
+                                                        type="button"
+                                                        className={`${currentMenu === 'Leads' ? 'active' : ''} nav-link group w-full`}
+                                                        onClick={() => {
+                                                            // router.push('leads');
+                                                            toggleMenu('Leads');
+                                                        }}
+                                                    >
+                                                        <div className="flex items-center">
+                                                            <IconLeads className="shrink-0 group-hover:!text-primary" />
+                                                            <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Leads')}</span>
+                                                        </div>
+
+                                                        <div className={currentMenu !== 'Leads' ? '-rotate-90 rtl:rotate-90' : ''}>
+                                                            <IconCaretDown />
+                                                        </div>
+                                                    </button>
+
+                                                    <>
+                                                        <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
+                                                            <ul className="sub-menu text-gray-500">
+                                                                <li>
+                                                                    <Link href="/leads">{t('All Leads')}</Link>
+                                                                </li>
+                                                            </ul>
+                                                        </AnimateHeight>
+                                                        <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
+                                                            <ul className="sub-menu text-gray-500">
+                                                                <li>
+                                                                    <Link href="/assign-lead">{t('Assigned Leads')}</Link>
+                                                                </li>
+                                                            </ul>
+                                                        </AnimateHeight>
+                                                    </>
+                                                    {/* <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
                                                     <ul className="sub-menu text-gray-500">
                                                         <li>
                                                             <Link href="/create_contact">{t('Create Leads')}</Link>
                                                         </li>
                                                     </ul>
                                                 </AnimateHeight> */}
-                                            </li>
-                                            {(role == 'ADMIN' || role == 'BDM') && (
-                                                <li className="nav-item">
+                                                </li>
+                                                  <li className="nav-item">
                                                     <Link href="/users/list" className="group">
                                                         <div className="flex items-center">
-                                                            <IconMenuUsers className="shrink-0 group-hover:!text-primary" />
+                                                            <IconUser className="shrink-0 group-hover:!text-primary" />
                                                             <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Users')}</span>
                                                         </div>
                                                     </Link>
                                                 </li>
-                                            )}
-                                        </ul>
-                                    </li>
-                                </>
+                                            </ul>
+                                        </li>
+                                    </>
+                                )}
+                            </>
                             {/* )} */}
-                        
-                          
 
-             
-                                <li className="menu nav-item">
-                                    <button
-                                        type="button"
-                                        className={`${currentMenu === 'Masters' ? 'active' : ''} nav-link group w-full`}
-                                        onClick={() => {
-                                            // router.push('calendar');
-                                            toggleMenu('Masters');
-                                        }}
-                                    >
-                                        <div className="flex items-center">
-                                            <IconMenuCalendar className="shrink-0 group-hover:!text-primary" />
-                                            <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Masters')}</span>
-                                        </div>
+                            <li className="menu nav-item">
+                                <button
+                                    type="button"
+                                    className={`${currentMenu === 'Masters' ? 'active' : ''} nav-link group w-full`}
+                                    onClick={() => {
+                                        // router.push('calendar');
+                                        toggleMenu('Masters');
+                                    }}
+                                >
+                                    <div className="flex items-center">
+                                        <IconMenuCalendar className="shrink-0 group-hover:!text-primary" />
+                                        <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Masters')}</span>
+                                    </div>
 
-                                        <div className={currentMenu !== 'Masters' ? '-rotate-90 rtl:rotate-90' : ''}>
-                                            <IconCaretDown />
-                                        </div>
-                                    </button>
-                                    {/* notifications */}
-                                    <AnimateHeight duration={300} height={currentMenu === 'Masters' ? 'auto' : 0}>
-                                        <ul className="sub-menu text-gray-500">
-                                            {/* {role == 'ADMIN' && (
+                                    <div className={currentMenu !== 'Masters' ? '-rotate-90 rtl:rotate-90' : ''}>
+                                        <IconCaretDown />
+                                    </div>
+                                </button>
+                                {/* notifications */}
+                                <AnimateHeight duration={300} height={currentMenu === 'Masters' ? 'auto' : 0}>
+                                    <ul className="sub-menu text-gray-500">
+                                        {/* {role == 'ADMIN' && (
                                                 <li>
                                                     <Link href="/monthly-target">{t('Monthly Target')}</Link>
                                                 </li>
                                             )} */}
 
-                                            <li>
-                                                <Link href="/programme">{t('Programme')}</Link>
-                                            </li>
+                                        <li>
+                                            <Link href="/programme">{t('Programme')}</Link>
+                                        </li>
 
-                                            <li>
-                                                <Link href="/college">{t('College')}</Link>
-                                            </li>
+                                        <li>
+                                            <Link href="/college">{t('College')}</Link>
+                                        </li>
 
-                                            <li>
-                                                <Link href="/education_qualification">{t('Education Qualification')}</Link>
-                                            </li>
-                                            <li>
-                                                <Link href="/lead_source_category">{t('Lead Source Category')}</Link>
-                                            </li>
-                                            <li>
-                                                <Link href="/lead-status">{t('Lead Status')}</Link>
-                                            </li>
-                                            <li>
-                                                <Link href="/contact-status">{t('Contact Status')}</Link>
-                                            </li>
+                                        <li>
+                                            <Link href="/education_qualification">{t('Education Qualification')}</Link>
+                                        </li>
+                                        <li>
+                                            <Link href="/lead_source_category">{t('Lead Source Category')}</Link>
+                                        </li>
+                                        <li>
+                                            <Link href="/lead-status">{t('Lead Status')}</Link>
+                                        </li>
+                                        <li>
+                                            <Link href="/contact-status">{t('Contact Status')}</Link>
+                                        </li>
 
-                                           
-                                        </ul>
-                                    </AnimateHeight>
-                                </li>
+                                        <li>
+                                            <Link href="/countries">{t('Country')}</Link>
+                                        </li>
+
+                                        <li>
+                                            <Link href="/state">{t('States')}</Link>
+                                        </li>
+
+                                        <li>
+                                            <Link href="/city">{t('Cities')}</Link>
+                                        </li>
+                                    </ul>
+                                </AnimateHeight>
+                            </li>
                             {/* )} */}
                             <li className="nav-item">
                                 <Link href="/notifications" className="group">
@@ -883,7 +772,6 @@ console.log('✌️res --->', res);
                                 options={state.leadList}
                                 error={state.errors?.lead}
                                 required
-                                loadMore={() => leadListLoadMore()}
                                 loading={state.leadLoading}
                             />
                             {/* {state.contactLoading?

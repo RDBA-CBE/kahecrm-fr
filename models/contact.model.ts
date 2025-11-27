@@ -1,15 +1,33 @@
 import instance from '@/utils/axios.utils';
 
 const contact = {
-    list: (page, userId = null) => {
+    list: (page, body = null) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `crm/contacts/?page=${page}&page_size=10`;
-            if (userId) {
-                url += `&created_by=${encodeURIComponent(userId)}`;
+            let url = `crm/contacts/?page=${page}&page_size=10&get_has_lead=false`;
+
+              if (body?.userId) {
+                url += `&user_id=${encodeURIComponent(body?.userId)}`;
             }
 
-            if (!userId) {
-                url += `&team=${encodeURIComponent(true)}`;
+               if (body?.team == 'Yes') {
+                url += `&teams=${encodeURIComponent(true)}`;
+            }
+
+            
+
+            if (body?.search) {
+                url += `&search=${encodeURIComponent(body?.search)}`;
+            }
+
+            if (body.status) {
+                url += `&status=${encodeURIComponent(body.status)}`;
+            }
+
+            if (body.from_date) {
+                url += `&from_date=${encodeURIComponent(body.from_date)}`;
+            }
+            if (body.to_date) {
+                url += `&to_date=${encodeURIComponent(body.to_date)}`;
             }
 
             instance()
@@ -31,17 +49,16 @@ const contact = {
     filter: (page, body, userId = null) => {
 
         let promise = new Promise((resolve, reject) => {
-            let url = `crm/contacts/?page=${page}&page_size=10`;
+            let url = `crm/contacts/?page=${page}&page_size=10&get_has_lead=false`;
 
-            if (!userId && body.team) {
-                if (body.team) {
-                    url += `&team=${encodeURIComponent(body.team)}`;
-                }
+             if (body?.userId) {
+                url += `&user_id=${encodeURIComponent(body?.userId)}`;
             }
 
-            if (body.search) {
-                url += `&search=${encodeURIComponent(body.search)}`;
+            if (body?.search) {
+                url += `&search=${encodeURIComponent(body?.search)}`;
             }
+
             if (body.status) {
                 url += `&status=${encodeURIComponent(body.status)}`;
             }
@@ -52,27 +69,9 @@ const contact = {
             if (body.to_date) {
                 url += `&to_date=${encodeURIComponent(body.to_date)}`;
             }
-            if (body.bdm) {
-                url += `&created_by=${encodeURIComponent(body.bdm)}`;
-            } else if (body.bde) {
-                url += `&created_by=${encodeURIComponent(body.bde)}`;
-            } else if (body.dm) {
-                url += `&created_by=${encodeURIComponent(body.dm)}`;
-            } else if (body.tm) {
-                url += `&created_by=${encodeURIComponent(body.tm)}`;
-            } else if (body.assigned_to) {
-                url += `&assigned_to=${encodeURIComponent(body.assigned_to)}`;
-            } else if (userId) {
-                url += `&created_by=${encodeURIComponent(userId)}`;
-            }
 
-            if (body.lead_source) {
-                url += `&lead_source=${encodeURIComponent(body.lead_source)}`;
-            }
 
-            // if (body.status) {
-            //     url += `&lead_status=${encodeURIComponent(body.status)}`;
-            // }
+           
 
             instance()
                 .get(url)
@@ -207,7 +206,7 @@ const contact = {
 
     listByLeadId: (leadId) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `leads/contacts/?lead=${leadId}`;
+            let url = `crm/contacts/?lead=${leadId}`;
             instance()
                 .get(url)
                 .then((res) => {
@@ -233,17 +232,8 @@ const contact = {
                     resolve(res.data);
                 })
                 .catch((error) => {
-                    if (error.response.data.company_name) {
-                        reject(error.response.data.company_name[0]);
-                    } else if (error.response.data.email_id) {
-                        reject(error.response.data.email_id[0]);
-                    } else if (error.response.data.phone_number) {
-                        reject(error.response.data.phone_number[0]);
-                    } else if (error.response) {
-                        reject(error.response.data.message);
-                    } else {
-                        reject(error);
-                    }
+                        reject(error.response.data);
+                   
                 });
         });
         return promise;
@@ -293,10 +283,10 @@ const contact = {
 
     delete: (id: any) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `lead/delete/${id}/`;
+            let url = `crm/contacts/${id}/`;
 
             instance()
-                .put(url)
+                .delete(url)
                 .then((res) => {
                     resolve(res.data);
                 })
