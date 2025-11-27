@@ -88,12 +88,12 @@ const Index = () => {
     });
 
     useEffect(() => {
-        getData();
-        getMarketSegmentList();
-        countryList();
-        verticalList();
-        tagList();
-        createdByList();
+        // getData();
+        // getMarketSegmentList();
+        // countryList();
+        // verticalList();
+        // tagList();
+        // createdByList();
         reportLead();
         reportLeadSource();
         funnelChartCount();
@@ -105,7 +105,7 @@ const Index = () => {
         if (filters()) {
             filterData(state.currentPage);
         } else {
-            getData(state.currentPage);
+            // getData(state.currentPage);
         }
     }, [state.currentPage, debouncedSearch, state.vertical, state.focus, state.market]);
 
@@ -120,25 +120,25 @@ const Index = () => {
         }
     }, [sortStatus]);
 
-    const getData = async (page = 1) => {
-        try {
-            setState({ loading: true });
-            const response: any = await Models.lead.list(page);
-            setState({ range: [0, response.max_revenue], maxPrice: response.max_revenue });
-            const res: any = await Models.auth.userDetails();
-            setState({ role: res?.designation });
-            tableData(response?.results, res?.designation);
+    // const getData = async (page = 1) => {
+    //     try {
+    //         setState({ loading: true });
+    //         const response: any = await Models.lead.list(page);
+    //         setState({ range: [0, response.max_revenue], maxPrice: response.max_revenue });
+    //         const res: any = await Models.auth.userDetails();
+    //         setState({ role: res?.designation });
+    //         tableData(response?.results, res?.designation);
 
-            setState({
-                loading: false,
-                totalRecords: response.count,
-                next: response.next,
-                previous: response.previous,
-            });
-        } catch (error) {
-            setState({ loading: false });
-        }
-    };
+    //         setState({
+    //             loading: false,
+    //             totalRecords: response.count,
+    //             next: response.next,
+    //             previous: response.previous,
+    //         });
+    //     } catch (error) {
+    //         setState({ loading: false });
+    //     }
+    // };
 
     const filters = () => {
         let filter = false;
@@ -165,7 +165,7 @@ const Index = () => {
                     isOpen: false,
                 });
             } else {
-                getData();
+                // getData();
                 setState({
                     loading: false,
 
@@ -224,7 +224,7 @@ const Index = () => {
             range: [0, state.maxPrice],
             tags: [],
         });
-        getData();
+        // getData();
     };
 
     const reportLead = async (filter = false) => {
@@ -432,90 +432,90 @@ const Index = () => {
         }
     };
 
-    const getFocusSegmentList = async (verticalData: any) => {
-        try {
-            setState({ subLoading: true });
-            const res: any = await Models.lead.focusIdBasedVericalList(verticalData?.value);
-            let focusList: [];
-            if (res?.results?.length > 0) {
-                focusList = res?.results?.map((item) => ({ value: item?.id, label: item?.focus_segment }));
-            }
+    // const getFocusSegmentList = async (verticalData: any) => {
+    //     try {
+    //         setState({ subLoading: true });
+    //         const res: any = await Models.lead.focusIdBasedVericalList(verticalData?.value);
+    //         let focusList: [];
+    //         if (res?.results?.length > 0) {
+    //             focusList = res?.results?.map((item) => ({ value: item?.id, label: item?.focus_segment }));
+    //         }
 
-            setState({ focusList: focusList });
-        } catch (error) {
-            setState({ subLoading: false });
-        }
-    };
+    //         setState({ focusList: focusList });
+    //     } catch (error) {
+    //         setState({ subLoading: false });
+    //     }
+    // };
 
-    const tagList = async () => {
-        try {
-            setState({ subLoading: true });
-            const res = await Models.lead.dropdowns('tags');
-            const dropdownList = Dropdown(res, 'tag');
-            setState({ tagList: dropdownList, subLoading: false });
-        } catch (error) {
-            setState({ subLoading: false });
+    // const tagList = async () => {
+    //     try {
+    //         setState({ subLoading: true });
+    //         const res = await Models.lead.dropdowns('tags');
+    //         const dropdownList = Dropdown(res, 'tag');
+    //         setState({ tagList: dropdownList, subLoading: false });
+    //     } catch (error) {
+    //         setState({ subLoading: false });
 
-            console.log('error: ', error);
-        }
-    };
+    //         console.log('error: ', error);
+    //     }
+    // };
 
-    const createdByList = async () => {
-        try {
-            setState({ subLoading: true });
-            const res = await Models.lead.dropdowns('assigned_to');
-            const dropdownList = Dropdown(res, 'username');
-            setState({ createdByList: dropdownList, subLoading: false });
-        } catch (error) {
-            setState({ subLoading: false });
+    // const createdByList = async () => {
+    //     try {
+    //         setState({ subLoading: true });
+    //         const res = await Models.lead.dropdowns('assigned_to');
+    //         const dropdownList = Dropdown(res, 'username');
+    //         setState({ createdByList: dropdownList, subLoading: false });
+    //     } catch (error) {
+    //         setState({ subLoading: false });
 
-            console.log('error: ', error);
-        }
-    };
+    //         console.log('error: ', error);
+    //     }
+    // };
 
-    const getMarketSegmentList = async () => {
-        try {
-            setState({ subLoading: true });
-            const res = await Models.lead.dropdowns('market_segment');
-            const dropdownList = Dropdown(res, 'market_segment');
-            setState({ marketList: dropdownList, subLoading: false });
-        } catch (error) {
-            setState({ subLoading: false });
-        }
-    };
+    // const getMarketSegmentList = async () => {
+    //     try {
+    //         setState({ subLoading: true });
+    //         const res = await Models.lead.dropdowns('market_segment');
+    //         const dropdownList = Dropdown(res, 'market_segment');
+    //         setState({ marketList: dropdownList, subLoading: false });
+    //     } catch (error) {
+    //         setState({ subLoading: false });
+    //     }
+    // };
 
-    const countryList = async () => {
-        try {
-            setState({ subLoading: true });
-            const res = await Models.lead.dropdowns('country');
-            const dropdownList = Dropdown(res, 'country_name');
-            setState({ countryList: dropdownList, subLoading: false });
-        } catch (error) {
-            setState({ subLoading: false });
-        }
-    };
+    // const countryList = async () => {
+    //     try {
+    //         setState({ subLoading: true });
+    //         const res = await Models.lead.dropdowns('country');
+    //         const dropdownList = Dropdown(res, 'country_name');
+    //         setState({ countryList: dropdownList, subLoading: false });
+    //     } catch (error) {
+    //         setState({ subLoading: false });
+    //     }
+    // };
 
-    const verticalList = async () => {
-        try {
-            setState({ subLoading: true });
-            const res = await Models.lead.dropdowns('vertical');
-            const dropdownList = Dropdown(res, 'vertical');
-            setState({ verticalList: dropdownList, subLoading: false });
-        } catch (error) {
-            setState({ subLoading: false });
-        }
-    };
+    // const verticalList = async () => {
+    //     try {
+    //         setState({ subLoading: true });
+    //         const res = await Models.lead.dropdowns('vertical');
+    //         const dropdownList = Dropdown(res, 'vertical');
+    //         setState({ verticalList: dropdownList, subLoading: false });
+    //     } catch (error) {
+    //         setState({ subLoading: false });
+    //     }
+    // };
 
-    const stateList = async (country) => {
-        try {
-            setState({ stateLoading: true });
-            const res = await Models.lead.stateList(country?.value);
-            const dropdownList = Dropdown(res, 'state_name');
-            setState({ stateList: dropdownList, stateLoading: false });
-        } catch (error) {
-            setState({ stateLoading: false });
-        }
-    };
+    // const stateList = async (country) => {
+    //     try {
+    //         setState({ stateLoading: true });
+    //         const res = await Models.lead.stateList(country?.value);
+    //         const dropdownList = Dropdown(res, 'state_name');
+    //         setState({ stateList: dropdownList, stateLoading: false });
+    //     } catch (error) {
+    //         setState({ stateLoading: false });
+    //     }
+    // };
 
     const orderFilter = ['Year', 'Last Month', 'This Month', 'Last 7 Days', 'Custom'];
 
@@ -1043,25 +1043,25 @@ const Index = () => {
         }
     };
 
-    const leadListLoadMore = async () => {
-        try {
-            if (state.hasMoreLead) {
-                const res: any = await Models.lead.list(state.currentLeadPage + 1);
-                const newOptions = Dropdown(res?.results, 'name');
-                setState({
-                    leadList: [...state.leadList, ...newOptions],
-                    hasMoreLead: res.next,
-                    currentLeadPage: state.currentLeadPage + 1,
-                });
-            } else {
-                setState({
-                    leadList: state.leadList,
-                });
-            }
-        } catch (error) {
-            setState((prev) => ({ ...prev, loading: false }));
-        }
-    };
+    // const leadListLoadMore = async () => {
+    //     try {
+    //         if (state.hasMoreLead) {
+    //             const res: any = await Models.lead.list(state.currentLeadPage + 1);
+    //             const newOptions = Dropdown(res?.results, 'name');
+    //             setState({
+    //                 leadList: [...state.leadList, ...newOptions],
+    //                 hasMoreLead: res.next,
+    //                 currentLeadPage: state.currentLeadPage + 1,
+    //             });
+    //         } else {
+    //             setState({
+    //                 leadList: state.leadList,
+    //             });
+    //         }
+    //     } catch (error) {
+    //         setState((prev) => ({ ...prev, loading: false }));
+    //     }
+    // };
 
     const clearAssignData = () => {
         setState({
@@ -1073,34 +1073,34 @@ const Index = () => {
         });
     };
 
-    const assignedLead = async () => {
-        try {
-            setState({ assignLoad: true });
-            const validateField = {
-                assigned_to: state.assigned_to ? moment(state.assigned_to).format('YYYY-MM-DD') : '',
-            };
-            await Validation.assignTask.validate(validateField, { abortEarly: false });
+    // const assignedLead = async () => {
+    //     try {
+    //         setState({ assignLoad: true });
+    //         const validateField = {
+    //             assigned_to: state.assigned_to ? moment(state.assigned_to).format('YYYY-MM-DD') : '',
+    //         };
+    //         await Validation.assignTask.validate(validateField, { abortEarly: false });
 
-            const body = {
-                assigned_to: state.assigned_to?.map((item) => item?.value),
-            };
-            const res: any = await Models.lead.leadAssign(state.leadId, body);
-            Success(res.message);
-            clearAssignData();
-            setState({ assignLoad: false });
-            getData();
-        } catch (error) {
-            if (error instanceof Yup.ValidationError) {
-                const validationErrors = {};
-                error.inner.forEach((err) => {
-                    validationErrors[err.path] = err?.message; // Set the error message for each field
-                });
-                setState({ errors: validationErrors, assignLoad: false });
-            } else {
-                setState({ assignLoad: false });
-            }
-        }
-    };
+    //         const body = {
+    //             assigned_to: state.assigned_to?.map((item) => item?.value),
+    //         };
+    //         const res: any = await Models.lead.leadAssign(state.leadId, body);
+    //         Success(res.message);
+    //         clearAssignData();
+    //         setState({ assignLoad: false });
+    //         getData();
+    //     } catch (error) {
+    //         if (error instanceof Yup.ValidationError) {
+    //             const validationErrors = {};
+    //             error.inner.forEach((err) => {
+    //                 validationErrors[err.path] = err?.message; // Set the error message for each field
+    //             });
+    //             setState({ errors: validationErrors, assignLoad: false });
+    //         } else {
+    //             setState({ assignLoad: false });
+    //         }
+    //     }
+    // };
 
     // const pipelineData = [
     //     { name: 'Prospecting', value: 30, fillColor: '#FFFF00' },
@@ -1742,9 +1742,9 @@ const Index = () => {
                                 <button type="button" className="btn btn-outline-danger border " onClick={() => clearAssignData()}>
                                     Cancel
                                 </button>
-                                <button type="button" className="btn btn-primary" onClick={() => assignedLead()}>
+                                {/* <button type="button" className="btn btn-primary" onClick={() => assignedLead()}>
                                     {state.assignLoad ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : 'Submit'}
-                                </button>
+                                </button> */}
                             </div>
                         </div>
                     )}

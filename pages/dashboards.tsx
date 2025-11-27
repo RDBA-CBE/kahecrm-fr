@@ -69,36 +69,10 @@ const Dashboards = () => {
     useEffect(() => {
         setIsMounted(true);
         getRole();
-        bdmList();
-        dmList();
-        statusList();
-        sourceList();
-        getOpportunityList();
+       
     }, []);
 
-    useEffect(() => {
-        if (state.roles?.value == 'BDE') {
-            bdeList();
-        } else {
-            telecallerList();
-        }
-    }, [state.roles]);
-
-    useEffect(() => {
-        if (state.roles?.value == 'BDE') {
-            bdeList();
-        } else {
-            telecallerList();
-        }
-    }, [state.roles]);
-
-    useEffect(() => {
-        if (state.role == 'BDM') {
-            telecallerList();
-            BDEList();
-            assignList();
-        }
-    }, [state.role]);
+   
 
     useEffect(() => {
         if (state.tm?.value || state.bde?.value || state.bdm?.value || state.dm?.value) {
@@ -127,19 +101,6 @@ const Dashboards = () => {
         state.filterMonth,
     ]);
 
-    useEffect(() => {
-        if (ROLE.TM == state.role || ROLE.DM == state.role) {
-            if (!objIsEmpty(state.assignRole)) {
-                if (state.assignRole?.value == 'owner') {
-                    TelecallerFilterOwnerList();
-                } else if (state.assignRole?.value == 'bdm') {
-                    TelecallerFilterBdmList();
-                } else {
-                    TelecallerFilterBdeList();
-                }
-            }
-        }
-    }, [state.assignRole]);
 
     const getRole = async () => {
         try {
@@ -249,115 +210,7 @@ const Dashboards = () => {
         }
     };
 
-    const bdmList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.leadManager();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ bdmList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const bdeList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.bdmBasedBde(state?.bdm?.value);
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ bdeOrTMList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const dmList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.dmList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ dmList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const statusList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.statusList();
-            const dropdownList = Dropdown(res.results, 'name');
-            setState({ statusList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-
-            console.log('error: ', error);
-        }
-    };
-
-    const sourceList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.sourceList();
-            const dropdownList = Dropdown(res.results, 'source');
-            setState({ sourceList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const getOpportunityList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.GetDropdown('opportunity-name');
-            const dropdownList = Dropdown(res.results, 'name');
-            setState({ opportunityList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const telecallerList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.bdmAndBDE();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ bdeOrTMList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const BDEList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.bdmBasedBde(state?.userId);
-
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ bdeList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const assignList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.bdmAndBDE();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
+  
 
     const leadList = async (page, role = null, userRole = null) => {
         //  console.log("role.bdm", role.bdm);
@@ -385,11 +238,6 @@ const Dashboards = () => {
 
             let response: any;
 
-            if (ROLE.ADMIN == currentRole || ROLE.BDM == currentRole) {
-                response = await Models.opportunity.dashboardLead(body, page);
-            } else {
-                response = await Models.opportunity.dashboardLead(body, page, res?.id);
-            }
 
             // const response: any = await Models.opportunity.dashboardLead(body, page, res?.id);
             tableData(response?.results, currentRole);
@@ -997,38 +845,7 @@ const Dashboards = () => {
         },
     };
 
-    const TelecallerFilterOwnerList = async () => {
-        try {
-            const res: any = await Models.lead.ownerList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const TelecallerFilterBdmList = async () => {
-        try {
-            const res: any = await Models.lead.bdmList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const TelecallerFilterBdeList = async () => {
-        try {
-            const res: any = await Models.lead.bdeList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
+   
 
     const handleRemove = (type) => {
         if (type == 'bdm') {

@@ -73,11 +73,7 @@ const Contacts = () => {
     useEffect(() => {
         contactList(state.currentPage);
         statusList();
-        leadList();
-        sourceList();
-        departmentList();
-        bdmList();
-        dmList();
+       
         userData();
         filter(state.currentPage);
         // telecallerList();
@@ -85,21 +81,7 @@ const Contacts = () => {
         // BDEList();
         // assignList();
     }, []);
-    useEffect(() => {
-        if (state.roles?.value == 'BDE') {
-            bdeList();
-        } else {
-            telecallerList();
-        }
-    }, [state.roles]);
-
-    useEffect(() => {
-        if (state.role == 'BDM') {
-            telecallerList();
-            BDEList();
-            assignList();
-        }
-    }, [state.role]);
+   
 
     // useEffect(() => {
     //     filter(state.currentPage);
@@ -113,19 +95,7 @@ const Contacts = () => {
         }
     }, [debouncedSearch, state.filter_status, state.bdm, state.bde, state.dm, state.tm, state.assignRole, state.role, state.assigned_to, state.lead_source, state.lead_status]);
 
-    useEffect(() => {
-        if (ROLE.TM == state.role || ROLE.DM == state.role) {
-            if (!objIsEmpty(state.assignRole)) {
-                if (state.assignRole?.value == 'owner') {
-                    TelecallerFilterOwnerList();
-                } else if (state.assignRole?.value == 'bdm') {
-                    TelecallerFilterBdmList();
-                } else {
-                    TelecallerFilterBdeList();
-                }
-            }
-        }
-    }, [state.assignRole]);
+   
 
     const bodyData = () => {
         let filter: any = {};
@@ -191,19 +161,7 @@ const Contacts = () => {
         }
     };
 
-    const departmentList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.departmentList();
-            const dropdownList = Dropdown(res.results, 'department');
-            setState({ departmentList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-
-            console.log('error: ', error);
-        }
-    };
-
+   
     const filter = async (page) => {
         setState({ loading: true });
         const body = bodyData();
@@ -288,91 +246,6 @@ const Contacts = () => {
         }
     };
 
-    const assignList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.bdmAndBDE();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const telecallerList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.bdmAndBDE();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ bdeOrTMList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const BDEList = async () => {
-        try {
-            setState({ loading: true });
-            const role: any = await Models.auth.userDetails();
-            const res: any = await Models.lead.bdmBasedBde(role?.id);
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ bdeList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const bdmList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.leadManager();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ bdmList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const bdeList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.bdmBasedBde(state?.bdm?.value);
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ bdeOrTMList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const dmList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.dmList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ dmList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const sourceList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.sourceList();
-            const dropdownList = Dropdown(res.results, 'source');
-            setState({ sourceList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-
-            console.log('error: ', error);
-        }
-    };
 
     const clearContactData = (rowId: any) => {
         setState({
@@ -521,38 +394,7 @@ const Contacts = () => {
         });
     };
 
-    const leadList = async () => {
-        try {
-            const res: any = await Models.lead.list(state.currentLeadPage);
-            const dropdownList = Dropdown(res?.results, 'name');
-            setState({
-                leadList: dropdownList,
-                hasMoreLead: res.next,
-            });
-        } catch (error) {
-            console.log('error: ', error);
-        }
-    };
-
-    const leadListLoadMore = async () => {
-        try {
-            if (state.hasMoreLead) {
-                const res: any = await Models.lead.list(state.currentLeadPage + 1);
-                const newOptions = Dropdown(res?.results, 'name');
-                setState({
-                    leadList: [...state.leadList, ...newOptions],
-                    hasMoreLead: res.next,
-                    currentLeadPage: state.currentLeadPage + 1,
-                });
-            } else {
-                setState({
-                    leadList: state.leadList,
-                });
-            }
-        } catch (error) {
-            console.log('error: ', error);
-        }
-    };
+    
 
     const importContact = async () => {
         try {
@@ -604,38 +446,7 @@ const Contacts = () => {
         }
     };
 
-    const TelecallerFilterOwnerList = async () => {
-        try {
-            const res: any = await Models.lead.ownerList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const TelecallerFilterBdmList = async () => {
-        try {
-            const res: any = await Models.lead.bdmList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const TelecallerFilterBdeList = async () => {
-        try {
-            const res: any = await Models.lead.bdeList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
+    
 
     const handleRemove = (type) => {
         if (type == 'bdm') {
@@ -1272,7 +1083,6 @@ const Contacts = () => {
                                     options={state.leadList}
                                     error={state.errors?.lead}
                                     required
-                                    loadMore={() => leadListLoadMore()}
                                 />
                             )}
                         </div>

@@ -62,9 +62,9 @@ const OpportunityName = () => {
     const target_list = async (page) => {
         try {
             setState({ loading: true });
-            const response: any = await Models.master.monthly_target(page);
+            // const response: any = await Models.master.monthly_target(page);
 
-            tableData(response);
+            // tableData(response);
             setState({
                 loading: false,
             });
@@ -83,8 +83,8 @@ const OpportunityName = () => {
                 user: row?.allData?.user?.id,
             };
 
-            const response: any = await Models.master.target_history(body);
-            setState({ target_history: sortedResults(response?.results)});
+            // const response: any = await Models.master.target_history(body);
+            // setState({ target_history: sortedResults(response?.results)});
 
             // tableData(response);
             setState({
@@ -144,13 +144,13 @@ const OpportunityName = () => {
             // body.month = month;
             // body.year = year;
 
-            if (state.EditId) {
-                await Models.master.update_target(body, state.EditId);
-                Success('Monthly target updated successfully');
-            } else {
-                await Models.master.create_target(body);
-                Success('Monthly target created successfully');
-            }
+            // if (state.EditId) {
+            //     await Models.master.update_target(body, state.EditId);
+            //     Success('Monthly target updated successfully');
+            // } else {
+            //     await Models.master.create_target(body);
+            //     Success('Monthly target created successfully');
+            // }
             clearLogData();
             target_list(state.currentPage);
         } catch (error) {
@@ -176,10 +176,10 @@ const OpportunityName = () => {
     const handleDelete = async () => {
         try {
             setState({ isDeleteLoad: true });
-            await Models.master.delete_target(state.EditId).then((res) => {
-                Success('Record Deleted successfully');
-                clearLogData();
-            });
+            // await Models.master.delete_target(state.EditId).then((res) => {
+            //     Success('Record Deleted successfully');
+            //     clearLogData();
+            // });
 
             const filter = state.data?.filter((item) => item?.id != state.EditId);
             setState({ isDeleteLoad: false, data: filter });

@@ -75,14 +75,14 @@ const CreateOpportunities = () => {
         // ownerList();
         // createdByList();
         // currencyList();
-        LeadManagerList();
-        StageList();
-        // contactList();
-        sourceList();
-        departmentList();
-        statusList();
-        contactStatusList();
-        getOpportunityList();
+        // LeadManagerList();
+        // StageList();
+        // // contactList();
+        // sourceList();
+        // departmentList();
+        // statusList();
+        // contactStatusList();
+        // getOpportunityList();
 
         const LeadId = localStorage.getItem('LeadId');
         setState({ leadId: LeadId });
@@ -94,9 +94,9 @@ const CreateOpportunities = () => {
         }
     }, [state?.leadId]);
 
-    useEffect(() => {
-        probability();
-    }, [state.stage]);
+    // useEffect(() => {
+    //     probability();
+    // }, [state.stage]);
 
     const contactList = async (id: any) => {
         try {
@@ -112,83 +112,83 @@ const CreateOpportunities = () => {
         }
     };
 
-    const LeadManagerList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.leadManager();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ leadManagerList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
+    // const LeadManagerList = async () => {
+    //     try {
+    //         setState({ loading: true });
+    //         const res: any = await Models.lead.leadManager();
+    //         const dropdownList = Dropdown(res?.results, 'full_name');
+    //         setState({ leadManagerList: dropdownList, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
 
-            console.log('error: ', error);
-        }
-    };
+    //         console.log('error: ', error);
+    //     }
+    // };
 
-    const StageList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.leadStageList();
+    // const StageList = async () => {
+    //     try {
+    //         setState({ loading: true });
+    //         const res: any = await Models.lead.leadStageList();
 
-            const dropdownList = Dropdown(res.results, 'stage');
-            setState({ stageList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
+    //         const dropdownList = Dropdown(res.results, 'stage');
+    //         setState({ stageList: dropdownList, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
 
-            console.log('error: ', error);
-        }
-    };
+    //         console.log('error: ', error);
+    //     }
+    // };
 
-    const probability = async () => {
-        try {
-            const res: any = await Models.lead.leadStageList();
-            res?.results?.map((item: any) => {
-                if (item.stage === state?.stage?.label) {
-                    setState({ opp_percentage: item.probability });
-                }
-            });
-        } catch (error) {
-            console.log('error: ', error);
-        }
-    };
+    // const probability = async () => {
+    //     try {
+    //         const res: any = await Models.lead.leadStageList();
+    //         res?.results?.map((item: any) => {
+    //             if (item.stage === state?.stage?.label) {
+    //                 setState({ opp_percentage: item.probability });
+    //             }
+    //         });
+    //     } catch (error) {
+    //         console.log('error: ', error);
+    //     }
+    // };
 
-    const getMarketSegmentList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.GetDropdown('market_segments');
-            const dropdownList = Dropdown(res.results, 'market_segment');
-            setState({ marketSegmentList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
+    // const getMarketSegmentList = async () => {
+    //     try {
+    //         setState({ loading: true });
+    //         const res: any = await Models.lead.GetDropdown('market_segments');
+    //         const dropdownList = Dropdown(res.results, 'market_segment');
+    //         setState({ marketSegmentList: dropdownList, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
 
-            console.log('error: ', error);
-        }
-    };
+    //         console.log('error: ', error);
+    //     }
+    // };
 
-    const sourceList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.sourceList();
-            const dropdownList = Dropdown(res.results, 'source');
-            setState({ sourceList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
+    // const sourceList = async () => {
+    //     try {
+    //         setState({ loading: true });
+    //         const res: any = await Models.lead.sourceList();
+    //         const dropdownList = Dropdown(res.results, 'source');
+    //         setState({ sourceList: dropdownList, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
+    //         console.log('error: ', error);
+    //     }
+    // };
 
-    const statusList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.statusList();
-            const dropdownList = Dropdown(res.results, 'name');
-            setState({ statusList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
+    // const statusList = async () => {
+    //     try {
+    //         setState({ loading: true });
+    //         const res: any = await Models.lead.statusList();
+    //         const dropdownList = Dropdown(res.results, 'name');
+    //         setState({ statusList: dropdownList, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
 
-            console.log('error: ', error);
-        }
-    };
+    //         console.log('error: ', error);
+    //     }
+    // };
 
     const contactStatusList = async () => {
         try {
@@ -203,81 +203,81 @@ const CreateOpportunities = () => {
         }
     };
 
-    const countryList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.GetDropdown('countries');
-            const dropdownList = Dropdown(res?.results, 'country_name');
-            setState({ countryList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
+    // const countryList = async () => {
+    //     try {
+    //         setState({ loading: true });
+    //         const res: any = await Models.lead.GetDropdown('countries');
+    //         const dropdownList = Dropdown(res?.results, 'country_name');
+    //         setState({ countryList: dropdownList, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
 
-            console.log('error: ', error);
-        }
-    };
+    //         console.log('error: ', error);
+    //     }
+    // };
 
-    const stateList = async (country) => {
-        try {
-            setState({ stateLoading: true });
-            const res: any = await Models.lead.stateList(country?.value);
-            const dropdownList = Dropdown(res.results, 'state_name');
-            setState({ stateList: dropdownList, stateLoading: false });
-        } catch (error) {
-            setState({ stateLoading: false });
+    // const stateList = async (country) => {
+    //     try {
+    //         setState({ stateLoading: true });
+    //         const res: any = await Models.lead.stateList(country?.value);
+    //         const dropdownList = Dropdown(res.results, 'state_name');
+    //         setState({ stateList: dropdownList, stateLoading: false });
+    //     } catch (error) {
+    //         setState({ stateLoading: false });
 
-            console.log('error: ', error);
-        }
-    };
+    //         console.log('error: ', error);
+    //     }
+    // };
 
-    const cityList = async (state) => {
-        try {
-            const res: any = await Models.lead.cityList(state?.value);
-            const dropdownList = Dropdown(res, 'city_name');
-            setState({ cityList: dropdownList });
-        } catch (error) {
-            setState({ stateLoading: false });
+    // const cityList = async (state) => {
+    //     try {
+    //         const res: any = await Models.lead.cityList(state?.value);
+    //         const dropdownList = Dropdown(res, 'city_name');
+    //         setState({ cityList: dropdownList });
+    //     } catch (error) {
+    //         setState({ stateLoading: false });
 
-            console.log('error: ', error);
-        }
-    };
+    //         console.log('error: ', error);
+    //     }
+    // };
 
-    const tagList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.GetDropdown('tags');
-            const dropdownList = Dropdown(res.results, 'tag');
-            setState({ tagList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
+    // const tagList = async () => {
+    //     try {
+    //         setState({ loading: true });
+    //         const res: any = await Models.lead.GetDropdown('tags');
+    //         const dropdownList = Dropdown(res.results, 'tag');
+    //         setState({ tagList: dropdownList, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
 
-            console.log('error: ', error);
-        }
-    };
+    //         console.log('error: ', error);
+    //     }
+    // };
 
-    const assignList = async () => {
-        try {
-            setState({ loading: true });
-            const res = await Models.lead.bdmAndBDE();
-            const dropdownList = Dropdown(res, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
+    // const assignList = async () => {
+    //     try {
+    //         setState({ loading: true });
+    //         const res = await Models.lead.bdmAndBDE();
+    //         const dropdownList = Dropdown(res, 'full_name');
+    //         setState({ assignList: dropdownList, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
+    //         console.log('error: ', error);
+    //     }
+    // };
 
-    const departmentList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.departmentList();
-            const dropdownList = Dropdown(res.results, 'department');
-            setState({ departmentList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
+    // const departmentList = async () => {
+    //     try {
+    //         setState({ loading: true });
+    //         const res: any = await Models.lead.departmentList();
+    //         const dropdownList = Dropdown(res.results, 'department');
+    //         setState({ departmentList: dropdownList, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
 
-            console.log('error: ', error);
-        }
-    };
+    //         console.log('error: ', error);
+    //     }
+    // };
 
     // const contactList = async (page) => {
     //     const res: any = await Models.contact.list(page);
@@ -289,28 +289,28 @@ const CreateOpportunities = () => {
     //     }
     // };
 
-    const verticalList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.GetDropdown('verticals');
-            const dropdownList = Dropdown(res, 'vertical');
-            setState({ verticalList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-        }
-    };
+    // const verticalList = async () => {
+    //     try {
+    //         setState({ loading: true });
+    //         const res: any = await Models.lead.GetDropdown('verticals');
+    //         const dropdownList = Dropdown(res, 'vertical');
+    //         setState({ verticalList: dropdownList, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
+    //     }
+    // };
 
-    const getOpportunityList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.GetDropdown('opportunity-name');
-            const dropdownList = Dropdown(res.results, 'name');
-            setState({ opportunityList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
+    // const getOpportunityList = async () => {
+    //     try {
+    //         setState({ loading: true });
+    //         const res: any = await Models.lead.GetDropdown('opportunity-name');
+    //         const dropdownList = Dropdown(res.results, 'name');
+    //         setState({ opportunityList: dropdownList, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
+    //         console.log('error: ', error);
+    //     }
+    // };
 
     const contactLoadMore = async () => {
         try {

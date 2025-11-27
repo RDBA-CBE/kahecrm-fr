@@ -70,9 +70,7 @@ const UserTargetYear = () => {
 
     useEffect(() => {
         // getRole();
-        sourceList();
-        statusList();
-        getOpportunityList();
+      
     }, []);
 
     // useEffect(() => {
@@ -212,67 +210,7 @@ const UserTargetYear = () => {
         }
     };
 
-    const userCardData = async () => {
-        try {
-            setState({ loading: true });
-
-            const bodys: any = {
-                year_type: type,
-                summary: 'Yes',
-            };
-            if (state.tm?.value || state.bde?.value || state.bdm?.value || state.dm?.value) {
-                bodys.user_id = state.tm?.value || state.bde?.value || state.bdm?.value || state.dm?.value;
-            }
-
-            const res: any = await Models.report.targetTeamCard(bodys);
-            const mergedData = res?.map((item) => ({
-                ...item,
-                colorScheme: getColorTargetScheme(item.title),
-            }));
-
-            setState({ userCardData: mergedData, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const statusList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.statusList();
-            const dropdownList = Dropdown(res.results, 'name');
-            setState({ statusList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-
-            console.log('error: ', error);
-        }
-    };
-
-    const sourceList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.sourceList();
-            const dropdownList = Dropdown(res.results, 'source');
-            setState({ sourceList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
-
-    const getOpportunityList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.GetDropdown('opportunity-name');
-            const dropdownList = Dropdown(res.results, 'name');
-            setState({ opportunityList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
+  
 
     const leadList = async (page, role = null) => {
         try {
@@ -288,16 +226,16 @@ const UserTargetYear = () => {
                 if (role.tm) body.tm = role.tm;
                 if (role.dm) body.dm = role.dm;
             }
-            const response: any = await Models.opportunity.dashboardLead(body, page);
-            tableData(response?.results, state.role);
-            setState({
-                loading: false,
-                totalRecords: response.count,
-                next: response.next,
-                previous: response.previous,
-                isOpen: false,
-                currentPage: page,
-            });
+            // const response: any = await Models.opportunity.dashboardLead(body, page);
+            // tableData(response?.results, state.role);
+            // setState({
+            //     loading: false,
+            //     totalRecords: response.count,
+            //     next: response.next,
+            //     previous: response.previous,
+            //     isOpen: false,
+            //     currentPage: page,
+            // });
         } catch (error) {
             setState({ loading: false });
         }

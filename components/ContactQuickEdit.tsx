@@ -23,67 +23,67 @@ export default function ContactQuickEdit(props) {
     useEffect(() => {
         statusList();
         assignData();
-        leadList();
+        // leadList();
     }, []);
 
-    useEffect(() => {
-        if (state.assignRole) {
-            if (state.assignRole?.value == 'Admin') {
-                ownerList();
-            } else if (state.assignRole?.value == 'BDM') {
-                bdmList();
-            } else if (state.assignRole?.value == 'BDE') {
-                bdeList();
-            } else if (state.assignRole?.value == 'TM') {
-                telecallerList();
-            }
-        }
-    }, [state.assignRole]);
+    // useEffect(() => {
+    //     if (state.assignRole) {
+    //         if (state.assignRole?.value == 'Admin') {
+    //             ownerList();
+    //         } else if (state.assignRole?.value == 'BDM') {
+    //             bdmList();
+    //         } else if (state.assignRole?.value == 'BDE') {
+    //             bdeList();
+    //         } else if (state.assignRole?.value == 'TM') {
+    //             telecallerList();
+    //         }
+    //     }
+    // }, [state.assignRole]);
 
-    const ownerList = async () => {
-        try {
-            const res: any = await Models.lead.ownerList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
+    // const ownerList = async () => {
+    //     try {
+    //         const res: any = await Models.lead.ownerList();
+    //         const dropdownList = Dropdown(res?.results, 'full_name');
+    //         setState({ assignList: dropdownList, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
+    //         console.log('error: ', error);
+    //     }
+    // };
 
-    const bdmList = async () => {
-        try {
-            const res: any = await Models.lead.bdmList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
+    // const bdmList = async () => {
+    //     try {
+    //         const res: any = await Models.lead.bdmList();
+    //         const dropdownList = Dropdown(res?.results, 'full_name');
+    //         setState({ assignList: dropdownList, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
+    //         console.log('error: ', error);
+    //     }
+    // };
 
-    const bdeList = async () => {
-        try {
-            const res: any = await Models.lead.bdeList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
+    // const bdeList = async () => {
+    //     try {
+    //         const res: any = await Models.lead.bdeList();
+    //         const dropdownList = Dropdown(res?.results, 'full_name');
+    //         setState({ assignList: dropdownList, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
+    //         console.log('error: ', error);
+    //     }
+    // };
 
-    const telecallerList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.bdmAndBDE();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
+    // const telecallerList = async () => {
+    //     try {
+    //         setState({ loading: true });
+    //         const res: any = await Models.lead.bdmAndBDE();
+    //         const dropdownList = Dropdown(res?.results, 'full_name');
+    //         setState({ assignList: dropdownList, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
+    //         console.log('error: ', error);
+    //     }
+    // };
 
     const statusList = async () => {
         try {
@@ -98,38 +98,38 @@ export default function ContactQuickEdit(props) {
         }
     };
 
-    const leadList = async () => {
-        try {
-            const res: any = await Models.lead.list(state.currentLeadPage);
-            const dropdownList = Dropdown(res?.results, 'name');
-            setState({
-                leadList: dropdownList,
-                hasMoreLead: res.next,
-            });
-        } catch (error) {
-            console.log('error: ', error);
-        }
-    };
+    // const leadList = async () => {
+    //     try {
+    //         const res: any = await Models.lead.list(state.currentLeadPage);
+    //         const dropdownList = Dropdown(res?.results, 'name');
+    //         setState({
+    //             leadList: dropdownList,
+    //             hasMoreLead: res.next,
+    //         });
+    //     } catch (error) {
+    //         console.log('error: ', error);
+    //     }
+    // };
 
-    const leadListLoadMore = async () => {
-        try {
-            if (state.hasMoreLead) {
-                const res: any = await Models.lead.list(state.currentLeadPage + 1);
-                const newOptions = Dropdown(res?.results, 'name');
-                setState({
-                    leadList: [...state.leadList, ...newOptions],
-                    hasMoreLead: res.next,
-                    currentLeadPage: state.currentLeadPage + 1,
-                });
-            } else {
-                setState({
-                    leadList: state.leadList,
-                });
-            }
-        } catch (error) {
-            console.log('error: ', error);
-        }
-    };
+    // const leadListLoadMore = async () => {
+    //     try {
+    //         if (state.hasMoreLead) {
+    //             const res: any = await Models.lead.list(state.currentLeadPage + 1);
+    //             const newOptions = Dropdown(res?.results, 'name');
+    //             setState({
+    //                 leadList: [...state.leadList, ...newOptions],
+    //                 hasMoreLead: res.next,
+    //                 currentLeadPage: state.currentLeadPage + 1,
+    //             });
+    //         } else {
+    //             setState({
+    //                 leadList: state.leadList,
+    //             });
+    //         }
+    //     } catch (error) {
+    //         console.log('error: ', error);
+    //     }
+    // };
 
     const assignData = async () => {
         try {

@@ -11,7 +11,7 @@ import Modal from '@/common_component/modal';
 import TextInput from '@/components/TextInput';
 import IconLoader from '@/components/Icon/IconLoader';
 import TextArea from '@/components/TextArea';
-import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
+// import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 
 const Profile = () => {
@@ -95,18 +95,18 @@ const Profile = () => {
     };
 
     const handlePhoneChange = (value) => {
-        const valid = value && isValidPhoneNumber(value);
-        if (valid == false) {
-            setState({
-                errors: { ...state.errors, phone_number: 'Please enter a valid phone number' },
-                phone_number: value,
-            });
-        } else {
-            setState({
-                errors: { ...state.errors, phone_number: '' },
-                phone_number: value,
-            });
-        }
+        // const valid = value && isValidPhoneNumber(value);
+        // if (valid == false) {
+        //     setState({
+        //         errors: { ...state.errors, phone_number: 'Please enter a valid phone number' },
+        //         phone_number: value,
+        //     });
+        // } else {
+        //     setState({
+        //         errors: { ...state.errors, phone_number: '' },
+        //         phone_number: value,
+        //     });
+        // }
     };
 
     if (state.loading) {
@@ -396,7 +396,7 @@ const Profile = () => {
                             Phone Number
                         </label>
 
-                        <PhoneInput
+                        {/* <PhoneInput
                             withCountryCallingCode
                             countryCallingCodeEditable={false}
                             countrySelectComponent={() => null}
@@ -406,7 +406,7 @@ const Profile = () => {
                             onChange={handlePhoneChange}
                             international
                             className="phone-input-custom"
-                        />
+                        /> */}
                         {state.errors?.phone && <div style={{ color: 'red' }}>{state.errors?.phone}</div>}
 
                         </div>

@@ -70,64 +70,64 @@ const Calendar = () => {
         taskList(1);
     }, [debouncedSearch, state.from_date, state.to_date, state.assigned]);
 
-    useEffect(() => {
-        if (state.assignRole) {
-            if (state.assignRole?.value == 'owner') {
-                ownerList();
-            } else if (state.assignRole?.value == 'bdm') {
-                bdmList();
-            } else if (state.assignRole?.value == 'tm') {
-                telecallerList();
-            } else if (state.assignRole?.value == 'bde') {
-                bdeList();
-            }
-        }
-    }, [state.assignRole]);
+    // useEffect(() => {
+    //     if (state.assignRole) {
+    //         if (state.assignRole?.value == 'owner') {
+    //             ownerList();
+    //         } else if (state.assignRole?.value == 'bdm') {
+    //             bdmList();
+    //         } else if (state.assignRole?.value == 'tm') {
+    //             telecallerList();
+    //         } else if (state.assignRole?.value == 'bde') {
+    //             bdeList();
+    //         }
+    //     }
+    // }, [state.assignRole]);
 
-    const ownerList = async () => {
-        try {
-            const res: any = await Models.lead.ownerList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
+    // const ownerList = async () => {
+    //     try {
+    //         const res: any = await Models.lead.ownerList();
+    //         const dropdownList = Dropdown(res?.results, 'full_name');
+    //         setState({ assignList: dropdownList, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
+    //         console.log('error: ', error);
+    //     }
+    // };
 
-    const telecallerList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.bdmAndBDE();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
+    // const telecallerList = async () => {
+    //     try {
+    //         setState({ loading: true });
+    //         const res: any = await Models.lead.bdmAndBDE();
+    //         const dropdownList = Dropdown(res?.results, 'full_name');
+    //         setState({ assignList: dropdownList, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
+    //         console.log('error: ', error);
+    //     }
+    // };
 
-    const bdmList = async () => {
-        try {
-            const res: any = await Models.lead.bdmList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
+    // const bdmList = async () => {
+    //     try {
+    //         const res: any = await Models.lead.bdmList();
+    //         const dropdownList = Dropdown(res?.results, 'full_name');
+    //         setState({ assignList: dropdownList, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
+    //         console.log('error: ', error);
+    //     }
+    // };
 
-    const bdeList = async () => {
-        try {
-            const res: any = await Models.lead.bdeList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
+    // const bdeList = async () => {
+    //     try {
+    //         const res: any = await Models.lead.bdeList();
+    //         const dropdownList = Dropdown(res?.results, 'full_name');
+    //         setState({ assignList: dropdownList, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
+    //         console.log('error: ', error);
+    //     }
+    // };
 
     const bodyData = () => {
         let body: any = {};
@@ -328,14 +328,14 @@ const Calendar = () => {
                 if (user) {
                     let userId = JSON.parse(user)?.id;
     
-                    const res: any = await Models.opportunity.meAndAssigned(userId, state.currentLeadPage);
-                    const dropdownList = res?.results?.map((item) => ({ value: item.id, label: item.lead?.name }));
+                    // const res: any = await Models.opportunity.meAndAssigned(userId, state.currentLeadPage);
+                    // const dropdownList = res?.results?.map((item) => ({ value: item.id, label: item.lead?.name }));
     
-                    setState({
-                        leadList: dropdownList,
-                        hasMoreLead: res.next,
-                        leadLoading: false,
-                    });
+                    // setState({
+                    //     leadList: dropdownList,
+                    //     hasMoreLead: res.next,
+                    //     leadLoading: false,
+                    // });
                 }
             } catch (error) {
                 setState({ leadLoading: false });
@@ -353,16 +353,16 @@ const Calendar = () => {
                     let userId = JSON.parse(user)?.id;
     
                     // const res: any = await Models.lead.list(state.currentLeadPage + 1);
-                    const res: any = await Models.opportunity.meAndAssigned(userId, state.currentLeadPage);
+                    // const res: any = await Models.opportunity.meAndAssigned(userId, state.currentLeadPage);
     
-                    // const newOptions = Dropdown(res?.results, 'name');
-                    const dropdownList = res?.results?.map((item) => ({ value: item.id, label: item.lead?.name }));
+                    // // const newOptions = Dropdown(res?.results, 'name');
+                    // const dropdownList = res?.results?.map((item) => ({ value: item.id, label: item.lead?.name }));
     
-                    setState({
-                        leadList: [...state.leadList, ...dropdownList],
-                        hasMoreLead: res.next,
-                        currentLeadPage: state.currentLeadPage + 1,
-                    });
+                    // setState({
+                    //     leadList: [...state.leadList, ...dropdownList],
+                    //     hasMoreLead: res.next,
+                    //     currentLeadPage: state.currentLeadPage + 1,
+                    // });
                 } else {
                     setState({
                         leadList: state.leadList,

@@ -65,12 +65,6 @@ const Reports = () => {
     });
 
     useEffect(() => {
-        verticalList();
-        countryList();
-        ownerList();
-        marketSegmentList();
-        leadList();
-        createdByList();
         getUserDetails();
     }, []);
 
@@ -117,95 +111,6 @@ const Reports = () => {
             filter = true;
         }
         return filter;
-    };
-
-    const countryList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.GetDropdown('countries');
-            const dropdownList = Dropdown(res?.results, 'country_name');
-            setState({ countryList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-
-            console.log('error: ', error);
-        }
-    };
-
-    const stateList = async (country) => {
-        try {
-            setState({ stateLoading: true });
-            const res: any = await Models.lead.stateList(country?.value);
-            const dropdownList = Dropdown(res?.results, 'state_name');
-            setState({ stateList: dropdownList, stateLoading: false });
-        } catch (error) {
-            setState({ stateLoading: false });
-
-            console.log('error: ', error);
-        }
-    };
-
-    const ownerList = async () => {
-        try {
-            setState({ loading: true });
-            const res = await Models.lead.dropdowns('owner');
-            const dropdownList = Dropdown(res, 'username');
-            setState({ ownerList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-
-            console.log('error: ', error);
-        }
-    };
-
-    const verticalList = async () => {
-        try {
-            setState({ loading: true });
-            const res = await Models.lead.GetDropdown('verticals');
-            const dropdownList = Dropdown(res, 'vertical');
-            setState({ verticalList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-        }
-    };
-
-    const getFocusSegmentList = async (verticalData: any) => {
-        try {
-            const res: any = await Models.lead.focusSegmentList(verticalData?.value);
-            let focusList: [];
-            if (res?.results?.length > 0) {
-                focusList = res?.results?.map((item) => ({ value: item?.id, label: item?.focus_segment }));
-            }
-            setState({ focusList: focusList });
-        } catch (error) {
-            setState({ loading: false });
-        }
-    };
-
-    const marketSegmentList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.GetDropdown('market_segments');
-            const dropdownList = Dropdown(res.results, 'market_segment');
-            setState({ marketSegmentList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-
-            console.log('error: ', error);
-        }
-    };
-
-    const createdByList = async () => {
-        try {
-            setState({ loading: true });
-            const res = await Models.lead.bdmAndBDE();
-            const dropdownList = Dropdown(res, 'full_name');
-            setState({ createdByList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-
-            console.log('error: ', error);
-        }
     };
 
     const funnelChartCount = async (filter = false) => {
@@ -842,19 +747,6 @@ const Reports = () => {
         }
     };
 
-    const leadList = async () => {
-        try {
-            setState({ loading: true });
-            const res: any = await Models.lead.list(state.currentLeadPage);
-            const dropdownList = Dropdown(res?.results, 'name');
-            setState({ leadList: dropdownList, loading: false, hasMoreLead: res.next });
-        } catch (error) {
-            setState({ loading: false });
-
-            console.log('error: ', error);
-        }
-    };
-
     const tabClassNames = (selected: boolean) =>
         `${selected ? ' text-lg !border-white-light !border-b-white text-primary !outline-none dark:!border-[#191e3a] dark:!border-b-black' : ''}
         -mb-[1px] block border border-transparent p-3.5 py-2 hover:text-primary dark:hover:border-b-black text-lg `;
@@ -1073,7 +965,6 @@ const Reports = () => {
                             onChange={(e) => {
                                 if (e) {
                                     setState({ focus_segment: '', vertical: e });
-                                    getFocusSegmentList(e);
                                 } else {
                                     setState({ focus_segment: '', vertical: '' });
                                 }
@@ -1104,7 +995,6 @@ const Reports = () => {
                             value={state.country}
                             onChange={(e) => {
                                 if (e) {
-                                    stateList(e);
                                 }
                                 setState({ country: e, state: '' });
                             }}

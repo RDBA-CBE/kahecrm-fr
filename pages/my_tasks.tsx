@@ -77,17 +77,17 @@ const Calendar = () => {
 
     const loadAssignList = async (roleValue: string) => {
         try {
-            setState({ loading: true });
-            const apiMap = {
-                owner: Models.lead.ownerList,
-                bdm: Models.lead.bdmList,
-                tm: Models.lead.bdmAndBDE,
-                bde: Models.lead.bdeList
-            };
+            // setState({ loading: true });
+            // const apiMap = {
+            //     owner: Models.lead.ownerList,
+            //     bdm: Models.lead.bdmList,
+            //     tm: Models.lead.bdmAndBDE,
+            //     bde: Models.lead.bdeList
+            // };
             
-            const res: any = await apiMap[roleValue]();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
+            // const res: any = await apiMap[roleValue]();
+            // const dropdownList = Dropdown(res?.results, 'full_name');
+            // setState({ assignList: dropdownList, loading: false });
         } catch (error) {
             setState({ loading: false });
             console.log('error: ', error);
@@ -175,14 +175,14 @@ const Calendar = () => {
 
     const getUserFromStorage = async () => {
         const user = localStorage.getItem('crmUser');
-        if (user) {
-            const userId = JSON.parse(user)?.id;
-            const res: any = await Models.opportunity.meAndAssigned(userId, 1);
-            return {
-                leadList: res?.results?.map((item) => ({ value: item.id, label: item.lead?.name })) || [],
-                hasMoreLead: res.next
-            };
-        }
+        // if (user) {
+        //     const userId = JSON.parse(user)?.id;
+        //     const res: any = await Models.opportunity.meAndAssigned(userId, 1);
+        //     return {
+        //         leadList: res?.results?.map((item) => ({ value: item.id, label: item.lead?.name })) || [],
+        //         hasMoreLead: res.next
+        //     };
+        // }
         return { leadList: [], hasMoreLead: null };
     };
 
@@ -325,16 +325,16 @@ const Calendar = () => {
                 let userId = JSON.parse(user)?.id;
 
                 // const res: any = await Models.lead.list(state.currentLeadPage + 1);
-                const res: any = await Models.opportunity.meAndAssigned(userId, state.currentLeadPage);
+                // const res: any = await Models.opportunity.meAndAssigned(userId, state.currentLeadPage);
 
-                // const newOptions = Dropdown(res?.results, 'name');
-                const dropdownList = res?.results?.map((item) => ({ value: item.id, label: item.lead?.name }));
+                // // const newOptions = Dropdown(res?.results, 'name');
+                // const dropdownList = res?.results?.map((item) => ({ value: item.id, label: item.lead?.name }));
 
-                setState({
-                    leadList: [...state.leadList, ...dropdownList],
-                    hasMoreLead: res.next,
-                    currentLeadPage: state.currentLeadPage + 1,
-                });
+                // setState({
+                //     leadList: [...state.leadList, ...dropdownList],
+                //     hasMoreLead: res.next,
+                //     currentLeadPage: state.currentLeadPage + 1,
+                // });
             } else {
                 setState({
                     leadList: state.leadList,

@@ -23,28 +23,28 @@ export default function QuickEdit(props) {
         assignRole();
     }, []);
 
-    useEffect(() => {
-        if (state.assignRole) {
-            if (state.assignRole?.value == 'owner') {
-                ownerList();
-            } else if (state.assignRole?.value == 'bdm') {
-                bdmList();
-            } else {
-                bdeList();
-            }
-        }
-    }, [state.assignRole]);
+    // useEffect(() => {
+    //     if (state.assignRole) {
+    //         if (state.assignRole?.value == 'owner') {
+    //             ownerList();
+    //         } else if (state.assignRole?.value == 'bdm') {
+    //             bdmList();
+    //         } else {
+    //             bdeList();
+    //         }
+    //     }
+    // }, [state.assignRole]);
 
-    const ownerList = async () => {
-        try {
-            const res: any = await Models.lead.ownerList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
+    // const ownerList = async () => {
+    //     try {
+    //         const res: any = await Models.lead.ownerList();
+    //         const dropdownList = Dropdown(res?.results, 'full_name');
+    //         setState({ assignList: dropdownList, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
+    //         console.log('error: ', error);
+    //     }
+    // };
 
     const assignRole = async () => {
         try {
@@ -72,27 +72,27 @@ export default function QuickEdit(props) {
         }
     };
 
-    const bdmList = async () => {
-        try {
-            const res: any = await Models.lead.bdmList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
+    // const bdmList = async () => {
+    //     try {
+    //         const res: any = await Models.lead.bdmList();
+    //         const dropdownList = Dropdown(res?.results, 'full_name');
+    //         setState({ assignList: dropdownList, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
+    //         console.log('error: ', error);
+    //     }
+    // };
 
-    const bdeList = async () => {
-        try {
-            const res: any = await Models.lead.bdeList();
-            const dropdownList = Dropdown(res?.results, 'full_name');
-            setState({ assignList: dropdownList, loading: false });
-        } catch (error) {
-            setState({ loading: false });
-            console.log('error: ', error);
-        }
-    };
+    // const bdeList = async () => {
+    //     try {
+    //         const res: any = await Models.lead.bdeList();
+    //         const dropdownList = Dropdown(res?.results, 'full_name');
+    //         setState({ assignList: dropdownList, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
+    //         console.log('error: ', error);
+    //     }
+    // };
 
     const assignData = async () => {
         try {

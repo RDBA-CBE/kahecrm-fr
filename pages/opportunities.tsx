@@ -95,12 +95,12 @@ const Opportunity = () => {
 
     useEffect(() => {
         getData();
-        currencyList();
-        stageList();
-        ownerList();
-        leadList();
-        getFocusSegmentList();
-        getMarketSegmentList();
+        // currencyList();
+        // stageList();
+        // ownerList();
+        // leadList();
+        // getFocusSegmentList();
+        // getMarketSegmentList();
     }, []);
 
     const debouncedSearch = useDebounce(state.search, 500);
@@ -126,18 +126,18 @@ const Opportunity = () => {
 
     const getData = async (page = 1) => {
         try {
-            setState({ loading: true });
-            const response: any = await Models.opportunity.allList(page);
-            const res: any = await Models.auth.userDetails();
-            setState({ role: res?.designation });
-            tableData(response?.results, res?.designation);
+            // setState({ loading: true });
+            // const response: any = await Models.opportunity.allList(page);
+            // const res: any = await Models.auth.userDetails();
+            // setState({ role: res?.designation });
+            // tableData(response?.results, res?.designation);
 
-            setState({
-                loading: false,
-                totalRecords: response.count,
-                next: response.next,
-                previous: response.previous,
-            });
+            // setState({
+            //     loading: false,
+            //     totalRecords: response.count,
+            //     next: response.next,
+            //     previous: response.previous,
+            // });
         } catch (error) {
             setState({ loading: false });
         }
@@ -156,15 +156,15 @@ const Opportunity = () => {
             setState({ loading: true });
             let body = bodyData();
             if (!objIsEmpty(body)) {
-                const response: any = await Models.opportunity.filter(body, page);
-                tableData(response?.results, state.role);
-                setState({
-                    loading: false,
-                    totalRecords: response.count,
-                    next: response.next,
-                    previous: response.previous,
-                    isOpen: false,
-                });
+                // const response: any = await Models.opportunity.filter(body, page);
+                // tableData(response?.results, state.role);
+                // setState({
+                //     loading: false,
+                //     totalRecords: response.count,
+                //     next: response.next,
+                //     previous: response.previous,
+                //     isOpen: false,
+                // });
             } else {
                 getData();
                 setState({
@@ -223,97 +223,6 @@ const Opportunity = () => {
         return body;
     };
 
-    const stageList = async () => {
-        try {
-            setState({ subLoading: true });
-            const res: any = await Models.opportunity.oppDropdowns('stage');
-            const dropdownList = Dropdown(res, 'stage');
-            setState({ stageList: dropdownList, subLoading: false });
-        } catch (error) {
-            setState({ subLoading: false });
-
-            console.log('error: ', error);
-        }
-    };
-
-    const currencyList = async () => {
-        try {
-            setState({ subLoading: true });
-            const res: any = await Models.opportunity.oppDropdowns('currency_type');
-
-            const dropdownList = Dropdown(res, 'currency_short');
-            setState({ currencyList: dropdownList, subLoading: false });
-        } catch (error) {
-            setState({ subLoading: false });
-
-            console.log('error: ', error);
-        }
-    };
-
-    const ownerList = async () => {
-        try {
-            setState({ subLoading: true });
-            const res = await Models.lead.dropdowns('owner');
-            const dropdownList = Dropdown(res, 'username');
-            setState({ ownerList: dropdownList, subLoading: false });
-        } catch (error) {
-            setState({ subLoading: false });
-
-            console.log('error: ', error);
-        }
-    };
-
-    const leadList = async () => {
-        try {
-            setState({ subLoading: true });
-            const res: any = await Models.lead.list(state.currentLeadPage);
-            const dropdownList = Dropdown(res?.results, 'name');
-
-            setState({ leadList: dropdownList, subLoading: false, hasMoreLead: res.next });
-        } catch (error) {
-            setState({ subLoading: false });
-
-            console.log('error: ', error);
-        }
-    };
-
-    const getFocusSegmentList = async () => {
-        try {
-            setState({ subLoading: true });
-            const res: any = await Models.lead.dropdowns('focus_segment');
-            const dropdownList = Dropdown(res, 'focus_segment');
-            setState({ focusList: dropdownList, subLoading: false });
-        } catch (error) {
-            setState({ subLoading: false });
-        }
-    };
-
-    const getMarketSegmentList = async () => {
-        try {
-            setState({ subLoading: true });
-            const res = await Models.lead.dropdowns('market_segment');
-            const dropdownList = Dropdown(res, 'market_segment');
-            setState({ marketList: dropdownList, subLoading: false });
-        } catch (error) {
-            setState({ subLoading: false });
-        }
-    };
-
-    const verticalList = async (focusData: any) => {
-        try {
-            setState({ subLoading: true });
-            const res: any = await Models.lead.focusIdBasedVericalList(focusData.value);
-            let vericalList: [];
-            if (res?.length > 0) {
-                vericalList = res?.map((item) => ({ value: item?.vertical?.id, label: item?.vertical?.vertical }));
-            }
-
-            // const dropdownList = Dropdown(res, 'vertical');
-            setState({ verticalList: vericalList, subLoading: false });
-        } catch (error) {
-            setState({ subLoading: false });
-        }
-    };
 
 
     // ...table
@@ -427,19 +336,19 @@ const Opportunity = () => {
 
     const leadListLoadMore = async () => {
         try {
-            if (state.hasMoreLead) {
-                const res: any = await Models.lead.list(state.currentLeadPage + 1);
-                const newOptions = Dropdown(res?.results, 'name');
-                setState({
-                    leadList: [...state.leadList, ...newOptions],
-                    hasMoreLead: res.next,
-                    currentLeadPage: state.currentLeadPage + 1,
-                });
-            } else {
-                setState({
-                    leadList: state.leadList,
-                });
-            }
+            // if (state.hasMoreLead) {
+            //     const res: any = await Models.lead.list(state.currentLeadPage + 1);
+            //     const newOptions = Dropdown(res?.results, 'name');
+            //     setState({
+            //         leadList: [...state.leadList, ...newOptions],
+            //         hasMoreLead: res.next,
+            //         currentLeadPage: state.currentLeadPage + 1,
+            //     });
+            // } else {
+            //     setState({
+            //         leadList: state.leadList,
+            //     });
+            // }
         } catch (error) {
             setState((prev) => ({ ...prev, loading: false }));
         }
@@ -496,12 +405,12 @@ const Opportunity = () => {
 
     const getProbabilityPercentage = async (e) => {
         try {
-            if (e) {
-                const res: any = await Models.opportunity.getProbabilityPercentage(e?.value);
-                setState({ probability_in_percentage: res.probability });
-            } else {
-                setState({ probability_in_percentage: '' });
-            }
+            // if (e) {
+            //     const res: any = await Models.opportunity.getProbabilityPercentage(e?.value);
+            //     setState({ probability_in_percentage: res.probability });
+            // } else {
+            //     setState({ probability_in_percentage: '' });
+            // }
         } catch (error) {}
     };
 
@@ -561,7 +470,7 @@ const Opportunity = () => {
                         onChange={(e) => {
                             if (e) {
                                 setState({ focus: e });
-                                verticalList(e);
+                                // verticalList(e);
                             } else {
                                 setState({ focus: '', verticalList: [], vertical: '' });
                             }
