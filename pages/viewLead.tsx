@@ -168,11 +168,8 @@ export default function ViewLead() {
 
     useEffect(() => {
         if (state.logtype) {
-            if (state.logtype !== 'include_opportunity') {
                 getLogListFilter();
-            } else {
-                getExcludeOppLogListFilter();
-            }
+           
         } else {
             getLogList();
         }
@@ -398,6 +395,7 @@ export default function ViewLead() {
             setState({ loading: false });
         }
     };
+console.log('✌️state.logtype --->', state.logtype);
 
     const getLogListFilter = async () => {
         try {
@@ -411,6 +409,11 @@ export default function ViewLead() {
             if (state.logtype == 'Email') {
                 statusId = 'Email';
             }
+
+             if (state.logtype == 'include_opportunity') {
+                statusId = 'include_opportunity';
+            }
+
 
             const res: any = await Models.log.listByLeadId(id, statusId);
             setState({ logList: res?.results, loading: false, logCount: res.count });
@@ -760,7 +763,7 @@ Success("Course Updated Successfully")
     };
 
     const checkboxOptions = [
-        { value: 'include_opportunity', label: 'Exclude Opportunity' },
+        { value: 'include_opportunity', label: 'Exclude Course' },
         { value: 'Call', label: 'Call' },
         { value: 'Meeting', label: 'Meeting' },
         { value: 'Email', label: 'Email' },

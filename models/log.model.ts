@@ -20,12 +20,16 @@ const log = {
         return promise;
     },
 
-
-    listByLeadId: (id,log_type=null) => {
+    listByLeadId: (id, log_type = null) => {
         let promise = new Promise((resolve, reject) => {
             let url = `crm/logs/?college_lead=${id}`;
-              if (log_type) {
-                url += `&log_type=${encodeURIComponent(log_type)}`;
+
+            if (log_type == 'include_opportunity') {
+                url += `&moduletype=${encodeURIComponent(true)}`;
+            } else {
+                if (log_type) {
+                    url += `&log_type=${encodeURIComponent(log_type)}`;
+                }
             }
             instance()
                 .get(url)
