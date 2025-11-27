@@ -168,8 +168,7 @@ export default function ViewLead() {
 
     useEffect(() => {
         if (state.logtype) {
-                getLogListFilter();
-           
+            getLogListFilter();
         } else {
             getLogList();
         }
@@ -395,7 +394,7 @@ export default function ViewLead() {
             setState({ loading: false });
         }
     };
-console.log('✌️state.logtype --->', state.logtype);
+    console.log('✌️state.logtype --->', state.logtype);
 
     const getLogListFilter = async () => {
         try {
@@ -410,10 +409,9 @@ console.log('✌️state.logtype --->', state.logtype);
                 statusId = 'Email';
             }
 
-             if (state.logtype == 'include_opportunity') {
+            if (state.logtype == 'include_opportunity') {
                 statusId = 'include_opportunity';
             }
-
 
             const res: any = await Models.log.listByLeadId(id, statusId);
             setState({ logList: res?.results, loading: false, logCount: res.count });
@@ -433,7 +431,7 @@ console.log('✌️state.logtype --->', state.logtype);
 
     const addCourse = async () => {
         try {
-            setState({courseLoading:true})
+            setState({ courseLoading: true });
 
             const body = {
                 college: state.college?.value,
@@ -444,8 +442,8 @@ console.log('✌️state.logtype --->', state.logtype);
             opportunityList();
             getLogList();
 
-            setState({ isOpenCourse: false, college: null, course: null, oppId: null,courseLoading:false });
-Success("Course Added Successfully")
+            setState({ isOpenCourse: false, college: null, course: null, oppId: null, courseLoading: false });
+            Success('Course Added Successfully');
             // setState({ logList: res?.results, loading: false, logCount: res.count });
         } catch (error) {
             console.log('error: ', error);
@@ -455,7 +453,7 @@ Success("Course Added Successfully")
 
     const updateCourse = async () => {
         try {
-            setState({courseLoading:true})
+            setState({ courseLoading: true });
             const body = {
                 college: state.college?.value,
                 course: state.course?.value,
@@ -464,9 +462,9 @@ Success("Course Added Successfully")
             const res: any = await Models.opportunity.update(body, state.oppId);
             opportunityList();
             getLogList();
-Success("Course Updated Successfully")
+            Success('Course Updated Successfully');
 
-            setState({ isOpenCourse: false, college: null, course: null, oppId: null,courseLoading:false });
+            setState({ isOpenCourse: false, college: null, course: null, oppId: null, courseLoading: false });
         } catch (error) {
             console.log('error: ', error);
             setState({ loading: false });
@@ -806,8 +804,8 @@ Success("Course Updated Successfully")
             <div className="panel mt-2 rounded-2xl p-3">
                 <div className=" cursor-pointer items-center gap-3">
                     <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-[30px] w-[30px] items-center justify-center rounded-3xl  " onClick={() => setState({ isOpenStudentInfo: !state.isOpenStudentInfo })}>
+                        <div className="flex items-center gap-3" onClick={() => setState({ isOpenStudentInfo: !state.isOpenStudentInfo })}>
+                            <div className="flex h-[30px] w-[30px] items-center justify-center rounded-3xl  ">
                                 {state.isOpenStudentInfo ? <img src={'/assets/images/arrowDown.svg'} height={10} /> : <img src={'/assets/images/arrowUp.png'} height={10} />}
                             </div>
                             <div className="text-xl font-bold ">Student Information</div>
@@ -818,9 +816,9 @@ Success("Course Updated Successfully")
                     </div>
                     {state.isOpenStudentInfo && (
                         <>
-                            <div className="mt-1 flex w-full  flex-wrap">
-                                <div className={`mt-1  w-full `}>
-                                    <div className=" panel flex  flex-col gap-5 rounded-2xl p-3">
+                            <div className=" flex w-full  flex-wrap">
+                                <div className={` w-full `}>
+                                    <div className="  flex  flex-col gap-5 rounded-2xl p-2">
                                         <div className="space-y-3">
                                             <div className="rounded-xl bg-white p-5 shadow">
                                                 <h2 className="mb-4 border-b pb-1 text-lg font-semibold text-gray-800">Basic Details</h2>
@@ -1054,8 +1052,8 @@ Success("Course Updated Successfully")
             <div className="panel mt-2 rounded-2xl p-3">
                 <div className=" cursor-pointer items-center gap-3">
                     <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-[30px] w-[30px] items-center justify-center rounded-3xl  " onClick={() => setState({ isOpenLeadInfo: !state.isOpenLeadInfo })}>
+                        <div className="flex items-center gap-3" onClick={() => setState({ isOpenLeadInfo: !state.isOpenLeadInfo })}>
+                            <div className="flex h-[30px] w-[30px] items-center justify-center rounded-3xl  ">
                                 {state.isOpenLeadInfo ? <img src={'/assets/images/arrowDown.svg'} height={10} /> : <img src={'/assets/images/arrowUp.png'} height={10} />}
                             </div>
                             <div className="text-xl font-bold ">Lead Status Information</div>
@@ -1064,7 +1062,7 @@ Success("Course Updated Successfully")
                             <IconPencilPaper />
                         </div>
                     </div>
-                    
+
                     {state.isOpenLeadInfo && (
                         <>
                             <div className="mt-1 flex w-full  flex-wrap">
@@ -1109,7 +1107,10 @@ Success("Course Updated Successfully")
                                                     <TextWithValue value={state.detail?.stage?.stage} label="lead_status" />
                                                     <TextWithValue value={state.detail?.lead_source_category?.name} label="lead_source" />
                                                     <TextWithValue value={state.detail?.preferred_location} label="preferred_location" />
-                                                    <TextWithValue value={state.detail?.best_time_to_contact?moment(state.detail?.best_time_to_contact).format("DD-MM-YYYY HH:mm A"):null} label="best_time_to_contact" />
+                                                    <TextWithValue
+                                                        value={state.detail?.best_time_to_contact ? moment(state.detail?.best_time_to_contact).format('DD-MM-YYYY HH:mm A') : null}
+                                                        label="best_time_to_contact"
+                                                    />
                                                     <TextWithValue value={state.detail?.source_details} label="source_details" />
                                                     <TextWithValue value={state.detail?.remark} label="remark" />
                                                 </>
@@ -1245,7 +1246,7 @@ Success("Course Updated Successfully")
                                         label={option?.label}
                                     />
                                 ))}
-                               
+
                                 <button
                                     type="button"
                                     className="btn btn-primary log-btn p-1"
