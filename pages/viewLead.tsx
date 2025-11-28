@@ -144,6 +144,7 @@ export default function ViewLead() {
         sourceList();
         leadStatusList();
         getLogList();
+        usersList();
 
         // getContactList();
         // verticalList();
@@ -420,12 +421,41 @@ export default function ViewLead() {
         }
     };
 
-    const getExcludeOppLogListFilter = async () => {
+    const usersList = async () => {
         try {
-            // const res: any = await Models.lead.excludeOpplogList(id);
-            // setState({ logList: res?.results, loading: false, logCount: res.count });
+            setState({ loading: true });
+            const res: any = await Models.user.userList(1, null);
+            const dropdownList = res?.results?.map((item) => ({
+                label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}`,
+                value: item?.id,
+            }));
+
+            setState({ usersList: dropdownList, loading: false, userPage: 1, userHasNext: res?.next });
         } catch (error) {
             setState({ loading: false });
+            console.log('error: ', error);
+        }
+    };
+
+    const usersListLoadMore = async () => {
+        try {
+            setState({ leadStatusloadMore: true });
+            const res: any = await Models.master.lead_status_list(state.leadStatusPage + 1);
+            const dropdownList = res?.results?.map((item) => ({
+                label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}`,
+                value: item?.id,
+            }));
+            setState({ usersList: dropdownList, loading: false, userPage: 1, userHasNext: res?.next });
+
+            setState({
+                usersList: [...state.usersList, ...dropdownList],
+                leadStatusloadMore: false,
+                userPage: state.userPage + 1,
+                userHasNext: res.next,
+            });
+        } catch (error) {
+            setState({ leadStatusloadMore: false });
+            console.log('error: ', error);
         }
     };
 
@@ -495,7 +525,9 @@ export default function ViewLead() {
     const handleEditLead = async () => {
         try {
             const response = state.detail;
+console.log('✌️response --->', response);
             const res = state.contact;
+console.log('✌️res --->', res);
 
             const contact = response?.college_contact;
             setState({
@@ -607,6 +639,8 @@ export default function ViewLead() {
                 source_details: response?.source_details || '',
                 remark: response?.remark || '',
                 leadId: response?.id,
+                assign_to: response?.assign_to ? { value: response?.assign_to?.id, label: `${capitalizeFLetter(response?.assign_to?.first_name)} ${capitalizeFLetter(response?.assign_to?.last_name)}` } : null,
+
             });
         } catch (error) {
             console.log('✌️error --->', error);
@@ -621,7 +655,7 @@ export default function ViewLead() {
                 college: state.college?.value,
                 course: state.course?.value,
                 stage: state.stage?.value,
-                assigned_to: state.assigned_to?.value,
+                assign_to: state.assign_to?.value,
                 lead_source_category: state.lead_source_category?.value,
                 preferred_location: state.preferred_location,
                 best_time_to_contact: moment(state.best_time_to_contact).format('YYYY-MM-DD HH:mm:ss'),
@@ -788,12 +822,12 @@ export default function ViewLead() {
 
                 <div className="flex items-center gap-5">
                     <>
-                        {state.data?.assigned_to && (
+                        {state.detail?.assign_to && (
                             <div className="flex flex-col p-2 ">
                                 <div className="text-md text-gray-600">Assigned To</div>
                                 <div className="text-[18px]">
-                                    {`${capitalizeFLetter(state.data?.assigned_to?.first_name)} 
-  ${state.data?.assigned_to?.last_name}`}
+                                    {`${capitalizeFLetter(state.detail?.assign_to?.first_name)} 
+  ${state.detail?.assign_to?.last_name}`}
                                 </div>
                             </div>
                         )}
@@ -1071,6 +1105,15 @@ export default function ViewLead() {
                                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                                             {state.isEditLead1 ? (
                                                 <>
+                                                    <CustomSelect
+                                                        title="Assigned To"
+                                                        value={state.assign_to}
+                                                        onChange={(e) => setState({ assign_to: e })}
+                                                        placeholder={'Assigned To'}
+                                                        options={state.usersList}
+                                                        error={state.errors?.assigned_to}
+                                                        loadMore={() => state.userHasNext && usersListLoadMore()}
+                                                    />
                                                     <CustomSelect
                                                         title="Lead Status"
                                                         value={state.lead_status}

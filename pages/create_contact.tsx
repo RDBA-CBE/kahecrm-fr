@@ -379,7 +379,7 @@ const CreateContact = () => {
                     colleges_interested: state.colleges_interested?.value,
                     courses_interested: state.courses_interested?.value,
                     stage: state.lead_status?.value,
-                    assigned_to: state.assigned_to?.value,
+                    assign_to: state.assigned_to?.value,
                     lead_source_category: state.lead_source_category?.value,
                     preferred_location: state.preferred_location?.trim(),
                     best_time_to_contact: state.best_time_to_contact ? moment(state.best_time_to_contact).format('YYYY-MM-DD HH:mm:ss') : null,
@@ -830,6 +830,7 @@ const CreateContact = () => {
                                     placeholder={'Assigned To'}
                                     options={state.usersList}
                                     error={state.errors?.assigned_to}
+                                    loadMore={()=>state.userHasNext&&usersListLoadMore()}
                                 />
                                 <CustomSelect
                                     title="Lead Source Category "
