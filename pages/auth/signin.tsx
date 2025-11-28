@@ -14,6 +14,7 @@ import Models from '@/imports/models.import';
 import IconLoader from '@/components/Icon/IconLoader';
 import IconEye from '@/components/Icon/IconEye';
 import axios from 'axios';
+import { ROLE } from '@/utils/constant.utils';
 
 const LoginBoxed = () => {
     const dispatch = useDispatch();
@@ -74,13 +75,17 @@ const LoginBoxed = () => {
 
             axios
                 .post(`${process.env.NEXT_PUBLIC_BASE_URL}login/`, body)
-                .then((res) => {
+                .then((res: any) => {
                     console.log('first', res);
                     localStorage.setItem('crmToken', res.data.access);
                     localStorage.setItem('refreshToken', res.data.refresh);
                     localStorage.setItem('crmUser', JSON.stringify(res.data.user));
                     setState({ loading: false, error: {}, email: '', password: '' });
-                    router.replace('/leads');
+                    if (res?.data?.user?.group == ROLE.ADMIN) {
+                        router.replace('/leads');
+                    } else {
+                        router.replace('/my_leads');
+                    }
                     Success('Login Sucessfully');
                 })
                 .catch((error) => {
