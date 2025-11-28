@@ -61,7 +61,6 @@ const LoginBoxed = () => {
     //     }
     // };
     const submitForm = (e) => {
-
         e.preventDefault();
         setState({ loading: true });
         if (state.email == '' && state.password == '') {
@@ -76,7 +75,7 @@ const LoginBoxed = () => {
             axios
                 .post(`${process.env.NEXT_PUBLIC_BASE_URL}login/`, body)
                 .then((res) => {
-                    console.log("first",res)
+                    console.log('first', res);
                     localStorage.setItem('crmToken', res.data.access);
                     localStorage.setItem('refreshToken', res.data.refresh);
                     localStorage.setItem('crmUser', JSON.stringify(res.data.user));
@@ -86,7 +85,9 @@ const LoginBoxed = () => {
                 })
                 .catch((error) => {
                     console.log('error: ', error);
-                    if (error?.response?.status == 401) {
+                    if (error?.response?.data?.detail) {
+                        Failure(error?.response?.data?.detail);
+                    } else if (error?.response?.status == 401) {
                         Failure(error.response.data.error);
                     } else {
                         Failure(error.response);
