@@ -319,7 +319,7 @@ export const CreateCollege = Yup.object().shape({
 });
 
 export const CreateCountries = Yup.object().shape({
-    country_name: Yup.string().required('Value is Required'),
+    country_name: Yup.string().required('Country is Required'),
 });
 
 export const CreateCity = Yup.object().shape({
@@ -338,8 +338,8 @@ export const Createleadsourcefrom = Yup.object().shape({
 });
 
 export const CreateStates = Yup.object().shape({
-    state_name: Yup.string().required('Value is Required'),
-    country: Yup.string().required('Value is Required'),
+    state_name: Yup.string().required('State name is Required'),
+    country: Yup.string().required('Country is Required'),
 });
 
 export const Createverticals = Yup.object().shape({

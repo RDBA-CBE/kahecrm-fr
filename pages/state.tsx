@@ -124,8 +124,8 @@ const states = () => {
             };
             await Validation.CreateStates.validate(body, { abortEarly: false });
             if (state.EditId) {
-                await Models.master.update_state( state.EditId,body);
-                Success('State Updated successfully');
+                await Models.master.update_state(state.EditId, body);
+                Success('State updated successfully');
             } else {
                 await Models.master.create_state(body);
                 Success('State created successfully');
@@ -160,15 +160,12 @@ const states = () => {
     };
 
     const handleEdit = (row) => {
-console.log('✌️row --->', row);
-        const filter=state.countryList?.find((item)=>item?.value==row?.allData?.country)
-console.log('✌️filter --->', filter);
         setState({
             modalManage: true,
             EditId: row.id,
             state_name: row.state_name,
             isOpen: true,
-            country:filter,
+            country: { value: row?.allData?.country?.id, label: row?.allData?.country?.country_name },
         });
     };
 
@@ -318,7 +315,7 @@ console.log('✌️filter --->', filter);
                 addHeader={state.EditId ? 'Update State' : 'Create State'}
                 close={() => setState({ isOpen: false, state_name: '', country: null, errors: {} })}
                 renderComponent={() => (
-                    <div className="p-5">
+                    <div className="space-y-4 p-5">
                         <CustomSelect
                             title="Country Name"
                             value={state.country}
@@ -329,7 +326,7 @@ console.log('✌️filter --->', filter);
                             options={state.countryList}
                             required
                             error={state.errors?.country}
-                            className="mb-5"
+                            isClearable={false}
                         />
                         <TextInput title={'State Name'} placeholder={'State Name'} value={state.state_name} onChange={(e) => setState({ state_name: e })} error={state.errors?.state_name} required />
 

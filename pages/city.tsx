@@ -104,6 +104,7 @@ const FocusSegmets = () => {
                 allData: item,
                 city: item.city_name,
                 state: item.state?.state_name,
+                country: item.state?.country?.country_name,
             };
         });
 
@@ -188,16 +189,13 @@ const FocusSegmets = () => {
         }
     };
 
-    const handleEdit = (row) => {
-        const filter = state.stateList?.find((item) => item?.value == row?.allData?.state);
-
+    const handleEdit = (row: any) => {
         setState({
             modalManage: true,
             EditId: row.id,
             city_name: row.city_name,
             isOpen: true,
-            // state:{value:}
-            state: filter,
+            state: { value: row?.allData?.state?.id, label: row?.allData?.state?.state_name },
         });
     };
 
@@ -251,6 +249,9 @@ const FocusSegmets = () => {
                                 {
                                     accessor: 'city',
                                     title: 'Name',
+                                },
+                                {
+                                    accessor: 'country',
                                 },
                                 {
                                     accessor: 'state',

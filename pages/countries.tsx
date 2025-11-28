@@ -107,10 +107,10 @@ const countries = () => {
             await Validation.CreateCountries.validate(body, { abortEarly: false });
             if (state.EditId) {
                 await Models.master.update_country(state.EditId,body);
-                Success('Countries Updated successfully');
+                Success('Country updated successfully');
             } else {
                 await Models.master.create_country(body);
-                Success('Countries created successfully');
+                Success('Country created successfully');
             }
             clearLogData();
 
