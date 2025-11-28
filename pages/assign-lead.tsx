@@ -925,7 +925,7 @@ const Leads = () => {
                                             <IconEdit className="h-4.5 w-4.5" />
                                         </button> */}
 
-                                        <button
+                                        {/* <button
                                             className="flex hover:text-info"
                                             onClick={(e) => {
                                                 e.stopPropagation();
@@ -933,7 +933,7 @@ const Leads = () => {
                                             }}
                                         >
                                             <IconTrash className="h-4.5 w-4.5" />
-                                        </button>
+                                        </button> */}
                                     </div>
                                 ),
                             },
