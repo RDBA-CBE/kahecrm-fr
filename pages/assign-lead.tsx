@@ -334,6 +334,7 @@ const Leads = () => {
                 follow_up: moment(item.status_date).format('DD-MM-YYYY'),
                 contact_number: item.primary_contact?.phone_number,
                 updated_on: item?.updated_at ? moment(item?.updated_at).format('DD-MM-YYYY') : '',
+                assigned: item.assign_to ? capitalizeFLetter(item?.assign_to?.first_name) + ' ' + capitalizeFLetter(item?.assign_to?.last_name) : '',
             };
         });
         console.log('✌️data --->', data);
@@ -662,8 +663,6 @@ const Leads = () => {
                 <div className="flex items-center pl-3">
                     <h5 className="text-lg font-semibold"> TEAM ASSIGNED LEADS</h5>
                 </div>
-
-             
             </div>
 
             <div className="panel flex flex-wrap items-center justify-between gap-2 md:gap-4">
@@ -873,6 +872,7 @@ const Leads = () => {
                                 accessor: 'lead_status',
                                 title: 'Lead Status',
                             },
+                            { accessor: 'assigned', title: 'Assigned To' },
 
                             // { accessor: 'status_date', title: `${ROLE.TM == state.role ? 'Follow Up' : 'Status Date'}` },
 

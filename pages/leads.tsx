@@ -330,10 +330,10 @@ const Leads = () => {
                 lead_status: capitalizeFLetter(item.stage?.stage),
                 status_date: item.status_date ? moment(item.status_date).format('DD-MM-YYYY') : null,
                 remark: capitalizeFLetter(item.remark),
-                assigned_to: item.assigned_to?.username,
                 follow_up: moment(item.status_date).format('DD-MM-YYYY'),
                 contact_number: item.primary_contact?.phone_number,
                 updated_on: item?.updated_at ? moment(item?.updated_at).format('DD-MM-YYYY') : '',
+                assigned: item.assign_to ? capitalizeFLetter(item?.assign_to?.first_name) + ' ' + capitalizeFLetter(item?.assign_to?.last_name) : '',
             };
         });
         console.log('✌️data --->', data);
@@ -821,7 +821,7 @@ const Leads = () => {
                         placeholder={'Select User'}
                         options={state.usersList}
                         error={state.errors?.assigned_to}
-                        loadMore={()=>state.userHasNext &&usersListLoadMore()}
+                        loadMore={() => state.userHasNext && usersListLoadMore()}
                     />
                     <CustomSelect
                         value={state.lead_status}
@@ -880,6 +880,8 @@ const Leads = () => {
                                 accessor: 'lead_status',
                                 title: 'Lead Status',
                             },
+                            { accessor: 'assigned', title: 'Assigned To' },
+
 
                             // { accessor: 'status_date', title: `${ROLE.TM == state.role ? 'Follow Up' : 'Status Date'}` },
 

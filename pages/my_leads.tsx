@@ -294,6 +294,7 @@ const Leads = () => {
                 follow_up: moment(item.status_date).format('DD-MM-YYYY'),
                 contact_number: item.primary_contact?.phone_number,
                 updated_on: item?.updated_at ? moment(item?.updated_at).format('DD-MM-YYYY') : '',
+                assigned: item.assign_to ? capitalizeFLetter(item?.assign_to?.first_name) + ' ' + capitalizeFLetter(item?.assign_to?.last_name) : '',
             };
         });
         console.log('✌️data --->', data);
@@ -833,6 +834,7 @@ const Leads = () => {
                                 accessor: 'lead_status',
                                 title: 'Lead Status',
                             },
+                            { accessor: 'assigned', title: 'Assigned To' },
 
                             // { accessor: 'status_date', title: `${ROLE.TM == state.role ? 'Follow Up' : 'Status Date'}` },
 
