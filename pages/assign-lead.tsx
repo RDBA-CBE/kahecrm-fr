@@ -660,17 +660,10 @@ const Leads = () => {
             <div className="panel mb-3 flex items-center justify-between gap-5">
                 {/* Title Section */}
                 <div className="flex items-center pl-3">
-                    <h5 className="text-lg font-semibold"> {(state.role == ROLE.ADMIN || state.role == ROLE.BDM) && 'TEAM '}LEADS</h5>
+                    <h5 className="text-lg font-semibold"> TEAM ASSIGNED LEADS</h5>
                 </div>
 
-                {/* Button Section */}
-                {state.role !== ROLE.ADMIN && state.role !== ROLE.BDM && (
-                    <div className="flex">
-                        <button type="button" className="btn btn-primary w-auto" onClick={() => router.push('/create_contact')}>
-                            + Create
-                        </button>
-                    </div>
-                )}
+             
             </div>
 
             <div className="panel flex flex-wrap items-center justify-between gap-2 md:gap-4">

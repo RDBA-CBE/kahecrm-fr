@@ -366,6 +366,7 @@ const CreateContact = () => {
             status: state.status?.value,
             state: state.state ? state.state?.value : null,
             country: state.country ? state.country?.value : null,
+            achieved: state.achieved,
         };
 
         try {
@@ -400,7 +401,11 @@ const CreateContact = () => {
                 const res = await Models.contact.create(buildContactPayload);
                 console.log('✌️res --->', res);
                 Success('Contact created successfully');
-                router.push('/myContacts');
+                if (state.achieved) {
+                    router.push('/my_archive_contact');
+                } else {
+                    router.push('/myContacts');
+                }
             }
         } catch (error) {
             console.log('✌️error --->', error);
@@ -459,7 +464,6 @@ const CreateContact = () => {
                 college_lead: id,
             };
             const res = await Models.opportunity.create(body);
-            console.log('✌️res --->', res);
             Success('Lead created successfully');
             router.push('/my_leads');
         } catch (error) {
@@ -597,6 +601,16 @@ const CreateContact = () => {
                             />
                             <CustomSelect title="City" value={state.city} onChange={(e) => setState({ city: e })} placeholder={'City'} options={state.cityList} error={state.errors?.city} />
                             <NumberInput title="Pincode" value={state.pincode} onChange={(e) => setState({ pincode: e })} placeholder={'Pincode'} error={state.errors?.pincode} />
+
+                            <CheckboxInput
+                                className="mt-2 w-full md:w-1/2 lg:w-3/4"
+                                checked={state.achieved}
+                                disabled={state.isMoveToLead}
+                                onChange={(val) => {
+                                    setState({ achieved: val });
+                                }}
+                                label="Archive Contact"
+                            />
                         </div>
                     )}
                 </div>
@@ -766,7 +780,7 @@ const CreateContact = () => {
                     <CheckboxInput
                         className="mt-2 w-full md:w-1/2 lg:w-3/4"
                         checked={state.isMoveToLead}
-                        disabled={state.is_archive}
+                        disabled={state.achieved}
                         onChange={(val) => {
                             setState({ isMoveToLead: val });
                         }}

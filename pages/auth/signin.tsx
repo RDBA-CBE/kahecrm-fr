@@ -81,7 +81,7 @@ const LoginBoxed = () => {
                     localStorage.setItem('refreshToken', res.data.refresh);
                     localStorage.setItem('crmUser', JSON.stringify(res.data.user));
                     setState({ loading: false, error: {}, email: '', password: '' });
-                    router.replace('/dashboards');
+                    router.replace('/leads');
                     Success('Login Sucessfully');
                 })
                 .catch((error) => {

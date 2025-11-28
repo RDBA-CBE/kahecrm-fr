@@ -142,7 +142,7 @@ const Contacts = () => {
         setState({ loading: true });
         const body = bodyData();
 
-        const res: any = await Models.contact.list(page, body);
+        const res: any = await Models.contact.archive_list(page, body);
 
         setState({ loading: false, currentPage: page, count: res.count, next: res.next, previous: res.previous, isFirstLoad: false });
         tableData(res);
@@ -619,7 +619,7 @@ const Contacts = () => {
         <div className="p-2">
             <div className="panel  mb-3 flex items-center justify-between gap-5 ">
                 <div className="flex items-center gap-5 pl-3">
-                    <h5 className="text-lg font-semibold ">{(ROLE.ADMIN == state.role || ROLE.BDM == state.role) && 'TEAM'} CONTACTS</h5>
+                    <h5 className="text-lg font-semibold ">{(ROLE.ADMIN == state.role || ROLE.BDM == state.role) && 'TEAM'} ARCHIVE CONTACTS</h5>
                 </div>
                 {ROLE.ADMIN !== state.role && ROLE.BDM !== state.role && (
                     // <div className="flex items-center gap-3">

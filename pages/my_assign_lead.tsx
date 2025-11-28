@@ -616,7 +616,7 @@ const Leads = () => {
             <div className="panel mb-3 flex items-center justify-between gap-5">
                 {/* Title Section */}
                 <div className="flex items-center pl-3">
-                    <h5 className="text-lg font-semibold"> {(state.role == ROLE.ADMIN || state.role == ROLE.BDM) && 'TEAM '}LEADS</h5>
+                    <h5 className="text-lg font-semibold"> ASSIGNED LEADS</h5>
                 </div>
 
                 {/* Button Section */}

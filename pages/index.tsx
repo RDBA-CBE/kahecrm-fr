@@ -1,43 +1,52 @@
 import IconBitcoin from '@/components/Icon/IconBitcoin';
-import IconPlus from '@/components/Icon/IconPlus';
-import FullCalendar from '@fullcalendar/react';
-import { Card, SimpleGrid, Text, Title } from '@mantine/core';
-import dynamic from 'next/dynamic';
-import React, { useEffect, useState } from 'react';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import interactionPlugin from '@fullcalendar/interaction';
-import timeGridPlugin from '@fullcalendar/timegrid';
-import CustomfullCalender from '@/common_component/fullCalender';
-import { Models, PrivateRouter } from '@/utils/imports.utils';
-import { Dropdown, formatIndianRupees, formatMonthYear, getColorScheme, getDateRange, objIsEmpty, pageCounts, useSetState } from '@/utils/functions.utils';
-import { ROLE } from '@/utils/constant.utils';
-import AdvancedMonthWiseLeadTable from '@/components/monthwiseTable';
-import AdminDashboard from '@/components/DashboardCard';
-import IconArrowBackward from '@/components/Icon/IconArrowBackward';
-import IconArrowForward from '@/components/Icon/IconArrowForward';
-import Tippy from '@tippyjs/react';
-import { DataTable } from 'mantine-datatable';
-import IconX from '@/components/Icon/IconX';
-import CustomSelect from '@/components/Select';
 import IconSearch from '@/components/Icon/IconSearch';
-import UserTargetCard from '@/components/UserTargetCard';
+import CustomSelect from '@/components/Select';
+import { Dropdown, Success, capitalizeFLetter, chartData, filterByDates, getDateRange, objIsEmpty, pageCounts, useSetState } from '@/utils/functions.utils';
+import { Loader, SimpleGrid } from '@mantine/core';
+import dynamic from 'next/dynamic';
+import { useRouter } from 'next/router';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { DataTable, DataTableSortStatus } from 'mantine-datatable';
+import Tippy from '@tippyjs/react';
+import IconNotesEdit from '@/components/Icon/IconNotesEdit';
 import IconEye from '@/components/Icon/IconEye';
 import IconEdit from '@/components/Icon/IconEdit';
+import QuickEdit from '@/components/QuickEdit';
+import IconArrowBackward from '@/components/Icon/IconArrowBackward';
+import IconArrowForward from '@/components/Icon/IconArrowForward';
+import SideMenu from '@/common_component/sideMenu';
+import CustomeDatePicker from '@/common_component/datePicker';
+import Models from '@/imports/models.import';
+import { ROLE } from '@/utils/constant.utils';
+import { PrivateRouter } from '@/utils/imports.utils';
 import moment from 'moment';
+import IconUserPlus from '@/components/Icon/IconUserPlus';
+import Chip from '@/components/chip';
 import useDebounce from '@/common_component/useDebounce';
-import { useRouter } from 'next/router';
+import IconX from '@/components/Icon/IconX';
+import { current } from '@reduxjs/toolkit';
+import * as FileSaver from 'file-saver';
+import ExcelJS from 'exceljs';
+import IconLoader from '@/components/Icon/IconLoader';
+import { IRootState } from '@/store';
+import { useDispatch, useSelector } from 'react-redux';
+import { leadIndex } from '@/store/crmConfigSlice';
 import Pagination from '@/components/Pagination';
+import IconTrash from '@/components/Icon/IconTrash';
 
-const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
+const Leads = () => {
+    const dispatch = useDispatch();
 
-const Dashboards = () => {
-    const [isMounted, setIsMounted] = useState(false);
+    const redux = useSelector((state: IRootState) => state.crmConfig);
 
     const router = useRouter();
 
+    const prevDeps = useRef(null);
+
+    const isInitialLoad = useRef(true);
+
     const [state, setState] = useSetState({
         state: [],
-        activeTab: '',
         loading: false,
         chartData: {},
         role: '',
@@ -50,315 +59,558 @@ const Dashboards = () => {
         allData: null,
         selectedRow: {},
         bdmList: [],
+        bdeList: [],
+        dmList: [],
         cardData: [],
         chartLoading: false,
         sourceList: [],
         assignList: [],
         expandedRow: null,
         coloumns: [],
-        group: '',
-        leadList: [],
-        userCardData: [],
-        bdm: null,
-        filterMonth: null,
+        assignRole: null,
+        chartsLoading: false,
+        activeTab: '',
+        today: false,
+        month: false,
+        card_lead_status: '',
+        opporunity_status: '',
+        userId: '',
         // data:
     });
 
     const debouncedSearch = useDebounce(state.search, 500);
 
     useEffect(() => {
-        setIsMounted(true);
-        getRole();
-       
+        getData();
+        userData();
+        sourceList();
+        leadList();
+        leadStatusList();
+        usersList();
     }, []);
 
-   
+    const deps = useMemo(
+        () => ({
+            activeTab: state.activeTab,
+            search: debouncedSearch,
+            assigned_to: state.assigned_to?.value,
+            lead_source_category: state.lead_source_category?.value,
+            lead_status: state.lead_status?.value,
+            role: state.role,
+            bdm: state.bdm?.value,
+            bde: state.bde?.value,
+            dm: state.dm?.value,
+            tm: state.tm?.value,
+            today: state?.today,
+            month: state?.month,
+            card_lead_status: state?.card_lead_status,
+            from_date: state?.from_date,
+            end_date: state?.end_date,
+        }),
+        [
+            state.activeTab,
+            debouncedSearch,
+            state.assigned_to,
+            state.lead_source_category,
+            state.lead_status,
+            state.role,
+            state.bdm,
+            state.bde,
+            state.dm,
+            state.tm,
+            state?.today,
+            state?.month,
+            state?.card_lead_status,
+            state.from_date,
+            state.end_date,
+        ]
+    );
 
     useEffect(() => {
-        if (state.tm?.value || state.bde?.value || state.bdm?.value || state.dm?.value) {
-            userCardData();
-        } else {
-            setState({ userCardData: [] });
-        }
-    }, [state.tm, state.dm, state.bde, state.bdm]);
+        const currentDeps = JSON.stringify(deps);
 
-    useEffect(() => {
-        leadList(1);
-    }, [
-        debouncedSearch,
-        state.assigned_to,
-        state.lead_source,
-        state.opportunity,
-        state.lead_status,
-        state.role,
-        state.bdm,
-        state.bde,
-        state.dm,
-        state.tm,
-        state?.today,
-        state?.month,
-        state?.card_lead_status,
-        state.filterMonth,
-    ]);
-
-
-    const getRole = async () => {
-        try {
-            const res: any = await Models.auth.userDetails();
-            setState({ role: res?.designation, userId: res?.id });
-
-            let role: any = null;
-            if (res?.designation == ROLE.ADMIN) {
-                // setState({role : ROLE.ADMIN})
-                // setState({ bdm: { value: 10, label: `Manikandan G` } });
-                // role = {
-                //     bdm: 10,
-                // };
-            } else if (res?.designation != ROLE.BDM) {
-                if (res?.designation == ROLE.BDE) {
-                    setState({ bde: { value: res?.id, label: `${res?.first_name} ${res?.last_name}` } });
-                    role = {
-                        bde: res?.id,
-                    };
-                }
-
-                if (res?.designation == ROLE.TM) {
-                    setState({ tm: { value: res?.id, label: `${res?.first_name} ${res?.last_name}` } });
-                    role = {
-                        tm: res?.id,
-                    };
-                }
-
-                if (res?.designation == ROLE.DM) {
-                    setState({ dm: { value: res?.id, label: `${res?.first_name} ${res?.last_name}` } });
-                    role = {
-                        dm: res?.id,
-                    };
-                }
+        if (isInitialLoad.current) {
+            const page = redux?.leadIndex || state?.currentPage;
+            if (redux?.leadIndex) {
+                setState({ currentPage: redux.leadIndex });
             }
-            adminCardData();
-            leadList(1, role, res?.designation);
-        } catch (error) {
-            console.log('error: ', error);
+            leadList(page);
+            isInitialLoad.current = false;
+        } else if (prevDeps.current !== currentDeps) {
+            leadList(1);
+            // countData();
         }
-    };
 
-    const adminCardData = async () => {
+        prevDeps.current = currentDeps;
+    }, [deps]);
+
+    useEffect(() => {
+        setState({ from_date: '', end_date: '' });
+    }, [state.activeTab]);
+
+    useEffect(() => {
+        if (state.from_date || state.end_date) {
+            setState({ activeTab: 'Custom' });
+        }
+    }, [state.from_date, state.end_date]);
+
+    const leadList = async (page = 1) => {
         try {
             setState({ loading: true });
-            const body = {
-                team: 'Yes',
-            };
-            const res: any = await Models.report.adminCardData(body);
-            // const mergedData = res?.map((item) => ({
-            //     ...item,
-            //     colorScheme: getColorScheme(item.type),
-            // }));
-
-            const mergedData = res?.map((item) => {
-                let subtitle = '';
-                if (item.type === 'prevMonth' || item.type === 'currentMonth') {
-                    subtitle = formatMonthYear(item.start_date); // e.g., "November 2025"
-                } else {
-                    const start = formatMonthYear(item.start_date);
-                    const end = formatMonthYear(item.end_date);
-                    subtitle = `${start} - ${end}`; // e.g., "October 2025 - December 2025"
-                }
-                return {
-                    ...item,
-                    subtitle,
-                    colorScheme: getColorScheme(item.title),
-                };
-            });
-
-            setState({ adminCardData: mergedData, loading: false });
+            const body = bodyData();
+            const res: any = await Models.lead.list(body, page, null);
+            tableData(res);
+            setState({ loading: false, count: res?.count, next: res?.next, previous: res?.previous, currentPage: page });
         } catch (error) {
             setState({ loading: false });
             console.log('error: ', error);
         }
     };
 
-    const userCardData = async () => {
+    const sourceList = async () => {
         try {
             setState({ loading: true });
-            const body = cardBodyData();
-            const res: any = await Models.report.adminCardData(body);
-            // const mergedData = res?.map((item) => ({
-            //     ...item,
-            //     colorScheme: getColorScheme(item.type),
-            // }));
+            const res: any = await Models.master.lead_cat_List(1);
+            console.log('✌️res --->', res);
+            const dropdownList = Dropdown(res.results, 'name');
+            setState({ sourceList: dropdownList, loading: false, sourcePage: 1, sourceHasNext: res?.next });
+        } catch (error) {
+            setState({ loading: false });
 
-            const mergedData = res?.map((item) => {
-                let subtitle = '';
-                if (item.type === 'prevMonth' || item.type === 'currentMonth') {
-                    subtitle = formatMonthYear(item.start_date); // e.g., "November 2025"
-                } else {
-                    const start = formatMonthYear(item.start_date);
-                    const end = formatMonthYear(item.end_date);
-                    subtitle = `${start} - ${end}`; // e.g., "October 2025 - December 2025"
-                }
-                return {
-                    ...item,
-                    subtitle,
-                    colorScheme: getColorScheme(item.title),
-                };
-            });
-            setState({ userCardData: mergedData, loading: false });
+            console.log('error: ', error);
+        }
+    };
+
+    const sourceLoadMore = async () => {
+        try {
+            setState({ sorceloadMore: true });
+            const res: any = await Models.master.lead_cat_List(state.sourcePage + 1);
+            const dropdownList = Dropdown(res.results, 'name');
+            setState({ sourceList: [...state.sourceList, ...dropdownList], loading: false, sourcePage: state.sourcePage + 1, sourceHasNext: res.next });
         } catch (error) {
             setState({ loading: false });
             console.log('error: ', error);
         }
     };
 
-    
-    const leadList = async (page, role = null, userRole = null) => {
-        //  console.log("role.bdm", role.bdm);
-
+    const leadStatusList = async () => {
         try {
             setState({ loading: true });
+            const res: any = await Models.master.lead_status_list(1);
+            const dropdownList = Dropdown(res.results, 'stage');
+
+            setState({ leadStatusList: dropdownList, loading: false, leadStatusPage: 1, leadStatusHasNext: res?.next });
+        } catch (error) {
+            setState({ loading: false });
+            console.log('error: ', error);
+        }
+    };
+
+    const leadStatusLoadMore = async () => {
+        try {
+            setState({ leadStatusloadMore: true });
+            const res: any = await Models.master.lead_status_list(state.leadStatusPage + 1);
+            const dropdownList = Dropdown(res.results, 'stage');
+
+            setState({
+                leadStatusList: [...state.leadStatusList, ...dropdownList],
+                leadStatusloadMore: false,
+                leadStatusPage: state.leadStatusPage + 1,
+                leadStatusHasNext: res.next,
+            });
+        } catch (error) {
+            setState({ leadStatusloadMore: false });
+            console.log('error: ', error);
+        }
+    };
+
+    const usersList = async () => {
+        try {
+            setState({ loading: true });
+            const res: any = await Models.user.userList(1, null);
+            console.log('usersList --->', res);
+            const dropdownList = res?.results?.map((item) => ({
+                label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}`,
+                value: item?.id,
+            }));
+
+            setState({ usersList: dropdownList, loading: false, userPage: 1, userHasNext: res?.next });
+        } catch (error) {
+            setState({ loading: false });
+            console.log('error: ', error);
+        }
+    };
+
+    const usersListLoadMore = async () => {
+        try {
+            setState({ leadStatusloadMore: true });
+            const res: any = await Models.master.lead_status_list(state.leadStatusPage + 1);
+            const dropdownList = res?.results?.map((item) => ({
+                label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}`,
+                value: item?.id,
+            }));
+            setState({ usersList: dropdownList, loading: false, userPage: 1, userHasNext: res?.next });
+
+            setState({
+                usersList: [...state.usersList, ...dropdownList],
+                leadStatusloadMore: false,
+                userPage: state.userPage + 1,
+                userHasNext: res.next,
+            });
+        } catch (error) {
+            setState({ leadStatusloadMore: false });
+            console.log('error: ', error);
+        }
+    };
+
+    const countData = async () => {
+        try {
+            setState({ chartLoading: true });
             let body = bodyData();
 
-            if (role) {
-                body = {
-                    ...body,
-                    ...role,
-                };
-                if (role.bdm) body.bdm = role.bdm;
-                if (role.bde) body.bde = role.bde;
-                if (role.tm) body.tm = role.tm;
-                if (role.dm) body.dm = role.dm;
+            const state = { role: 'BDE' }; // Example role
+            const ROLE = { TM: 'TM', BDE: 'BDE', BDM: 'BDM', ADMIN: 'ADMIN' };
+
+            const user: any = await Models.auth.userDetails();
+
+            let res: any;
+
+            const count = [
+                { title: 'Leads', id: res?.Lead?.id, monthCount: res?.Lead?.total_count, todayCount: res?.Lead?.today, icon: '🔗', name1: 'Today', name2: 'Total' },
+                { title: 'Calls', id: res?.Calls?.id, monthCount: res?.Calls?.total_count, todayCount: res?.Calls?.today, icon: '🔗', name1: 'Today', name2: 'Total' },
+                { title: 'Prospect', id: res?.Prospect?.id, monthCount: res?.Prospect?.total_count, todayCount: res?.Prospect?.today, icon: '💰', name1: 'Today', name2: 'Total' },
+                { title: 'Meetings', id: res?.Meeting?.id, monthCount: res?.Meeting?.total_count, todayCount: res?.Meeting?.today, icon: '👨‍💼', name1: 'Today', name2: 'Total' },
+            ];
+
+            if (user?.designation === ROLE.TM) {
+                count.push({
+                    title: 'Follow Up',
+                    id: res?.['Follow Up']?.id,
+                    monthCount: res?.['Follow Up']?.total_count,
+                    todayCount: res?.['Follow Up']?.today,
+                    icon: '⏳',
+                    name1: 'Today',
+                    name2: 'Total',
+                });
             }
 
+            if (user?.designation === ROLE.BDE || user?.designation === ROLE.BDM || user?.designation === ROLE.ADMIN) {
+                count.push(
+                    { title: 'Proposal', id: res?.Proposal?.id, monthCount: res?.Proposal?.total_count, todayCount: res?.Proposal?.today, icon: '⏳', name1: 'Today', name2: 'Total' },
+                    { title: 'Deal Won', id: res?.['Deal Won']?.id, monthCount: res?.['Deal Won']?.total_count, todayCount: res?.['Deal Won']?.today, icon: '💵', name1: 'Today', name2: 'Total' }
+                );
+            }
 
+            setState({ cardData: count, chartLoading: false });
+        } catch (error) {
+            setState({ chartLoading: false });
+            console.log('error: ', error);
+        }
+    };
+
+    const handleEdit = (id) => {
+        dispatch(leadIndex(state.currentPage));
+        router.push(`/updateLead?id=${id}`);
+    };
+
+    const handleView = (id) => {
+        dispatch(leadIndex(state.currentPage));
+        router.push(`/viewLead?id=${id}`);
+    };
+
+    const tableData = (res) => {
+        const data = res?.results?.map((item) => {
+            return {
+                ...item,
+                allData: item,
+                lead: item.lead,
+                source: capitalizeFLetter(item.lead_source_category?.name) || '',
+                date: item.created_at ? moment(item.created_at).format('DD-MM-YYYY') : '',
+                contact_person: capitalizeFLetter(item.college_contact?.student_name) || '',
+                lead_status: capitalizeFLetter(item.stage?.stage),
+                status_date: item.status_date ? moment(item.status_date).format('DD-MM-YYYY') : null,
+                remark: capitalizeFLetter(item.remark),
+                assigned_to: item.assigned_to?.username,
+                follow_up: moment(item.status_date).format('DD-MM-YYYY'),
+                contact_number: item.primary_contact?.phone_number,
+                updated_on: item?.updated_at ? moment(item?.updated_at).format('DD-MM-YYYY') : '',
+            };
+        });
+        console.log('✌️data --->', data);
+
+        setState({ data: data, allData: res });
+    };
+
+    const getData = async () => {
+        try {
+            let res;
+            if (state.activeTab === 'Year') {
+                res = filterByDates('Year');
+            } else if (state.activeTab === 'Last Month') {
+                res = filterByDates('Last Month');
+            } else if (state.activeTab === 'This Month') {
+                res = filterByDates('This Month');
+            } else if (state.activeTab === 'Last 7 Days') {
+                res = filterByDates('Last 7 Days');
+            }
+            setState({ loading: false });
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
+    const userData = async () => {
+        try {
             const res: any = await Models.auth.userDetails();
+            console.log('userData --->', res);
+            setState({ role: res?.designation, userId: res?.id });
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
 
-            // Use userRole parameter if provided, otherwise use state.role
-            const currentRole = userRole || state.role;
+    const orderFilter = ['Year', 'Last Month', 'This Month', 'Last 7 Days', 'Custom'];
+
+    const clearFilter = () => {
+        setState({
+            activeTab: '',
+            from_date: '',
+            end_date: '',
+            card_lead_status: '',
+            opporunity_status: '',
+            today: false,
+            month: false,
+        });
+        // getAllData(state.currentPage);
+        // countData();
+    };
+
+    const filterCustomDate = async () => {
+        try {
+            setState({ loading1: true });
+            let body = bodyData();
+            if (state.from_date) {
+                body.from_date = moment(state.from_date).format('YYYY-MM-DD');
+            }
+
+            if (state.end_date) {
+                body.end_date = moment(state.end_date).format('YYYY-MM-DD');
+            }
 
             let response: any;
 
-          
+            // if (ROLE.ADMIN == state.role || ROLE.BDM == state.role) {
+            //     response = await Models.opportunity.filters(body, state.currentPage);
+            // } else {
+            //     response = await Models.opportunity.filters(body, state.currentPage, state?.userId);
+            // }
 
-            // const response: any = await Models.opportunity.dashboardLead(body, page, res?.id);
-            tableData(response?.results, currentRole);
+            // const response: any = await Models.opportunity.filters(body, state.currentPage);
+            tableData(response);
+            countData();
             setState({
-                loading: false,
+                loading1: false,
                 totalRecords: response.count,
                 next: response.next,
                 previous: response.previous,
                 isOpen: false,
-                currentPage: page,
-                count: response?.count,
             });
         } catch (error) {
-            setState({ loading: false });
+            setState({ loading1: false });
+
+            console.log('error: ', error);
         }
     };
 
     const bodyData = () => {
         let body: any = {};
 
-        body.team = true;
+        if (state.assigned_to) {
+            body.userId = state.assigned_to?.value;
+            body.my_leads = 'Yes';
+        } else {
+            body.team = 'Yes';
+        }
 
-        body.display_date_source = true;
+        // body.display_date_source = true;
 
         if (state.search) {
             body.search = state.search;
         }
 
-        if (state.lead_source) {
-            body.lead_source = state.lead_source?.value;
+        // if (state.lead_source) {
+        //     body.lead_source = state.lead_source?.value;
+        // }
+
+        if (state.lead_source_category) {
+            body.lead_source_category = state.lead_source_category?.value;
         }
-        if (state.opportunity) {
-            body.opportunity = state.opportunity?.value;
-        }
+
         if (state.lead_status) {
             body.status = state.lead_status?.value;
         }
-        if (state.bde) {
-            body.bde = state.bde?.value;
-        }
-        if (state.dm) {
-            body.dm = state.dm?.value;
-        }
-        if (state.tm) {
-            body.tm = state.tm?.value;
-        }
-        if (state.assigned_to) {
-            body.assigned_to = state.assigned_to?.value;
-        } else if (state.bdm) {
-            if (state.roles?.label == 'TM') {
-                if (state.tm) {
-                    body.tm = state.tm?.value;
-                } else {
-                    body.bdm = state.bdm?.value;
-                }
-            } else if (state.roles?.label == 'BDE') {
-                if (state.bde) {
-                    body.bde = state.bde?.value;
-                } else {
-                    body.bdm = state.bdm?.value;
-                }
-            } else {
-                body.bdm = state.bdm?.value;
-            }
-        } else if (state.bde) {
-            body.bde = state.bde?.value;
-        } else if (state.dm) {
-            body.dm = state.dm?.value;
-        } else if (state.tm) {
-            body.tm = state.tm?.value;
-        } else {
-            body.created_by = state.userId;
-        }
 
-        if (state.filterMonth?.value == 'Year') {
+        if (state.today == true && state?.card_lead_status) {
+            body.today = state.today;
+            body.card_lead_status = state?.card_lead_status;
+            body.opporunity_status = state?.opporunity_status;
+        }
+        if (state.month == true && state?.card_lead_status) {
+            body.month = state.month;
+            body.card_lead_status = state?.card_lead_status;
+            body.opporunity_status = state?.opporunity_status;
+        }
+        if (state.activeTab == 'Year') {
             let date = getDateRange('Year');
             body.from_date = date?.start;
             body.end_date = date?.end;
         }
 
-        if (state.filterMonth?.value == 'Last Month') {
+        if (state.activeTab == 'Last Month') {
             let date = getDateRange('lastMonth');
             body.from_date = date?.start;
             body.end_date = date?.end;
         }
 
-        if (state.filterMonth?.value == 'This Month') {
+        if (state.activeTab == 'This Month') {
             let date = getDateRange('thisMonth');
             body.from_date = date?.start;
             body.end_date = date?.end;
         }
-        if (state.filterMonth?.value == 'Last 7 Days') {
+        if (state.activeTab == 'Last 7 Days') {
             let date = getDateRange('last7Days');
             body.from_date = date?.start;
             body.end_date = date?.end;
         }
 
-        // body.opportunity_status = 34;
+        if (state.from_date) {
+            body.from_date = moment(state.from_date).format('YYYY-MM-DD');
+        }
 
-        return body;
-    };
-
-    const cardBodyData = () => {
-        const body: any = {};
-
-        body.team = 'Yes';
-
-        if (state.tm?.value) {
-            body.user_id = state.tm?.value;
-        } else if (state.bde?.value) {
-            body.user_id = state.bde?.value;
-        } else if (state.bdm?.value) {
-            body.user_id = state.bdm?.value;
-        } else if (state.dm?.value) {
-            body.user_id = state.dm?.value;
+        if (state.end_date) {
+            body.end_date = moment(state.end_date).format('YYYY-MM-DD');
         }
         return body;
     };
 
-    const tableData = (res, role) => {
-        const data = res?.map((item) => {
+    const handleRemove = (type) => {
+        if (type == 'lead_source') {
+            setState({ lead_source: null });
+        } else if (type == 'lead_status') {
+            setState({ lead_status: null });
+        } else if (type == 'assigned_to') {
+            setState({ assigned_to: null });
+        }
+    };
+
+    const handleDelete = async (id) => {
+        try {
+            setState({ isDeleteLoading: true });
+            const res = await Models.lead.delete(id);
+            setState({ isDeleteLoading: false, isDeleteOpen: false });
+            Success('Lead deleted successfully');
+            leadList(state.currentPage);
+        } catch (error) {
+            setState({ isDeleteLoading: false });
+            // Failure(error[0]);
+            console.log('error: ', error);
+        }
+    };
+
+    const exportToExcel = async () => {
+        setState({ excelLoading: true });
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Sheet1');
+
+        // Define the columns you want to export
+        const exportColumns = [
+            {
+                title: `${ROLE.TM == state.role ? 'Company' : 'Lead'}`,
+                accessor: (row: any) => row?.lead?.name,
+            },
+            ...(state.role === ROLE.BDE || state.role === ROLE.BDM || state.role === ROLE.DM || state.role === ROLE.ADMIN
+                ? [
+                      {
+                          title: 'Opportunity',
+                          accessor: (row: any) => row?.name?.name,
+                      },
+                  ]
+                : []),
+            {
+                title: 'Contact Person',
+                accessor: 'contact_person',
+            },
+            ...(state.role == ROLE.BDE || state.role == ROLE.TM
+                ? [
+                      {
+                          title: 'Contact Number',
+                          accessor: 'contact_number',
+                      },
+                  ]
+                : []),
+            {
+                title: 'Source',
+                accessor: 'source',
+            },
+            {
+                title: 'Date',
+                accessor: 'date',
+            },
+            {
+                title: 'Opportunity Status',
+                accessor: (row: any) => row?.opportunity_status?.name,
+            },
+            {
+                title: `${ROLE.TM == state.role ? 'Follow Up' : 'Status Date'}`,
+                accessor: 'status_date',
+            },
+            {
+                title: 'Remark',
+                accessor: 'remark',
+            },
+        ];
+
+        // Add header row
+        worksheet.addRow(exportColumns.map((col) => col.title));
+
+        // Get user details once
+        const res: any = await Models.auth.userDetails();
+        const userId = res?.id;
+
+        let page = 1;
+        let hasMoreData = true;
+        let allData: any[] = [];
+
+        // Loop through all pages until no more data
+        while (hasMoreData) {
+            try {
+                const body = bodyData(); // Get your filter body
+
+                let response: any;
+
+                // if (ROLE.ADMIN == state.role || ROLE.BDM == state.role) {
+                //     response = await Models.opportunity.filtersByOwnLead(body, page);
+                // } else {
+                //     response = await Models.opportunity.filtersByOwnLead(body, page, userId);
+                // }
+                // const response: any = await Models.opportunity.filtersByOwnLead(body, page, userId);
+
+                if (response?.results && response?.results.length > 0) {
+                    allData = [...allData, ...response?.results];
+                }
+                if (response?.next) {
+                    page++;
+                } else {
+                    hasMoreData = false;
+                }
+            } catch (error) {
+                console.error('Error fetching data for export:', error);
+                hasMoreData = false;
+            }
+        }
+        setState({ excelLoading: false });
+
+        const data = allData?.map((item) => {
             return {
                 ...item,
                 allData: item,
@@ -370,577 +622,119 @@ const Dashboards = () => {
                 contact_person: item.primary_contact?.name || '',
                 lead_status: item.lead_status?.name,
                 status_date: item.status_date ? moment(item.status_date).format('DD-MM-YYYY') : null,
+                updated_on: item.updated_on ? moment(item.updated_on).format('DD-MM-YYYY') : null,
                 remark: item.remark,
-                // assigned_to: item.assigned_to?.username,
+                assigned_to: item.assigned_to?.username,
                 follow_up: moment(item.status_date).format('DD-MM-YYYY'),
                 contact_number: item.primary_contact?.phone_number,
-                created_by: `${item?.created_by?.first_name} ${item?.created_by?.last_name}`,
-                assigned_to: item?.lead?.assigned_to?.first_name ? `${item?.lead?.assigned_to?.first_name} ${item?.lead?.assigned_to?.last_name}` : '',
-                updated_on: item.updated_on ? moment(item.updated_on).format('DD-MM-YYYY') : '',
-                closing_date: item.closing_date ? moment(item.closing_date).format('DD-MM-YYYY') : '',
             };
         });
 
-        let columns = [];
+        // Add all data rows to worksheet
+        data.forEach((row: any) => {
+            const rowData = exportColumns.map((col) => {
+                if (typeof col.accessor === 'function') {
+                    return col.accessor(row);
+                }
+                return row[col.accessor];
+            });
+            worksheet.addRow(rowData);
+        });
 
-        switch (role) {
-            case ROLE.ADMIN:
-                columns = [
-                    { accessor: 'lead' },
-                    { accessor: 'opportunity', title: 'Opportunity', width: 120, sortable: false },
-                    { accessor: 'source' },
-                    { accessor: 'date', title: 'Date', width: 120 },
-                    { accessor: 'contact_person', title: 'Contact Person' },
-                    {
-                        accessor: 'lead_status',
-                        title: 'Last Status',
+        // Auto-fit columns
+        exportColumns.forEach((_, i) => {
+            const headerLength = exportColumns[i].title.length;
+            worksheet.getColumn(i + 1).width = Math.max(20, headerLength + 2);
+        });
 
-                        render: (row) => (
-                            <div
-                                className={`flex w-max gap-4 rounded-full px-2 py-1 ${
-                                    row?.lead_status === 'Calls'
-                                        ? 'bg-blue-100 text-blue-800'
-                                        : row?.lead_status === 'Appointments'
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : row?.lead_status === 'Opportunity'
-                                        ? 'bg-green-100 text-green-800'
-                                        : row?.lead_status === 'Proposal'
-                                        ? 'bg-red-100 text-red-800'
-                                        : row?.lead_status === 'Closures'
-                                        ? 'bg-orange-100 text-orange-800'
-                                        : row?.lead_status === 'Leads'
-                                        ? 'bg-teal-100 text-teal-800'
-                                        : 'bg-gray-100 text-gray-800'
-                                }`}
-                            >
-                                {row?.lead_status}
-                            </div>
-                        ),
-                    },
-                    { accessor: 'status_date', title: 'Status Date' },
-                    { accessor: 'created_by', title: 'Created By' },
-                    { accessor: 'assigned_to', title: 'Assigned To' },
-
-                    { accessor: 'remark', title: 'Remark' },
-
-                    // {
-                    //     accessor: 'actions',
-                    //     title: 'Actions',
-                    //     render: (row: any) => (
-                    //         <div className="mx-auto flex w-max items-center gap-4">
-                    //             <Tippy content="Assign To" className="rounded-lg bg-black p-1 text-sm text-white">
-                    //                 <button type="button" className="flex hover:text-primary" onClick={() => setState({ isOpenAssign: true, leadId: row.lead?.id })}>
-                    //                     <IconUserPlus />
-                    //                 </button>
-                    //             </Tippy>
-                    //             <button type="button" className="flex hover:text-primary" onClick={() => router.push(`/viewLead?id=${row.lead?.id}`)}>
-                    //                 <IconEye />
-                    //             </button>
-                    //             <button className="flex hover:text-info" onClick={() => router.push(`/updateLead?id=${row.lead?.id}`)}>
-                    //                 <IconEdit className="h-4.5 w-4.5" />
-                    //             </button>
-                    //         </div>
-                    //     ),
-                    //     style: {
-                    //         position: 'sticky',
-                    //         right: 0,
-                    //         background: '#fff',
-                    //         zIndex: 2,
-                    //     },
-                    // },
-                ];
-                break;
-
-            case ROLE.BDM:
-                columns = [
-                    { accessor: 'lead' },
-                    { accessor: 'opportunity', title: 'Opportunity', width: 120, sortable: false },
-                    { accessor: 'source' },
-                    { accessor: 'date', title: 'Date', width: 120 },
-
-                    { accessor: 'contact_person', title: 'Contact Person' },
-
-                    {
-                        accessor: 'lead_status',
-                        title: 'Last Status',
-
-                        render: (row) => (
-                            <div
-                                className={`flex w-max gap-4 rounded-full px-2 py-1 ${
-                                    row?.lead_status === 'Calls'
-                                        ? 'bg-blue-100 text-blue-800'
-                                        : row?.lead_status === 'Appointments'
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : row?.lead_status === 'Opportunity'
-                                        ? 'bg-green-100 text-green-800'
-                                        : row?.lead_status === 'Proposal'
-                                        ? 'bg-red-100 text-red-800'
-                                        : row?.lead_status === 'Closures'
-                                        ? 'bg-orange-100 text-orange-800'
-                                        : row?.lead_status === 'Leads'
-                                        ? 'bg-teal-100 text-teal-800'
-                                        : 'bg-gray-100 text-gray-800'
-                                }`}
-                            >
-                                {row?.lead_status}
-                            </div>
-                        ),
-                    },
-                    { accessor: 'status_date', title: 'Status Date' },
-                    { accessor: 'created_by', title: 'Created By' },
-                    { accessor: 'assigned_to', title: 'Assigned To' },
-                    { accessor: 'remark', title: 'Remark' },
-                    // {
-                    //     accessor: 'actions',
-                    //     title: 'Actions',
-                    //     render: (row: any) => (
-                    //         <div className="mx-auto flex w-max items-center gap-4">
-                    //             <Tippy content="Assign To" className="rounded-lg bg-black p-1 text-sm text-white">
-                    //                 <button type="button" className="flex hover:text-primary" onClick={() => setState({ isOpenAssign: true, leadId: row.id })}>
-                    //                     <IconUserPlus />
-                    //                 </button>
-                    //             </Tippy>
-                    //             <button type="button" className="flex hover:text-primary" onClick={() => router.push(`/viewLead?id=${row.id}`)}>
-                    //                 <IconEye />
-                    //             </button>
-                    //             <button className="flex hover:text-info" onClick={() => router.push(`/updateLead?id=${row.id}`)}>
-                    //                 <IconEdit className="h-4.5 w-4.5" />
-                    //             </button>
-                    //         </div>
-                    //     ),
-                    //     style: {
-                    //         position: 'sticky',
-                    //         right: 0,
-                    //         background: '#fff',
-                    //         zIndex: 2,
-                    //     },
-                    // },
-                ];
-                break;
-
-            case ROLE.BDE:
-                columns = [
-                    {
-                        accessor: 'lead',
-
-                        render: (row, index) => (
-                            <>
-                                <div className="">{row.name}</div>
-                            </>
-                        ),
-                    },
-                    { accessor: 'opportunity', title: 'Opportunity', width: 120, sortable: false },
-                    { accessor: 'source', title: 'Source' },
-                    { accessor: 'date', title: 'Date' },
-                    { accessor: 'contact_person', title: 'Contact Person' },
-                    { accessor: 'contact_number', title: 'Contact Number' },
-                    {
-                        accessor: 'lead_status',
-                        title: 'Last Status',
-
-                        render: (row) => (
-                            <div
-                                className={`flex w-max gap-4 rounded-full px-2 py-1 ${
-                                    row?.lead_status === 'Calls'
-                                        ? 'bg-blue-100 text-blue-800'
-                                        : row?.lead_status === 'Appointments'
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : row?.lead_status === 'Opportunity'
-                                        ? 'bg-green-100 text-green-800'
-                                        : row?.lead_status === 'Proposal'
-                                        ? 'bg-red-100 text-red-800'
-                                        : row?.lead_status === 'Closures'
-                                        ? 'bg-orange-100 text-orange-800'
-                                        : row?.lead_status === 'Leads'
-                                        ? 'bg-teal-100 text-teal-800'
-                                        : 'bg-gray-100 text-gray-800'
-                                }`}
-                            >
-                                {row?.lead_status}
-                            </div>
-                        ),
-                    },
-                    { accessor: 'status_date', title: 'Status Date' },
-                    { accessor: 'created_by', title: 'Created By' },
-                    { accessor: 'assigned_to', title: 'Assigned To' },
-                    { accessor: 'remark', title: 'Remark' },
-                    // {
-                    //     accessor: 'actions',
-                    //     title: 'Actions',
-                    //     render: (row: any) => (
-                    //         <div className="mx-auto flex w-max items-center gap-4">
-                    //             <Tippy content="Quick Edit" className="rounded-lg bg-black p-1 text-sm text-white">
-                    //                 <button
-                    //                     type="button"
-                    //                     className="flex hover:text-primary"
-                    //                     onClick={() => {
-                    //                         state.expandedRow === row.id ? setState({ expandedRow: null }) : setState({ expandedRow: row.id });
-                    //                     }}
-                    //                 >
-                    //                     <IconNotesEdit />
-                    //                 </button>
-                    //             </Tippy>
-
-                    //             <button type="button" className="flex hover:text-primary" onClick={() => router.push(`/viewLead?id=${row.id}`)}>
-                    //                 <IconEye />
-                    //             </button>
-                    //             <button className="flex hover:text-info" onClick={() => router.push(`/updateLead?id=${row.id}`)}>
-                    //                 <IconEdit className="h-4.5 w-4.5" />
-                    //             </button>
-                    //         </div>
-                    //     ),
-                    // },
-                ];
-                break;
-
-            case ROLE.TM:
-                columns = [
-                    {
-                        accessor: 'lead',
-
-                        title: 'Company',
-                    },
-
-                    {
-                        accessor: 'contact_person',
-                        title: 'Contact Person',
-                    },
-                    { accessor: 'contact_number', title: 'Contact Number' },
-
-                    { accessor: 'source', title: 'Source' },
-
-                    { accessor: 'date', title: 'Date', width: 120 },
-                    {
-                        accessor: 'lead_status',
-                        title: 'Last Status',
-
-                        render: (row) => (
-                            <div
-                                className={`flex w-max gap-4 rounded-full px-2 py-1 ${
-                                    row?.lead_status === 'Calls'
-                                        ? 'bg-blue-100 text-blue-800'
-                                        : row?.lead_status === 'Appointments'
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : row?.lead_status === 'Opportunity'
-                                        ? 'bg-green-100 text-green-800'
-                                        : row?.lead_status === 'Proposal'
-                                        ? 'bg-red-100 text-red-800'
-                                        : row?.lead_status === 'Closures'
-                                        ? 'bg-orange-100 text-orange-800'
-                                        : row?.lead_status === 'Leads'
-                                        ? 'bg-teal-100 text-teal-800'
-                                        : 'bg-gray-100 text-gray-800'
-                                }`}
-                            >
-                                {row?.lead_status}
-                            </div>
-                        ),
-                    },
-                    { accessor: 'status_date', title: 'Follow Up', width: 120 },
-                    { accessor: 'created_by', title: 'Created By' },
-                    { accessor: 'assigned_to', title: 'Assigned To' },
-                    { accessor: 'remark', title: 'Remark ' },
-                    // {
-                    //     accessor: 'actions',
-                    //     title: 'Actions',
-                    //     render: (row: any) => (
-                    //         <div className="mx-auto flex w-max items-center gap-4">
-                    //             <Tippy content="Quick Edit" className="rounded-lg bg-black p-1 text-sm text-white">
-                    //                 <button
-                    //                     type="button"
-                    //                     className="flex hover:text-primary"
-                    //                     onClick={() => {
-                    //                         state.expandedRow == row.id ? setState({ expandedRow: null }) : setState({ expandedRow: row.id });
-                    //                     }}
-                    //                 >
-                    //                     <IconNotesEdit />
-                    //                 </button>
-                    //             </Tippy>
-
-                    //             <button type="button" className="flex hover:text-primary" onClick={() => router.push(`/viewLead?id=${row.id}`)}>
-                    //                 <IconEye />
-                    //             </button>
-                    //             <button className="flex hover:text-info" onClick={() => router.push(`/updateLead?id=${row.id}`)}>
-                    //                 <IconEdit className="h-4.5 w-4.5" />
-                    //             </button>
-                    //         </div>
-                    //     ),
-                    // },
-                ];
-                break;
-
-            case ROLE.DM:
-                columns = [
-                    {
-                        accessor: 'lead',
-                    },
-                    { accessor: 'opportunity', title: 'Opportunity', width: 120, sortable: false },
-                    { accessor: 'source', title: 'Source' },
-                    { accessor: 'date', title: 'Date' },
-                    { accessor: 'contact_person', title: 'Contact Person' },
-                    {
-                        accessor: 'last_status',
-                        title: 'Last Status',
-
-                        render: (row) => (
-                            <div
-                                className={`flex w-max gap-4 rounded-full px-2 py-1 ${
-                                    row?.lastStatus === 'New'
-                                        ? 'bg-blue-100 text-blue-800'
-                                        : row?.lastStatus === 'Contacted'
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : row?.lastStatus === 'Qualified'
-                                        ? 'bg-green-100 text-green-800'
-                                        : row?.lastStatus === 'Disqualified'
-                                        ? 'bg-red-100 text-red-800'
-                                        : row?.lastStatus === 'Follow-Up'
-                                        ? 'bg-orange-100 text-orange-800'
-                                        : row?.lastStatus === 'Converted'
-                                        ? 'bg-teal-100 text-teal-800'
-                                        : 'bg-gray-100 text-gray-800'
-                                }`}
-                            >
-                                {row?.lastStatus}
-                            </div>
-                        ),
-                    },
-                    { accessor: 'status_date', title: 'Status Date' },
-                    { accessor: 'created_by', title: 'Created By' },
-                    { accessor: 'assigned_to', title: 'Assigned To' },
-                    { accessor: 'remark', title: 'Remark' },
-
-                    // {
-                    //     accessor: 'actions',
-                    //     title: 'Actions',
-                    //     render: (row: any) => (
-                    //         <div className="mx-auto flex w-max items-center gap-4">
-                    //             <Tippy content="Quick Edit" className="rounded-lg bg-black p-1 text-sm text-white">
-                    //                 <button
-                    //                     type="button"
-                    //                     className="flex hover:text-primary"
-                    //                     onClick={() => {
-                    //                         state.expandedRow === row.id ? setState({ expandedRow: null }) : setState({ expandedRow: row.id });
-                    //                     }}
-                    //                 >
-                    //                     <IconNotesEdit />
-                    //                 </button>
-                    //             </Tippy>
-
-                    //             <button type="button" className="flex hover:text-primary" onClick={() => router.push(`/viewLead?id=${row.id}`)}>
-                    //                 <IconEye />
-                    //             </button>
-                    //             <button className="flex hover:text-info" onClick={() => router.push(`/updateLead?id=${row.id}`)}>
-                    //                 <IconEdit className="h-4.5 w-4.5" />
-                    //             </button>
-                    //         </div>
-                    //     ),
-                    //     style: {
-                    //         position: 'sticky', // Sticky position
-                    //         right: 0, // Fix to the right side
-                    //         background: '#fff', // Background color for better visibility
-                    //         zIndex: 2, // Ensure it's above other elements
-                    //     },
-                    // },
-                ];
-                break;
-
-            default:
-                console.warn('Invalid role provided!');
-                break;
-        }
-        setState({ data: data, allData: res, columns: columns });
-    };
-
-    const leadSourceChart = {
-        series: [45, 25, 15, 10, 5],
-        options: {
-            chart: { type: 'donut', height: '100px' },
-            labels: ['Website', 'Social Media', 'Referrals', 'Ads', 'Others'],
-            colors: ['#1B998B', '#E84855', '#F9C22E', '#A8C686', '#374785'],
-        },
-    };
-    const pipelineValueByStageChart = {
-        series: [25, 35, 20, 20],
-        options: {
-            chart: { type: 'pie' },
-            labels: ['Retails', 'AutoMobile', 'IT', 'Education'],
-            colors: ['#FFC107', '#03A9F4', '#8BC34A', '#FF5722'],
-        },
-    };
-
-    const customerFeedbackChart = {
-        series: [{ name: 'Feedback', data: [80, 70, 90, 85, 75] }],
-
-        options: {
-            chart: {
-                height: 350, // Adjust the height for the bar chart
-                type: 'bar', // Define the chart type
-                sparkline: {
-                    enabled: false, // Not using sparkline here, as it's a bar chart
-                },
-            },
-            plotOptions: {
-                bar: {
-                    horizontal: false,
-                    columnWidth: '55%',
-                    endingShape: 'rounded',
-                },
-            },
-            stroke: {
-                width: 2,
-                colors: ['transparent'],
-            },
-
-            xaxis: { categories: ['Follow Up', 'In Progress', 'Follow Up', 'In Progress', 'Follow Up'] },
-
-            yaxis: {
-                title: {
-                    text: 'Count',
-                },
-            },
-            colors: ['#00E396', '#008FFB'], // Colors for the bars
-            tooltip: {
-                y: {
-                    formatter: (val: number) => {
-                        if (val === undefined || val === null) {
-                            return 'N/A';
-                        }
-                        return val.toString();
-                    },
-                },
-            },
-            responsive: [
-                {
-                    breakPoint: 576,
-                    options: {
-                        chart: {
-                            height: 300, // Adjust for smaller screens
-                        },
-                    },
-                },
-            ],
-        },
-    };
-
-    const LeadStatus = {
-        series: [
-            {
-                name: 'Feedback',
-                data: [80, 70, 90, 85, 75],
-            },
-        ],
-        options: {
-            chart: {
-                type: 'bar',
-            },
-            xaxis: {
-                categories: ['New', 'Follow Up', 'In Progress', 'Qualified', 'Contacted'],
-            },
-            colors: ['#FF5733', '#33FF57', '#3357FF', '#FFC300', '#8E44AD'], // Assign different colors to bars
-            plotOptions: {
-                bar: {
-                    distributed: true, // Enables individual bar colors
-                },
-            },
-        },
-    };
-
-   
-
-    const handleRemove = (type) => {
-        if (type == 'bdm') {
-            setState({ bdm: null, roles: null, bde: null, dm: null });
-        } else if (type == 'roles') {
-            setState({ roles: null, bde: null });
-        } else if (type == 'bde') {
-            setState({ bde: null });
-        } else if (type == 'status') {
-            setState({ card_lead_status: null, today: false, month: false, opporunity_status: null });
-        } else if (type == 'dm') {
-            setState({ dm: null });
-        } else if (type == 'tm') {
-            setState({ tm: null });
-        } else if (type == 'lead_source') {
-            setState({ lead_source: null });
-        } else if (type == 'lead_status') {
-            setState({ lead_status: null });
-        } else if (type == 'assigned_to') {
-            setState({ assigned_to: null });
-        } else if (type == 'assignRole') {
-            setState({ assignRole: null, assigned_to: null, assignList: [] });
-        } else {
-            // setState({ dm: null });
-        }
-    };
-
-    const handleNextPage = () => {
-        if (state.next) {
-            const newPage = state.currentPage + 1;
-            leadList(newPage);
-        }
-    };
-
-    const handlePreviousPage = () => {
-        if (state.previous) {
-            const newPage = state.currentPage - 1;
-            leadList(newPage);
-        }
-    };
-
-    const handleClick = (data) => {
-        let userId = null;
-        if (state.tm) {
-            userId = state.tm?.value;
-        } else if (state.dm) {
-            userId = state.dm?.value;
-        } else if (state.bde) {
-            userId = state.bde?.value;
-        } else if (state.bdm) {
-            userId = state.bdm?.value;
-        }
-
-        if (userId) {
-            if (data?.type == 'financialYear') {
-                router.push(`/UserTargetYear?type=${'financial'}&user_id=${userId}`);
-            } else if (data?.type == 'PhysicalYear') {
-                router.push(`/UserTargetYear?type=${'physical'}&user_id=${userId}`);
-            }
-        } else {
-            if (data?.type == 'financialYear') {
-                router.push(`/targetYear?type=${'financial'}`);
-            } else if (data?.type == 'PhysicalYear') {
-                router.push(`/targetYear?type=${'physical'}`);
-            }
-        }
+        // Generate and save Excel file
+        const buffer = await workbook.xlsx.writeBuffer();
+        FileSaver.saveAs(
+            new Blob([buffer], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            }),
+            'Leads.xlsx'
+        );
     };
 
     return (
         <div className="p-2">
-            <div className="panel bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold">{'Repute Digital Bussiness Agency'}</h1>
-                        <p className="text-blue-100">
-                            {state.role} Dashboard - {'2025'}
-                        </p>
-                    </div>
-                    <div className="text-right">
-                        <Text size="sm" className="text-blue-100">
-                            Last Updated
-                        </Text>
-                        <Text fw={500}>{new Date().toLocaleDateString()}</Text>
-                    </div>
+            <div className="panel mb-3 flex items-center justify-between gap-5">
+                {/* Title Section */}
+                <div className="flex items-center pl-3">
+                    <h5 className="text-lg font-semibold"> {(state.role == ROLE.ADMIN || state.role == ROLE.BDM) && 'TEAM '}LEADS</h5>
                 </div>
             </div>
-            <div className="panel mb-3 mt-3 flex flex items-center items-center justify-between gap-5 pl-3">
-                <h5 className="text-lg font-semibold">Team Monthly Target</h5>
-            </div>
-            <div className="">
-                <AdminDashboard cardData={state.adminCardData} />
+
+            <div className="panel flex flex-wrap items-center justify-between gap-2 md:gap-4">
+                <div className="flex flex-wrap items-center gap-2 md:gap-4">
+                    {orderFilter?.map((link, index) => (
+                        <React.Fragment key={index}>
+                            <div
+                                onClick={() => setState({ activeTab: link })}
+                                className={`cursor-pointer border-r px-1 py-2  font-bold md:px-4 ${
+                                    link === state.activeTab ? 'border-primary text-primary' : 'border-gray-300 text-gray-500 dark:border-gray-600 dark:text-gray-400'
+                                } dark:hover:text-primary-dark hover:text-primary`}
+                            >
+                                {link?.split(' ')?.map((word, i) => (
+                                    <React.Fragment key={i}>
+                                        <span className="text-md">{word}</span>
+                                        {i !== link.split(' ').length - 1 && <span className=" "></span>}
+                                    </React.Fragment>
+                                ))}
+                            </div>
+                        </React.Fragment>
+                    ))}
+
+                    <div className="flex flex-wrap items-center gap-4">
+                        <div className="w-full md:w-auto">
+                            <input
+                                type="datetime-local"
+                                value={state.from_date}
+                                onChange={(e) => setState({ from_date: e.target.value })}
+                                id="dateTimeCreated"
+                                name="dateTimeCreated"
+                                className="form-input w-full"
+                            />
+                        </div>
+                        <div className="w-full md:w-auto">
+                            <input
+                                type="datetime-local"
+                                value={state.end_date}
+                                onChange={(e) => setState({ end_date: e.target.value })}
+                                id="dateTimeCreated"
+                                name="dateTimeCreated"
+                                className="form-input w-full"
+                            />
+                        </div>
+                        <button type="button" className="btn btn-primary w-full md:w-auto" onClick={() => filterCustomDate()}>
+                            Go
+                        </button>
+
+                        <button type="button" className="btn btn-primary w-full md:w-auto" onClick={() => exportToExcel()}>
+                            {state.excelLoading ? <IconLoader className=" h-4 w-4 animate-spin" /> : 'Excel'}
+                        </button>
+                    </div>
+                </div>
+
+                <button type="button" className="btn btn-primary w-full sm:mt-4 md:w-auto lg:mt-1" onClick={() => clearFilter()}>
+                    Clear
+                </button>
             </div>
 
+            {/* {ROLE.DM === state.role && (
+                <div className="chart-container panel mb-2 mt-2">
+                    {!state.chartsLoading && <ReactApexChart series={state?.series} options={state?.chartData?.options} type="bar" height={400} width={'100%'} />}
+                </div>
+            )} */}
+
             <div className="panel mt-2 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-                <div className={`relative flex w-full items-center  rounded-full border border-gray-300 dark:border-white-dark/30 lg:w-1/3 `}>
+                <div
+                    // className={`relative flex items-center  rounded-full border border-gray-300 dark:border-white-dark/30 sm:w-[${
+                    //     state.role == 'ADMIN' ? '400px' : state.role == 'BDE' ? '400px' : '1000px'
+                    // }] `}
+                    className={`relative flex w-full items-center  rounded-full border border-gray-300 dark:border-white-dark/30 lg:w-1/3 `}
+                >
                     <button type="submit" className="flex items-center justify-center px-3 py-2 text-primary">
                         <IconSearch className="h-6 w-6 font-bold" />
                     </button>
@@ -948,7 +742,7 @@ const Dashboards = () => {
                         type="text"
                         value={state.search}
                         onChange={(e) => setState({ search: e.target.value })}
-                        placeholder="Search by lead name"
+                        placeholder="Search ..."
                         className="form-input rounded-r-full border-0 bg-white py-1.5 pl-0 text-sm placeholder:tracking-wide focus:shadow-lg focus:outline-none dark:bg-gray-800 dark:shadow-[#1b2e4b] dark:placeholder:text-gray-400"
                     />
                 </div>
@@ -1021,89 +815,24 @@ const Dashboards = () => {
                             />
                         </>
                     )}
-                    {ROLE.BDM == state.role && (
-                        <>
-                            <CustomSelect
-                                options={state.bdeList}
-                                value={state.bde}
-                                onChange={(e) => setState({ bde: e })}
-                                disabled={state?.tm?.value || state.dm?.value}
-                                isMulti={false}
-                                placeholder="BDE"
-                                className="w-full"
-                            />
-                            <CustomSelect
-                                options={state.assignList}
-                                value={state.tm}
-                                onChange={(e) => setState({ tm: e })}
-                                disabled={state?.bde?.value || state.dm?.value}
-                                isMulti={false}
-                                placeholder="TM"
-                                className="w-full"
-                            />
-
-                            <CustomSelect
-                                options={state.dmList}
-                                value={state.dm}
-                                onChange={(e) => setState({ dm: e })}
-                                disabled={state?.bde?.value || state.tm?.value}
-                                isMulti={false}
-                                placeholder="DM"
-                                className="w-full"
-                            />
-                        </>
-                    )}
-                    {
-                        ROLE.TM == state.role || ROLE.DM === state.role ? (
-                            <>
-                                <CustomSelect
-                                    value={state.assignRole}
-                                    onChange={(e) => setState({ assignRole: e, assigned_to: '', assignList: [] })}
-                                    placeholder={'Choose Role'}
-                                    options={[
-                                        { value: 'owner', label: 'Owner' },
-                                        { value: 'bdm', label: 'BDM' },
-                                        { value: 'bde', label: 'BDE' },
-                                    ]}
-                                    required
-                                    className="w-full"
-                                />
-                                <CustomSelect
-                                    value={state.assigned_to}
-                                    onChange={(e) => setState({ assigned_to: e })}
-                                    placeholder={'Assign To'}
-                                    options={state.assignList}
-                                    error={state.errors?.assigned_to}
-                                    className="w-full"
-                                    required
-                                />
-                            </>
-                        ) : null
-                        // ROLE.BDE == state.role && (
-                        //     <CustomSelect
-                        //         value={state.opportunity}
-                        //         onChange={(e) => setState({ opportunity: e })}
-                        //         placeholder={'Opportunity'}
-                        //         options={state.opportunityList}
-                        //         error={state.errors?.opportunity}
-                        //         required
-                        //     />
-                        // )
-                    }
-
-                    {/* {(ROLE.BDE == state.role || ROLE.TM == state.role || ROLE.DM === state.role) && ()}*/}
                     <CustomSelect
-                        value={state.lead_source}
-                        onChange={(e) => setState({ lead_source: e })}
-                        placeholder={'Source'}
-                        options={state.sourceList}
-                        error={state.errors?.lead_source}
-                        className="w-full"
-                        required
+                        value={state.assigned_to}
+                        onChange={(e) => setState({ assigned_to: e })}
+                        placeholder={'Select User'}
+                        options={state.usersList}
+                        error={state.errors?.assigned_to}
+                        loadMore={()=>state.userHasNext &&usersListLoadMore()}
                     />
-                    {/* )}*/}
-
                     <CustomSelect
+                        value={state.lead_status}
+                        onChange={(e) => setState({ lead_status: e })}
+                        placeholder={'Lead Status'}
+                        options={state.leadStatusList}
+                        error={state.errors?.status}
+                        loadMore={() => state.leadStatusHasNext && leadStatusLoadMore()}
+                    />
+
+                    {/* <CustomSelect
                         value={state.lead_status}
                         onChange={(e) => setState({ lead_status: e })}
                         placeholder={'Status'}
@@ -1111,401 +840,50 @@ const Dashboards = () => {
                         error={state.errors?.lead_status}
                         className="w-full"
                         required
-                    />
+                    /> */}
 
                     <CustomSelect
-                        value={state.opportunity}
-                        onChange={(e) => setState({ opportunity: e })}
-                        placeholder={'Opportunity'}
-                        options={state.opportunityList}
-                        error={state.errors?.opportunity}
-                        required
+                        value={state.lead_source_category}
+                        onChange={(e) => setState({ lead_source_category: e })}
+                        placeholder={'Lead Source Category'}
+                        options={state.sourceList}
+                        loadMore={() => state.sourceHasNext && sourceLoadMore()}
                     />
-
-                    {/* {ROLE.BDE == state.role && ( */}
-
-                    {/* // )}/ */}
-                    {/* <button className="btn btn-primary w-full lg:w-auto" onClick={() => setState({ isOpen: true })}>
-                                    <IconFilter />
-                                </button> */}
                 </div>
             </div>
 
-            {state.role !== ROLE.DM && (
-                <div className="pb-2 pt-2">
-                    <SimpleGrid
-                        cols={state.role == ROLE.BDE || state.role == ROLE.BDM || state.role == ROLE.ADMIN ? 6 : 5}
-                        spacing="sm"
-                        breakpoints={[
-                            { maxWidth: 768, cols: 2 },
-                            { maxWidth: 576, cols: 1 },
-                        ]}
-                    >
-                        {state.cardData.map((card: any, index: any) => (
-                            <div className="panel">
-                                <div className="mb-5 flex items-center font-semibold">
-                                    <div className="grid h-6 w-6 shrink-0 place-content-center rounded-full md:h-8 md:w-8">
-                                        <IconBitcoin />
-                                    </div>
-                                    <div className="ltr:ml-2 rtl:mr-2">
-                                        <h6 className="text-sm  font-bold  text-dark dark:text-white-light lg:text-lg">{card.title}</h6>
-                                        {/* <p className="text-xs text-white-dark">Bitcoin</p> */}
-                                    </div>
-                                </div>
-
-                                {/* {ROLE.DM == state.role && (  
-                                        <div className="mb-5">{state.loading && <ReactApexChart series={bitcoin.series} options={bitcoin.options} type="line" height={45} width={'100%'} />}</div>
-                                        )} */}
-
-                                <div className="flex items-center justify-between text-base font-bold">
-                                    <div onClick={() => {}} className="cursor-pointer">
-                                        <div className="text-sm font-normal ">{card.name1}</div>
-                                        <div>
-                                            <span className="text-xl font-bold  text-success">{card.todayCount ? card.todayCount : 0}</span>
-                                        </div>
-                                    </div>
-                                    <div onClick={() => {}} className="cursor-pointer">
-                                        <div className="text-sm font-normal "> {card.name2}</div>
-                                        <div>
-                                            <span className="text-xl font-bold text-success">{card.monthCount ? card.monthCount : 0}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </SimpleGrid>
-                </div>
-            )}
-
-            {ROLE.ADMIN == state.role ? (
-                <>
-                    {!state?.dm && (state?.bdm || state?.roles || state?.bde || state?.card_lead_status) && (
-                        <p className="flex items-center gap-2 text-sm font-semibold">
-                            Filters:
-                            {state?.bdm?.label && (
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('bdm')}>
-                                    {state?.bdm?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            )}
-                            {state?.roles?.label && <div>/</div>}
-                            {state?.roles?.label && (
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('roles')}>
-                                    {state?.roles?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            )}
-                            {state?.bde?.label && <div>/</div>}
-                            {state?.bde?.label && (
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('bde')}>
-                                    {state?.bde?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            )}
-                            {state?.card_lead_status && <div>,</div>}
-                            {state?.card_lead_status && (
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('status')}>
-                                    {`${state?.card_lead_status} (${state.today ? 'Today' : 'Month'})`}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            )}
-                        </p>
-                    )}
-                    {state?.dm && (
-                        <div className="pb-2 ">
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                Filters:
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('dm')}>
-                                    {state?.dm?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                                {state?.card_lead_status && <div>,</div>}
-                                {state?.card_lead_status && (
-                                    <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('status')}>
-                                        {`${state?.card_lead_status} (${state.today ? 'Today' : 'Month'})`}
-                                        <div>
-                                            <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </>
-            ) : ROLE.BDM == state.role ? (
-                <>
-                    <div className="flex gap-2">
-                        {state?.bde?.label && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('bde')}>
-                                    {state?.bde?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {state?.tm?.label && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('tm')}>
-                                    {state?.tm?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {state?.dm?.label && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('dm')}>
-                                    {state?.dm?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {state?.card_lead_status && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('status')}>
-                                    {`${state?.card_lead_status} (${state.today ? 'Today' : 'Month'})`}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </>
-            ) : ROLE.BDE == state.role ? (
-                <>
-                    <div className="flex gap-2">
-                        {state?.lead_source?.label && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('lead_source')}>
-                                    {state?.lead_source?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {state?.lead_status?.label && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('lead_status')}>
-                                    {state?.lead_status?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {state?.card_lead_status && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('status')}>
-                                    {`${state?.card_lead_status} (${state.today ? 'Today' : 'Month'})`}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </>
-            ) : (
-                <>
-                    <div className="flex gap-2">
-                        {state?.assignRole?.label && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('assignRole')}>
-                                    {state?.assignRole?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {state?.assigned_to?.label && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('assigned_to')}>
-                                    {state?.assigned_to?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {state?.lead_source?.value && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('lead_source')}>
-                                    {`${state?.lead_source?.label}`}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {state?.card_lead_status && (
-                            <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('status')}>
-                                {`${state?.card_lead_status} (${state.today ? 'Today' : 'Month'})`}
-                                <div>
-                                    <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </>
-            )}
-            {(ROLE.BDM == state.role || ROLE.ADMIN == state.role) && state.userCardData?.length > 0 && (
-                <div className="mt-3 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    {state.userCardData?.map((card, index) => (
-                        <UserTargetCard
-                            key={card.type}
-                            data={card}
-                            className="animate-fade-in"
-                            style={{ animationDelay: `${index * 100}ms` }}
-                            handleClick={() => {
-                                handleClick(card);
-                            }}
-                        />
-                    ))}
-                </div>
-            )}
-
-            <div className="flex items-center justify-between">
-                <div className="mt-3 flex items-center justify-end pb-2 pr-3">
-                    <CustomSelect
-                        options={[
-                            {
-                                label: 'This Month',
-                                value: 'This Month',
-                            },
-                            {
-                                label: 'Last 7 Days',
-                                value: 'Last 7 Days',
-                            },
-                            {
-                                label: 'Last Month',
-                                value: 'Last Month',
-                            },
-                            {
-                                label: 'Year',
-                                value: 'Year',
-                            },
-                        ]}
-                        value={state.filterMonth}
-                        onChange={(e) => setState({ filterMonth: e })}
-                        isMulti={false}
-                        placeholder="Select Duration"
-                        className="w-full "
-                    />
-                </div>
-                {state.data?.length > 0 && (
-                    <div className="mt-3 flex items-center justify-end pb-2 pr-3">
-                        <div className="rounded-lg bg-gray-300 p-1 font-semibold">{pageCounts(state.currentPage, state.totalRecords)}</div>
-                    </div>
-                )}
-            </div>
-
+            {/* {state.data?.length > 0 ? ( */}
             <>
+                <div className="flex items-center justify-end pb-2 pr-3">
+                    <div className="rounded-lg bg-gray-300 p-1 font-semibold">{pageCounts(state.currentPage, state.totalRecords)}</div>
+                </div>
                 <div>
                     <DataTable
                         className="table-responsive"
                         records={state.data}
+                        fetching={state.loading1 || state.loading || state.subLoading}
+                        loaderSize="lg"
+                        loaderVariant="dots"
+                        loaderColor="blue"
+                        loaderBackgroundBlur={0}
                         // onRowClick={()=>tableRow(state.data)}
                         columns={[
-                            {
-                                accessor: 'lead',
-
-                                title: `${ROLE.TM == state.role ? 'Company' : 'Lead'}`,
-                                render: (row: any) => <div>{row?.lead?.name}</div>,
-                            },
-                            ...(state.role === ROLE.BDE || state.role === ROLE.BDM || state.role === ROLE.DM || state.role === ROLE.ADMIN
-                                ? [
-                                      {
-                                          accessor: 'name',
-                                          title: 'Opportunity',
-                                          sortable: false,
-                                          width: 150,
-                                          render: (row) => (
-                                              <div>
-                                                  {row?.name?.name} {/* {row?.opportunity_keyword && `(${row?.opportunity_keyword})`} */}
-                                              </div>
-                                          ),
-                                      },
-                                  ]
-                                : []),
-
                             {
                                 accessor: 'contact_person',
                                 title: 'Contact Person',
                             },
 
-                            ...(state.role == ROLE.BDE || state.role == ROLE.TM ? [{ accessor: 'contact_number', title: 'Contact Number' }] : []),
-
                             { accessor: 'source', title: 'Source' },
 
                             { accessor: 'date', title: 'Created Date', width: 120 },
                             {
-                                accessor: 'opportunity_status',
-                                title: 'Opportunity Status',
-                                render: (row) => (
-                                    <div
-                                        className={`flex w-max gap-4 rounded-full px-2 py-1 ${
-                                            row?.opportunity_status?.name === 'Inquired'
-                                                ? 'bg-pink-100 text-pink-800'
-                                                : row?.opportunity_status?.name === 'Appointments'
-                                                ? 'bg-yellow-100 text-yellow-800'
-                                                : row?.opportunity_status?.name === 'Opportunity'
-                                                ? 'bg-green-100 text-green-800'
-                                                : row?.opportunity_status?.name === 'Proposal'
-                                                ? 'bg-orange-100 text-orange-800'
-                                                : row?.opportunity_status?.name === 'Leads'
-                                                ? 'bg-teal-100 text-teal-800'
-                                                : row?.opportunity_status?.name === 'Income'
-                                                ? 'bg-blue-100 text-blue-800'
-                                                : row?.opportunity_status?.name === 'Meetings'
-                                                ? 'bg-green-100 text-green-800'
-                                                : row?.opportunity_status?.name === 'Prospect'
-                                                ? 'bg-blue-100 text-blue-800'
-                                                : row?.opportunity_status?.name === 'Deal Won'
-                                                ? 'bg-green-100 text-green-800'
-                                                : row?.opportunity_status?.name === 'Deal Lose'
-                                                ? 'bg-red-300 text-red-800'
-                                                : row?.opportunity_status?.name === "Don't have our budget"
-                                                ? 'bg-red-200 text-red-800'
-                                                : row?.opportunity_status?.name === 'Idea in hold'
-                                                ? 'bg-red-100 text-red-800'
-                                                : row?.opportunity_status?.name === 'Follow Up'
-                                                ? 'bg-yellow-100 text-yellow-800'
-                                                : row?.opportunity_status?.name === 'Follow Up'
-                                                ? 'bg-yellow-100 text-yellow-800'
-                                                : 'bg-gray-100 text-gray-800'
-                                        }`}
-                                    >
-                                        {row?.opportunity_status?.name}
-                                    </div>
-                                ),
+                                accessor: 'lead_status',
+                                title: 'Lead Status',
                             },
 
                             // { accessor: 'status_date', title: `${ROLE.TM == state.role ? 'Follow Up' : 'Status Date'}` },
-                            { accessor: 'updated_on', title: 'Updated Date' },
-                            { accessor: 'closing_date', title: 'Closing Date' },
 
-                            { accessor: 'created_by', title: 'Created By' },
-                            { accessor: 'assigned_to', title: 'Assigned To' },
+                            { accessor: 'updated_on', title: 'Updated Date' },
 
                             {
                                 accessor: 'remark',
@@ -1514,6 +892,56 @@ const Dashboards = () => {
                                     <Tippy content={row?.remark} placement="top" className="rounded-lg bg-black p-1 text-sm text-white">
                                         <div>{row?.remark?.length > 20 ? `${row.remark.slice(0, 20)}...` : row?.remark}</div>
                                     </Tippy>
+                                ),
+                            },
+
+                            {
+                                accessor: 'actions',
+                                title: 'Actions',
+                                render: (row: any) => (
+                                    <div className="mx-auto flex w-max items-center gap-4">
+                                        {/* <Tippy content="Quick Edit" className="rounded-lg bg-black p-1 text-sm text-white">
+                                                <button
+                                                    type="button"
+                                                    className="flex hover:text-primary"
+                                                    onClick={() => {
+                                                        state.expandedRow == row.lead?.id ? setState({ expandedRow: null }) : setState({ expandedRow: row.lead?.id });
+                                                    }}
+                                                >
+                                                    <IconNotesEdit />
+                                                </button>
+                                            </Tippy> */}
+
+                                        <button
+                                            type="button"
+                                            className="flex hover:text-primary"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleView(row?.id);
+                                            }}
+                                        >
+                                            <IconEye />
+                                        </button>
+                                        <button
+                                            className="flex hover:text-info"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleEdit(row.lead?.id);
+                                            }}
+                                        >
+                                            <IconEdit className="h-4.5 w-4.5" />
+                                        </button>
+
+                                        <button
+                                            className="flex hover:text-info"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDelete(row?.id);
+                                            }}
+                                        >
+                                            <IconTrash className="h-4.5 w-4.5" />
+                                        </button>
+                                    </div>
                                 ),
                             },
                         ]}
@@ -1527,16 +955,57 @@ const Dashboards = () => {
                         // sortStatus={sortStatus}
                         // onSortStatusChange={setSortStatus}
                         paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
+                        onRowClick={({ id }) => {
+                            if (state.expandedRow != id) {
+                                setState({ expandedRow: id });
+                                // router.push(`/update_contact?id=${id}`);
+                            }
+                        }}
+                        rowExpansion={{
+                            collapseProps: {
+                                transitionDuration: 500,
+                                animateOpacity: false,
+                                transitionTimingFunction: 'ease-out',
+                            },
+                            allowMultiple: false,
+
+                            content: ({ record, collapse }) => {
+                                return (
+                                    <>
+                                        {state.expandedRow === record?.id ? (
+                                            <div className="w-full bg-gray-50 px-4 py-2">
+                                                <QuickEdit
+                                                    id={state.expandedRow}
+                                                    data={record}
+                                                    collapse={() => {
+                                                        collapse();
+                                                    }}
+                                                    statusList={state.statusList}
+                                                    updateList={() => {
+                                                        collapse();
+                                                        setState({ expandedRow: null });
+                                                        leadList(state?.currentPage);
+                                                        countData();
+                                                    }}
+                                                    resetExpandedRow={() => {
+                                                        setState({ expandedRow: null });
+                                                    }}
+                                                />
+                                            </div>
+                                        ) : null}
+                                    </>
+                                );
+                            },
+                        }}
                     />
                 </div>
+
                 <div className="mt-5 flex justify-center gap-3">
                     <Pagination
                         currentPage={state.currentPage}
                         totalRecords={state.count}
                         onPageChange={(page) => {
                             leadList(page);
-
-                            setState({ currentPage: page });
                         }}
                         hasNext={state.next !== null}
                         hasPrevious={state.previous !== null}
@@ -1544,107 +1013,7 @@ const Dashboards = () => {
                     />
                 </div>
             </>
-
-            {/* <div className="mt-2">
-                <SimpleGrid
-                    cols={4}
-                    spacing="sm"
-                    breakpoints={[
-                        { maxWidth: 768, cols: 2 },
-                        { maxWidth: 576, cols: 1 },
-                    ]}
-                >
-                    {TeleData.map((card, index) => (
-                        <div className="panel flex items-center gap-4 p-4" key={index}>
-                            <div className={`flex h-20 w-20  shrink-0 items-center justify-center rounded-full text-[60px]`}>{card.icon}</div>
-
-                            <div className="flex-1 text-right">
-                                <h6 className="text-xl font-bold text-dark dark:text-white-light">{card.monthCount}</h6>
-                                <h6 className="text-lg  text-dark dark:text-white-light">{card.title}</h6>
-                                <h6 className="text-md  text-gray-400 dark:text-white-light">{'Months'}</h6>
-
-                                <div className="mt-2 flex justify-between text-base font-bold">
-                              
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </SimpleGrid>
-            </div> */}
-            {/* <div className="mt-2 pb-2  ">
-                <SimpleGrid
-                    cols={5}
-                    spacing="sm"
-                    breakpoints={[
-                        { maxWidth: 768, cols: 2 },
-                        { maxWidth: 576, cols: 1 },
-                    ]}
-                >
-                    {state.cardData.map((card: any, index: any) => (
-                        <div className="panel">
-                            <div className="mb-5 flex items-center font-semibold">
-                                <div className="grid h-10 w-10 shrink-0 place-content-center rounded-full">
-                                    <IconBitcoin />
-                                </div>
-                                <div className="ltr:ml-2 rtl:mr-2">
-                                    <h6 className="text-lg font-bold text-dark dark:text-white-light">{card.title}</h6>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center justify-between text-base font-bold">
-                                <div>
-                                    <div className="text-sm font-normal ">{card.name1}</div>
-                                    <div>
-                                        <span className="text-xl font-bold  text-success">{card.todayCount}</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-sm font-normal "> {card.name2}</div>
-                                    <div>
-                                        <span className="text-xl font-bold text-success">{card.monthCount}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </SimpleGrid>
-            </div> */}
-            {/* <SimpleGrid cols={2} spacing="lg" className="mt-2">
-                <Card shadow="sm" radius="lg">
-                    <Title size={'16px'}>Estimated Revenue</Title>
-                    <div className="pb-2 pt-2">
-                        <hr className="h-2" />
-                    </div>
-                    {isMounted && <ReactApexChart options={customerFeedbackChart.options} series={customerFeedbackChart.series} type="bar" height={320} width={'100%'} />}
-
-                </Card>
-                <Card shadow="sm" radius="lg">
-                    <Title size={'16px'}>Lead Status</Title>
-                    <div className="pb-2 pt-2">
-                        <hr className="h-2" />
-                    </div>
-                    {isMounted && <ReactApexChart options={LeadStatus.options} series={LeadStatus.series} type="bar" height={320} width={'100%'} />}
-
-                </Card>
-             
-
-                <Card shadow="sm" radius="lg">
-                    <Title size={'16px'}>Lead By Source </Title>
-                    <div className="pb-2 pt-2">
-                        <hr className="h-2" />
-                    </div>
-                    {isMounted && <ReactApexChart options={leadSourceChart.options} series={leadSourceChart.series} type="donut" height={320} width={'100%'} />}
-                </Card>
-
-                <Card shadow="sm" radius="lg">
-                    <Title size={'16px'}>Lead By Company segment</Title>
-                    <div className="pb-2 pt-2">
-                        <hr className="h-2" />
-                    </div>
-                    {isMounted && <ReactApexChart options={pipelineValueByStageChart.options} series={pipelineValueByStageChart.series} type="pie" height={320} width={'100%'} />}
-                </Card>
-            </SimpleGrid> */}
         </div>
     );
 };
-export default PrivateRouter(Dashboards);
+export default PrivateRouter(Leads);

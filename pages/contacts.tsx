@@ -633,60 +633,9 @@ const Contacts = () => {
         <div className="p-2">
             <div className="panel  mb-3 flex items-center justify-between gap-5 ">
                 <div className="flex items-center gap-5 pl-3">
-                    <h5 className="text-lg font-semibold ">{(ROLE.ADMIN == state.role || ROLE.BDM == state.role) && 'TEAM'} CONTACTS</h5>
+                    <h5 className="text-lg font-semibold ">TEAM CONTACTS</h5>
                 </div>
-                {ROLE.ADMIN !== state.role && ROLE.BDM !== state.role && (
-                    // <div className="flex items-center gap-3">
-                    //     <button
-                    //         type="button"
-                    //         className="btn btn-primary"
-                    //         onClick={() => {
-                    //             router.push('create_contact');
-                    //         }}
-                    //     >
-                    //         Add
-                    //     </button>
-                    //     <button type="button" className="btn btn-primary" onClick={() => setState({ isOpenImport: true, errorContacts: [] })}>
-                    //         Import
-                    //     </button>
-                    //     <button type="button" className="btn btn-primary w-full md:w-auto" onClick={() => exportToExcel()}>
-                    //         {state.excelLoading ? <IconLoader className=" h-4 w-4 animate-spin" /> : 'Excel'}
-                    //     </button>
-                    // </div>
-
-                    <div className="flex items-center gap-3">
-                        <button
-                            type="button"
-                            className="btn btn-primary"
-                            onClick={() => {
-                                router.push('create_contact');
-                                // setState({
-                                //     name: '',
-                                //     department: '',
-                                //     designation: '',
-                                //     phone_number: '',
-                                //     email_id: '',
-                                //     lead_source: '',
-                                //     status: '',
-                                //     is_active: false,
-                                //     isOpenCreateContact: true,
-                                //     errors: '',
-                                //     remark: '',
-                                //     moveToLead: false,
-                                //     is_archive: false,
-                                //     contactId: null,
-                                // });
-                            }}
-                        >
-                            Add
-                            {/* {submitLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : submitTitle ? submitTitle : 'Submit'} */}
-                        </button>
-                        <button type="button" className="btn btn-primary" onClick={() => setState({ isOpenImport: true })}>
-                            Import
-                            {/* {submitLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : submitTitle ? submitTitle : 'Submit'} */}
-                        </button>
-                    </div>
-                )}
+                
             </div>
 
             <div className="panel mt-2 flex flex-col gap-4 lg:flex-row lg:items-center">

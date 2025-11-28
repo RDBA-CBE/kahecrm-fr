@@ -415,9 +415,9 @@ const Sidebar = () => {
                                                     <li>
                                                         <Link href="/myContacts">{t('My Contacts')}</Link>
                                                     </li>
-                                                    {/* <li>
+                                                    <li>
                                                         <Link href="/my_archive_contact">{t('Archive Contacts')}</Link>
-                                                    </li> */}
+                                                    </li>
                                                     <li>
                                                         <Link href="/create_contact">{t('Create Contact')}</Link>
                                                     </li>

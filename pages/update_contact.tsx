@@ -133,6 +133,7 @@ const UpdateContact = () => {
                 relation_to_student: res?.relation_to_student,
                 remark: res?.remark,
                 personal_remarks: res?.personal_remarks,
+                achieved:res?.achieved
                 // status:res?.status
             });
         } catch (error) {
@@ -421,6 +422,7 @@ const UpdateContact = () => {
             state: state.state ? state.state?.value : null,
             country: state.country ? state.country?.value : null,
             source_details: state.source_details,
+            achieved:state.achieved
         };
 
         try {
@@ -437,7 +439,11 @@ const UpdateContact = () => {
 
                 await Models.contact.update(buildContactPayload, id);
                 Success('Contact updated successfully');
-                router.push('/myContacts');
+                if (state.achieved) {
+                    router.push('/my_archive_contact');
+                } else {
+                    router.push('/myContacts');
+                }
             }
         } catch (error) {
             if (error?.inner) {
@@ -642,6 +648,16 @@ const UpdateContact = () => {
                                 placeholder={'Source Detail'}
                                 error={state.errors?.source_details}
                             />
+
+                               <CheckboxInput
+                                className="mt-2 w-full md:w-1/2 lg:w-3/4"
+                                checked={state.achieved}
+                                disabled={state.isMoveToLead}
+                                onChange={(val) => {
+                                    setState({ achieved: val });
+                                }}
+                                label="Archive Contact"
+                            />
                         </div>
                     )}
                 </div>
@@ -803,7 +819,7 @@ const UpdateContact = () => {
                     <CheckboxInput
                         className="mt-2 w-full md:w-1/2 lg:w-3/4"
                         checked={state.isMoveToLead}
-                        disabled={state.is_archive}
+                        disabled={state.achieved}
                         onChange={(val) => {
                             setState({ isMoveToLead: val });
                         }}

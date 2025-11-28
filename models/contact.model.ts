@@ -3,7 +3,7 @@ import instance from '@/utils/axios.utils';
 const contact = {
     list: (page, body = null) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `crm/contacts/?page=${page}&page_size=10&get_has_lead=false`;
+            let url = `crm/contacts/?page=${page}&page_size=10&get_has_lead=false&achieved=False`;
 
               if (body?.userId) {
                 url += `&user_id=${encodeURIComponent(body?.userId)}`;
@@ -12,8 +12,6 @@ const contact = {
                if (body?.team == 'Yes') {
                 url += `&teams=${encodeURIComponent(true)}`;
             }
-
-            
 
             if (body?.search) {
                 url += `&search=${encodeURIComponent(body?.search)}`;
@@ -91,10 +89,8 @@ const contact = {
 
     archive_list: (page, userId = null) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `crm/contacts/?is_archive=true&page=${page}&page_size=10&lead_is_null=True`;
-            if (userId) {
-                url += `&created_by=${encodeURIComponent(userId)}`;
-            }
+            let url = `crm/contacts/?is_archive=true&page=${page}&page_size=10&achieved=True`;
+         
 
             instance()
                 .get(url)
@@ -114,7 +110,7 @@ const contact = {
 
     archive_filter: (page, body, userId = null) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `crm/contacts/?page=${page}&page_size=10&is_archive=true&lead_is_null=True`;
+            let url = `crm/contacts/?page=${page}&page_size=10&achieved=true`;
 
             if (!userId && body.team) {
                 if (body.team) {
