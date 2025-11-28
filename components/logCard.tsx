@@ -59,7 +59,7 @@ const Timeline = (props: any) => {
 
                                                             // If value is object → try to pick readable property
                                                             if (typeof val === 'object') {
-                                                                return val.name || val.stage || val.label || val.title || val.description || JSON.stringify(val);
+                                                                return val.name || val.stage || val.label || val.title || val.description || val.first_name || JSON.stringify(val);
                                                             }
 
                                                             return val; // primitive value
