@@ -501,7 +501,7 @@ const Calendar = () => {
                         type="text"
                         value={state.search}
                         onChange={(e) => setState({ search: e.target.value })}
-                        placeholder="Search ..."
+                        placeholder="Search by student name"
                         className="form-input w-full rounded-r-full border-0 bg-white py-1.5 pl-0 text-sm placeholder:tracking-wide focus:shadow-lg focus:outline-none dark:bg-gray-800 dark:shadow-[#1b2e4b] dark:placeholder:text-gray-400"
                     />
                 </div>

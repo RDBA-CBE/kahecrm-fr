@@ -669,6 +669,8 @@ export default function ViewLead() {
             console.log('✌️error --->', error);
         }
     };
+console.log('✌️state.lead_status --->', state.lead_status);
+
 
     const updateLead = async () => {
         try {
@@ -677,11 +679,10 @@ export default function ViewLead() {
                 college_lead: id,
                 college: state.college?.value,
                 course: state.course?.value,
-                stage: state.stage?.value,
+                stage: state.lead_status?.value,
                 assign_to: state.assign_to?.value,
                 lead_source_category: state.lead_source_category?.value,
                 preferred_location: state.preferred_location,
-
                 best_time_to_contact: state.best_time_to_contact,
                 source_details: state.source_details,
                 remark: state.remark,

@@ -12,7 +12,7 @@ const lead = {
                 url += `&my_leads=${encodeURIComponent(true)}`;
             }
 
-             if (body?.assigned_leads == 'Yes') {
+            if (body?.assigned_leads == 'Yes') {
                 url += `&assigned_leads=${encodeURIComponent(true)}`;
             }
 
@@ -187,6 +187,42 @@ const lead = {
 
             instance()
                 .delete(url)
+                .then((res) => {
+                    resolve(res.data);
+                })
+                .catch((error) => {
+                    if (error.response) {
+                        reject(error.response.message);
+                    } else {
+                        reject(error);
+                    }
+                });
+        });
+        return promise;
+    },
+
+    dashbaord: (body = null) => {
+        let promise = new Promise((resolve, reject) => {
+            let url = `crm/dashboard/`;
+
+            if (body?.userId) {
+                url += `&user_id=${encodeURIComponent(body?.userId)}`;
+            }
+            if (body?.my_leads == 'Yes') {
+                url += `&my_leads=${encodeURIComponent(true)}`;
+            }
+
+            if (body?.assigned_leads == 'Yes') {
+                url += `&assigned_leads=${encodeURIComponent(true)}`;
+            }
+
+            if (body?.team == 'Yes') {
+                url += `&teams=${encodeURIComponent(true)}`;
+            }
+           
+
+            instance()
+                .get(url)
                 .then((res) => {
                     resolve(res.data);
                 })
