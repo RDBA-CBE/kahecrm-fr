@@ -50,7 +50,7 @@ const departments = () => {
     const clearLogData = () => {
         setState({
             EditId: '',
-            department: '',
+            qualification: '',
             submitLoad: false,
             errors: {},
             isOpen: false,
@@ -119,7 +119,7 @@ const departments = () => {
                         type="button"
                         className="btn btn-primary w-auto"
                         onClick={() => {
-                            setState({ modalManage: false, EditId: null, department: '', isOpen: true });
+                            setState({ modalManage: false, EditId: null, qualification: '', isOpen: true });
                         }}
                     >
                         + Create

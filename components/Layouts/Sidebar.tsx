@@ -12,7 +12,7 @@ import IconMenuCalendar from '@/components/Icon/Menu/IconMenuCalendar';
 import IconMenuUsers from '@/components/Icon/Menu/IconMenuUsers';
 import IconLeads from '../Icon/IconLead';
 import Models from '@/imports/models.import';
-import { ROLE } from '@/utils/constant.utils';
+import { ROLE, TASK_TYPE } from '@/utils/constant.utils';
 import SideMenu from '@/common_component/sideMenu';
 import { Validation } from '@/utils/imports.utils';
 import moment from 'moment';
@@ -21,8 +21,10 @@ import CustomSelect from '../Select';
 import TextArea from '../TextArea';
 import CustomeDatePicker from '@/common_component/datePicker';
 import IconUser from '../Icon/IconUser';
-import { Dropdown, Success, useSetState } from '@/utils/functions.utils';
+import { capitalizeFLetter, Dropdown, Success, useSetState } from '@/utils/functions.utils';
 import { useTranslation } from 'react-i18next';
+import IconMenuChat from '../Icon/Menu/IconMenuChat';
+import IconMenuDashboard from '../Icon/Menu/IconMenuDashboard';
 const Sidebar = () => {
     const router = useRouter();
     const [currentMenu, setCurrentMenu] = useState<string>('');
@@ -66,7 +68,94 @@ const Sidebar = () => {
             dispatch(toggleSidebar());
         }
         getUserDetails();
+        leadList();
     }, [router.pathname]);
+
+    const leadList = async (page = 1) => {
+        try {
+            setState({ LeadMoreloading: true });
+            const res: any = await Models.lead.list(null, page, null);
+            const dropdown = res?.results?.map((item) => ({
+                value: item.college_contact?.id,
+                label: `${capitalizeFLetter(item.college_contact?.student_name)} (${item.college_contact?.phone_number})`,
+            }));
+            console.log('✌️dropdown --->', dropdown);
+
+            setState({ LeadMoreloading: false, leadList: dropdown, count: res?.count, leadnext: res?.next, previous: res?.previous, currentPage: page });
+        } catch (error) {
+            setState({ LeadMoreloading: false });
+            console.log('error: ', error);
+        }
+    };
+
+    const leadListLoadMore = async () => {
+        try {
+            setState({ LeadMoreloading: true });
+
+            const res: any = await Models.lead.list(null, state.currentPage + 1, null);
+            const dropdown = res?.results?.map((item) => ({
+                value: item.college_contact?.id,
+                label: `${capitalizeFLetter(item.college_contact?.student_name)} (${item.college_contact?.phone_number})`,
+            }));
+            setState({ LeadMoreloading: false, leadList: [...state.leadList, ...dropdown], count: res?.count, leadnext: res?.next, previous: res?.previous, currentPage: state.currentPage + 1 });
+        } catch (error) {
+            setState({ loading: false });
+            console.log('error: ', error);
+        }
+    };
+
+    const usersList = async (e) => {
+        try {
+            setState({ assignRole: e,assigned_to:null });
+            setState({ loading: true });
+            let body: any = {};
+            if (e?.label == ROLE.ADMIN) {
+                body.show_admins_only = 'Yes';
+            } else {
+                body.exclude_admin = 'Yes';
+            }
+
+            const res: any = await Models.user.includeAdminuserList(1, body);
+            const dropdownList = res?.results?.map((item) => ({
+                label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}`,
+                value: item?.id,
+            }));
+
+            setState({ usersList: dropdownList, loading: false, userPage: 1, userHasNext: res?.next });
+        } catch (error) {
+            setState({ loading: false });
+            console.log('error: ', error);
+        }
+    };
+
+    const usersListLoadMore = async () => {
+        try {
+            setState({ leadStatusloadMore: true });
+            let body: any = {};
+            if (state.assignRole?.label == ROLE.ADMIN) {
+                body.show_admins_only = 'Yes';
+            } else {
+                body.exclude_admin = 'Yes';
+            }
+
+            const res: any = await Models.user.includeAdminuserList(1, body);
+
+            const dropdownList = res?.results?.map((item) => ({
+                label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}`,
+                value: item?.id,
+            }));
+
+            setState({
+                usersList: [...state.usersList, ...dropdownList],
+                leadStatusloadMore: false,
+                userPage: state.userPage + 1,
+                userHasNext: res.next,
+            });
+        } catch (error) {
+            setState({ leadStatusloadMore: false });
+            console.log('error: ', error);
+        }
+    };
 
     const getUserDetails = async () => {
         try {
@@ -122,31 +211,30 @@ const Sidebar = () => {
 
             const validateField = {
                 lead: state.lead?.value,
-                contact: state.contact?.value,
                 task_type: state.task_type?.value,
                 assigned_to: state.assigned_to,
                 task_date_time: state.task_date_time,
                 remark: state?.remark,
-                assignRole: state.assignRole?.value,
+                // assignRole: state.assignRole?.value,
             };
             await Validation.createTask.validate(validateField, {
                 abortEarly: false,
             });
 
             const body: any = {
-                task_detail: state.details,
-                contact: state.contact?.value,
+                contact: state.lead?.value,
                 task_type: state.task_type?.value,
-                task_assignment: state.assigned_to?.map((item) => ({ assigned_to: item.value })),
+                assigned_to: state.assigned_to?.map((item) => item.value),
                 remark: state.remark,
             };
             if (state.task_date_time) {
-                body.task_date_time = moment(state.task_date_time).format('YYYY-MM-DD');
+                body.task_date_time = moment(state.task_date_time).format('YYYY-MM-DD HH:mm:ss');
             }
+
             const res: any = await Models.task.create(body);
             clearTaskData();
             setState({ taskLoading: false });
-            Success(state.task_date_time ? 'Task created successfully' : 'Log created successfully');
+            Success('Task created successfully');
             taskList();
         } catch (error) {
             if (error instanceof Yup.ValidationError) {
@@ -199,8 +287,7 @@ const Sidebar = () => {
                 <div className="h-full bg-white dark:bg-black">
                     <div className="flex items-center justify-between px-4 py-3">
                         <Link href="/" className="main-logo flex shrink-0 items-center">
-                            <img className="ml-[5px] w-8 flex-none" src="/assets/images/repute_logo.jpeg" alt="logo" />
-                            <span className="align-middle text-2xl font-semibold text-red-600 dark:text-white-light lg:inline ltr:ml-1.5 rtl:mr-1.5">{t('REPUTE')}</span>
+                            <img className="ml-[5px] w-8 flex-none" src="/assets/images/kahe-logo.png" alt="logo" height={400} width={400}  style={{height:'45px',width:"170px"}}/>
                         </Link>
 
                         <button
@@ -340,7 +427,7 @@ const Sidebar = () => {
                                 {role == ROLE.ADMIN && <div className="text-lg">Own</div>}
                                 <li className="nav-item">
                                     <ul>
-                                        {/* <li className="nav-item">
+                                        <li className="nav-item">
                                             <Link href="/own_dashboard" className="group">
                                                 <div className="flex items-center">
                                                     <IconMenuDashboard className="shrink-0 group-hover:!text-primary" />
@@ -390,7 +477,7 @@ const Sidebar = () => {
                                                     </li>
                                                 </ul>
                                             </AnimateHeight>
-                                        </li> */}
+                                        </li>
                                         <li className="menu nav-item">
                                             <button
                                                 type="button"
@@ -499,16 +586,16 @@ const Sidebar = () => {
 
                                         <li className="nav-item">
                                             <ul>
-                                                {/* <li className="nav-item">
+                                                <li className="nav-item">
                                                     <Link href="/dashboards" className="group">
                                                         <div className="flex items-center">
                                                             <IconMenuDashboard className="shrink-0 group-hover:!text-primary" />
                                                             <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Dashboard')}</span>
                                                         </div>
                                                     </Link>
-                                                </li> */}
+                                                </li>
 
-                                                {/* <li className="menu nav-item">
+                                                <li className="menu nav-item">
                                                     <button
                                                         type="button"
                                                         className={`${currentMenu === 'Calendar' ? 'active' : ''} nav-link group w-full`}
@@ -537,7 +624,7 @@ const Sidebar = () => {
                                                             
                                                         </ul>
                                                     </AnimateHeight>
-                                                </li> */}
+                                                </li> 
                                                 <li className="menu nav-item">
                                                     <button
                                                         type="button"
@@ -614,7 +701,7 @@ const Sidebar = () => {
                                                     </ul>
                                                 </AnimateHeight> */}
                                                 </li>
-                                                  <li className="nav-item">
+                                                <li className="nav-item">
                                                     <Link href="/users/list" className="group">
                                                         <div className="flex items-center">
                                                             <IconUser className="shrink-0 group-hover:!text-primary" />
@@ -692,14 +779,14 @@ const Sidebar = () => {
                                 </AnimateHeight>
                             </li>
                             {/* )} */}
-                            {/* <li className="nav-item">
+                            <li className="nav-item">
                                 <Link href="/notifications" className="group">
                                     <div className="flex items-center">
                                         <IconMenuChat className="shrink-0 group-hover:!text-primary" />
                                         <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Notifications')}</span>
                                     </div>
                                 </Link>
-                            </li> */}
+                            </li>
                         </ul>
                     </PerfectScrollbar>
                 </div>
@@ -720,22 +807,20 @@ const Sidebar = () => {
                                 title="Lead "
                                 value={state.lead}
                                 onChange={(e) => {
-                                    if (e) {
-                                        getContactList(e);
-                                    }
                                     setState({ lead: e, contact: '' });
                                 }}
                                 placeholder={'Lead '}
                                 options={state.leadList}
                                 error={state.errors?.lead}
                                 required
-                                loading={state.leadLoading}
+                                loading={state.LeadMoreloading}
+                                loadMore={() => state.leadnext && leadListLoadMore()}
                             />
                             {/* {state.contactLoading?
                             
                         
                         } */}
-                            <CustomSelect
+                            {/* <CustomSelect
                                 title="Contact"
                                 value={state.contact}
                                 onChange={(e) => setState({ contact: e })}
@@ -744,7 +829,7 @@ const Sidebar = () => {
                                 error={state.errors?.contact}
                                 required
                                 loading={state.contactLoading}
-                            />
+                            /> */}
                         </div>
 
                         <CustomeDatePicker
@@ -760,20 +845,7 @@ const Sidebar = () => {
                             value={state.task_type}
                             onChange={(e) => setState({ task_type: e })}
                             placeholder={'Task Type'}
-                            options={[
-                                {
-                                    label: 'Call',
-                                    value: 'Call',
-                                },
-                                {
-                                    label: 'Follow Up',
-                                    value: 'Follow Up',
-                                },
-                                {
-                                    label: 'To Do',
-                                    value: 'To Do',
-                                },
-                            ]}
+                            options={TASK_TYPE}
                             error={state.errors?.task_type}
                             required
                         />
@@ -790,14 +862,14 @@ const Sidebar = () => {
 
                         <CustomSelect
                             value={state.assignRole}
-                            onChange={(e) => setState({ assignRole: e, assigned_to: '', assignList: [] })}
+                            onChange={(e) => {
+                                usersList(e);
+                            }}
                             placeholder={'Choose Role'}
                             title={'Choose Role'}
                             options={[
-                                { value: 'owner', label: 'Owner' },
-                                { value: 'bdm', label: 'BDM' },
-                                { value: 'bde', label: 'BDE' },
-                                { value: 'tm', label: 'TM' },
+                                { value: 'admin', label: 'Admin' },
+                                { value: 'staff', label: 'Staff' },
                             ]}
                             error={state.errors?.assignRole}
                             required
@@ -807,10 +879,12 @@ const Sidebar = () => {
                             value={state.assigned_to}
                             onChange={(e) => setState({ assigned_to: e })}
                             placeholder={'Assign To'}
-                            options={state.assignList}
+                            options={state.usersList}
                             error={state.errors?.assigned_to}
                             required
                             isMulti={true}
+                            loadMore={() => state.userHasNext && usersListLoadMore()}
+                            loading={state.loading || state.leadStatusloadMore}
                         />
 
                         <TextArea height="150px" value={state.remark} onChange={(e) => setState({ remark: e })} placeholder={'Remark'} title={'Remark'} error={state.errors?.remark} required />

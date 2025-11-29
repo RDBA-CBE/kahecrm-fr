@@ -24,3 +24,19 @@ export const ROLES = {
     TM: 'TM',
     DM: 'DM',
 };
+
+export const TASK_TYPE=[
+    {
+        label: 'Call',
+        value: 'Call',
+    },
+    {
+        label: 'Follow Up',
+        value: 'Follow Up',
+    },
+    {
+        label: 'To Do',
+        value: 'To Do',
+    },
+    
+]

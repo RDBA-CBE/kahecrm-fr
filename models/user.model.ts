@@ -28,6 +28,41 @@ const user = {
         return promise;
     },
 
+    includeAdminuserList: (page: number, body: any) => {
+        let promise = new Promise((resolve, reject) => {
+            let url = `auth/users/?page=${page}`;
+            if (body?.group) {
+                url += `&group=${encodeURIComponent(body.group)}`;
+            }
+
+            if (body?.search) {
+                url += `&search=${encodeURIComponent(body.search)}`;
+            }
+
+            if (body?.exclude_admin == 'Yes') {
+                url += `&exclude_admin=${encodeURIComponent(true)}`;
+            }
+
+             if (body?.show_admins_only == 'Yes') {
+                url += `&show_admins_only=${encodeURIComponent(true)}`;
+            }
+
+            instance()
+                .get(url)
+                .then((res) => {
+                    resolve(res.data);
+                })
+                .catch((error) => {
+                    if (error.response) {
+                        reject(error.response.message);
+                    } else {
+                        reject(error);
+                    }
+                });
+        });
+        return promise;
+    },
+
     updateUser: (data: any, id: any) => {
         let promise = new Promise((resolve, reject) => {
             let url = `auth/users/${id}/`;
@@ -129,8 +164,6 @@ const user = {
         });
         return promise;
     },
-
-    
 };
 
 export default user;

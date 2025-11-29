@@ -458,7 +458,7 @@ export const pageCounts = (currentPage, totalRecords) => {
 export const getDate = (taskDateTime) => {
     const dateObj = new Date(taskDateTime);
     // const formattedDate = dateObj.toISOString().split('T')[0];
-    const formattedDate = moment(taskDateTime).utc().format('DD-MM-YYYY');
+    const formattedDate = moment(taskDateTime).utc().format('DD-MM-YYYY HH:mm a');
     return formattedDate;
 };
 

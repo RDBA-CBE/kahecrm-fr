@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import CustomfullCalender from '@/common_component/fullCalender';
 import { Dropdown, Failure, Success, capitalizeFLetter, objIsEmpty, useSetState } from '@/utils/functions.utils';
 import IconSearch from '@/components/Icon/IconSearch';
@@ -31,19 +31,22 @@ import { useRouter } from 'next/router';
 import Modal from '@/common_component/modal';
 import FileUpload from '@/common_component/fileUpload';
 import { IRootState } from '@/store';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import IconX from '@/components/Icon/IconX';
+import * as FileSaver from 'file-saver';
+import ExcelJS from 'exceljs';
 import Pagination from '@/components/Pagination';
+import { contactIndex } from '@/store/crmConfigSlice';
+import IconTrash from '@/components/Icon/IconTrash';
 
 const Contacts = () => {
-    const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
-        columnAccessor: 'name',
-        direction: 'asc',
-    });
+    const dispatch = useDispatch();
 
     const router = useRouter();
 
-    const redux = useSelector((state: IRootState) => state.crmConfig);
+    const isInitialized = useRef(false);
+
+    const redux: any = useSelector((state: IRootState) => state.crmConfig);
 
     const [state, setState] = useSetState({
         contactList: [],
@@ -51,7 +54,7 @@ const Contacts = () => {
         next: null,
         role: null,
         columns: [],
-        currentPage: 1,
+        currentPage: redux.contactIndex || 1,
         totalRecords: 0,
         isOpenCreateContact: false,
         lead: '',
@@ -66,47 +69,51 @@ const Contacts = () => {
         isClick: false,
         importLoading: false,
         errorContacts: [],
+        to_date: null,
+        from_date: null,
+        isFirstLoad: true,
     });
 
-    const debouncedSearch = useDebounce(state.search, 500);
+    const debouncedSearch = useDebounce(state.search, 1000);
+
+    const debouncedPhnoSearch = useDebounce(state.phone_number_search, 1000);
 
     useEffect(() => {
-        contactList(state.currentPage);
+        const page = redux.contactIndex || 1;
+        setState({ currentPage: page });
+        contactList(page);
         statusList();
-       
-        userData();
-        filter(state.currentPage);
-        // telecallerList();
-        // bdeList();
-        // BDEList();
-        // assignList();
+        leadList();
+        contactStatusList();
+        isInitialized.current = true;
     }, []);
-   
-
-    // useEffect(() => {
-    //     filter(state.currentPage);
-    // }, [state.currentPage]);
 
     useEffect(() => {
-        if (!objIsEmpty(bodyData())) {
-            filter(1);
-        } else {
-            contactList(1);
-        }
-    }, [debouncedSearch, state.filter_status, state.bdm, state.bde, state.dm, state.tm, state.assignRole, state.role, state.assigned_to, state.lead_source, state.lead_status]);
+        if (!isInitialized.current) return;
 
-   
+        setState({ currentPage: 1 });
+        dispatch(contactIndex(1));
+
+        contactList(1);
+    }, [debouncedSearch, debouncedPhnoSearch, state.status, state.role, state.assigned_to, state.from_date, state.to_date]);
 
     const bodyData = () => {
+      
         let filter: any = {};
 
-        filter.team = true;
+      
+            filter.team = 'Yes';
 
         if (state.search) {
-            filter.name = state.search;
+            filter.search = state.search;
         }
-        if (state.filter_status) {
-            filter.status = state.filter_status?.value;
+
+        if (state.phone_number_search) {
+            filter.phone_number_search = state.phone_number_search;
+        }
+
+        if (state.status) {
+            filter.status = state.status?.value;
         }
 
         if (state.lead_source) {
@@ -115,68 +122,26 @@ const Contacts = () => {
         if (state.lead_status) {
             filter.status = state.lead_status?.value;
         }
-        if (state.assigned_to) {
-            filter.assigned_to = state.assigned_to?.value;
-        } else if (state.bdm) {
-            if (state.bde) {
-                filter.bde = state.bde?.value;
-            } else if (state.tm) {
-                filter.tm = state.tm?.value;
-            } else {
-                filter.bdm = state.bdm?.value;
-            }
-        } else if (state.bde) {
-            filter.bde = state.bde?.value;
-        } else if (state.tm) {
-            filter.tm = state.tm?.value;
+
+        if (state.from_date) {
+            filter.from_date = moment(state.from_date).format('YYYY-MM-DD');
         }
 
-        if (state.dm) {
-            filter.dm = state.dm?.value;
+        if (state.to_date) {
+            filter.to_date = moment(state.to_date).format('YYYY-MM-DD');
         }
 
-        console.log(filter);
         return filter;
     };
 
-    const contactList = async (page) => {
-        setState({ loading: true });
-        const role: any = await Models.auth.userDetails();
-        let res: any;
-
-        if (ROLE.ADMIN == state.role || ROLE.BDM == state.role) {
-            res = await Models.contact.archive_list(page);
-        } else {
-            res = await Models.contact.archive_list(page, role?.id);
-        }
-        // const res: any = await Models.contact.archive_list(page, role?.id);
-        setState({ role: role?.designation, loading: false, currentPage: page });
-        tableData(res, role?.designation);
-
-        try {
-        } catch (error) {
-            setState({ loading: false });
-
-            console.log('error: ', error);
-        }
-    };
-
-   
-    const filter = async (page) => {
+    const contactList = async (page, sortStatus = null) => {
         setState({ loading: true });
         const body = bodyData();
-        const role: any = await Models.auth.userDetails();
-        let res: any;
 
-        if (ROLE.ADMIN == state.role || ROLE.BDM == state.role) {
-            res = await Models.contact.archive_filter(page, body);
-        } else {
-            res = await Models.contact.archive_filter(page, body, role?.id);
-        }
-        // const res: any = await Models.contact.archive_filter(page, body, role?.id);
-        setState({ role: role?.designation });
-        tableData(res, role?.designation);
-        setState({ loading: false, totalRecords: res.count, next: res.next, previous: res.previous, isOpen: false, currentPage: page });
+        const res: any = await Models.contact.archive_list(page, body);
+
+        setState({ loading: false, currentPage: page, count: res.count, next: res.next, previous: res.previous, isFirstLoad: false });
+        tableData(res);
 
         try {
         } catch (error) {
@@ -186,42 +151,50 @@ const Contacts = () => {
         }
     };
 
-    const tableData = (res: any, role: string) => {
+    const tableData = (res: any) => {
         const data = res?.results?.map((item) => {
             return {
                 ...item,
-                company_name: item?.company_name ? capitalizeFLetter(item?.company_name) : '',
+                student_name: item?.student_name ? capitalizeFLetter(item?.student_name) : '',
                 contact_person: item?.name ? capitalizeFLetter(item?.name) : '',
                 contact_number: item?.phone_number,
                 designation: item?.designation ? capitalizeFLetter(item?.designation) : '',
-                remark: item?.remark,
+                remark: item?.remark ? item?.remark : '',
                 status: item?.status?.status,
                 allData: item,
+                date: moment(item?.created_on).format('DD-MM-YYYY'),
             };
         });
+        console.log('data: ', data);
 
         setState({ contactList: data, next: res.next, previous: res.previous, totalRecords: res.count });
     };
 
-    const handleNextPage = () => {
-        if (state.next) {
-            const newPage = state.currentPage + 1;
-            if (!objIsEmpty(bodyData())) {
-                filter(newPage);
-            } else {
-                contactList(newPage);
-            }
+    const contactStatusList = async () => {
+        try {
+            setState({ loading: true });
+            const res: any = await Models.master.contact_status_list(1);
+            const dropdownList = Dropdown(res.results, 'status');
+            setState({ contactStatusList: dropdownList, loading: false, contactStatusPage: 1, contactStatusHasNext: res?.next });
+        } catch (error) {
+            setState({ loading: false });
+            console.log('error: ', error);
         }
     };
-
-    const handlePreviousPage = () => {
-        if (state.previous) {
-            const newPage = state.currentPage - 1;
-            if (!objIsEmpty(bodyData())) {
-                filter(newPage);
-            } else {
-                contactList(newPage);
-            }
+    const contactStatusLoadMore = async () => {
+        try {
+            setState({ contactStatusloadMore: true });
+            const res: any = await Models.master.contact_status_list(state.contactStatusPage + 1);
+            const dropdownList = Dropdown(res.results, 'status');
+            setState({
+                contactStatusList: [...state.contactStatusList, ...dropdownList],
+                contactStatusloadMore: false,
+                contactStatusPage: state.contactStatusPage + 1,
+                contactStatusHasNext: res.next,
+            });
+        } catch (error) {
+            setState({ contactStatusloadMore: false });
+            console.log('error: ', error);
         }
     };
 
@@ -233,6 +206,7 @@ const Contacts = () => {
             console.log('error: ', error);
         }
     };
+
     const statusList = async () => {
         try {
             setState({ loading: true });
@@ -245,7 +219,6 @@ const Contacts = () => {
             console.log('error: ', error);
         }
     };
-
 
     const clearContactData = (rowId: any) => {
         setState({
@@ -394,7 +367,39 @@ const Contacts = () => {
         });
     };
 
-    
+    const leadList = async () => {
+        try {
+            const res: any = await Models.lead.list(null, state.currentLeadPage, null);
+            const dropdownList = Dropdown(res?.results, 'name');
+            setState({
+                leadList: dropdownList,
+                hasMoreLead: res.next,
+            });
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
+    const leadListLoadMore = async () => {
+        try {
+            if (state.hasMoreLead) {
+                const res: any = await Models.lead.list(null, state.currentLeadPage + 1, null);
+
+                const newOptions = Dropdown(res?.results, 'name');
+                setState({
+                    leadList: [...state.leadList, ...newOptions],
+                    hasMoreLead: res.next,
+                    currentLeadPage: state.currentLeadPage + 1,
+                });
+            } else {
+                setState({
+                    leadList: state.leadList,
+                });
+            }
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
 
     const importContact = async () => {
         try {
@@ -417,7 +422,6 @@ const Contacts = () => {
             setState({ isOpenImport: false, file: null, importLoading: false, errorContacts: [] });
             contactList(state.currentPage);
         } catch (error: any) {
-            console.log('✌️error --->', error);
             setState({ importLoading: false });
             if (error.response?.data?.details?.length > 0) {
                 const errorContacts = error.response?.data?.details
@@ -434,6 +438,10 @@ const Contacts = () => {
                                 contact?.error?.phone_number?.created_by
                             )}) message - (${contact?.error?.phone_number?.message}) `;
                         }
+
+                        if (contact?.error?.department?.length > 0) {
+                            errorMessage += ` Department Error - ${contact?.error?.department[0]}  `;
+                        }
                         return errorMessage;
                     });
                 setState({ errorContacts });
@@ -445,8 +453,6 @@ const Contacts = () => {
             }
         }
     };
-
-    
 
     const handleRemove = (type) => {
         if (type == 'bdm') {
@@ -474,15 +480,162 @@ const Contacts = () => {
         }
     };
 
+    const exportToExcel = async () => {
+        setState({ excelLoading: true });
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Contacts');
+
+        // Define the columns matching your DataTable
+        const exportColumns = [
+            {
+                title: 'Company Name',
+                accessor: 'company_name',
+            },
+            {
+                title: 'Contact Person',
+                accessor: 'name',
+            },
+            {
+                title: 'Contact Number',
+                accessor: 'phone_number',
+            },
+            {
+                title: 'Date',
+                accessor: 'date',
+                width: 120,
+            },
+            {
+                title: 'Designation',
+                accessor: 'designation',
+            },
+            // ...(state?.role !== ROLE.BDE
+            //     ? [
+            {
+                title: 'Status',
+                accessor: 'status',
+            },
+            //   ]
+            // : []),
+            {
+                title: 'Remark',
+                accessor: 'remark',
+            },
+        ];
+
+        // Add header row
+        worksheet.addRow(exportColumns.map((col) => col.title));
+
+        // Get user details once
+        const res: any = await Models.auth.userDetails();
+        const userId = res?.id;
+
+        let page = 1;
+        let hasMoreData = true;
+        let allData: any[] = [];
+
+        // Loop through all pages until no more data
+        while (hasMoreData) {
+            try {
+                let response = null;
+
+                const body = bodyData();
+
+                response = await Models.contact.list(page, body);
+
+                if (response?.results && response?.results.length > 0) {
+                    allData = [...allData, ...response?.results];
+                }
+                if (response?.next) {
+                    page++;
+                } else {
+                    hasMoreData = false;
+                }
+            } catch (error) {
+                console.error('Error fetching data for export:', error);
+                hasMoreData = false;
+            }
+        }
+        setState({ excelLoading: false });
+
+        const data = allData?.map((item) => {
+            return {
+                ...item,
+                company_name: item?.company_name ? capitalizeFLetter(item?.company_name) : '',
+                contact_person: item?.name ? capitalizeFLetter(item?.name) : '',
+                contact_number: item?.phone_number,
+                designation: item?.designation ? capitalizeFLetter(item?.designation) : '',
+                remark: item?.remark,
+                status: item?.status?.status,
+                allData: item,
+                date: moment(item?.created_on).format('DD-MM-YYYY'),
+            };
+        });
+
+        // Add all data rows to worksheet
+        data.forEach((row: any) => {
+            const rowData = exportColumns.map((col: any) => {
+                if (typeof col.accessor === 'function') {
+                    return col.accessor(row);
+                }
+                return row[col.accessor];
+            });
+            worksheet.addRow(rowData);
+        });
+
+        // Auto-fit columns
+        exportColumns.forEach((_, i) => {
+            const headerLength = exportColumns[i].title.length;
+            worksheet.getColumn(i + 1).width = Math.max(20, headerLength + 2);
+        });
+
+        // Generate and save Excel file
+        const buffer = await workbook.xlsx.writeBuffer();
+        FileSaver.saveAs(
+            new Blob([buffer], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            }),
+            'Contacts.xlsx'
+        );
+    };
+
+    const handleDelete = async (row) => {
+        try {
+            setState({ isDeleteLoad: true });
+
+            await Models.contact.delete(row?.id);
+            Success('Contact Deleted Successfully');
+            contactList(state.currentPage);
+            setState({ isDeleteLoad: false });
+        } catch (error) {
+            setState({ isDeleteOpen: false, isDeleteLoad: false });
+        }
+    };
+
     return (
         <div className="p-2">
             <div className="panel  mb-3 flex items-center justify-between gap-5 ">
                 <div className="flex items-center gap-5 pl-3">
-                    {/* <h5 className="text-lg font-semibold ">ARCHIVE CONTACTS</h5> */}
-
-                    <h5 className="text-lg font-semibold ">{(ROLE.ADMIN == state.role || ROLE.BDM == state.role) && 'TEAM '}ARCHIVE CONTACTS</h5>
+                    <h5 className="text-lg font-semibold ">{(ROLE.ADMIN == state.role || ROLE.BDM == state.role) && 'TEAM'} ARCHIVE CONTACTS</h5>
                 </div>
-                {state.role !== ROLE.ADMIN && state.role !== ROLE.BDM && (
+                {ROLE.ADMIN !== state.role && ROLE.BDM !== state.role && (
+                    // <div className="flex items-center gap-3">
+                    //     <button
+                    //         type="button"
+                    //         className="btn btn-primary"
+                    //         onClick={() => {
+                    //             router.push('create_contact');
+                    //         }}
+                    //     >
+                    //         Add
+                    //     </button>
+                    //     <button type="button" className="btn btn-primary" onClick={() => setState({ isOpenImport: true, errorContacts: [] })}>
+                    //         Import
+                    //     </button>
+                    //     <button type="button" className="btn btn-primary w-full md:w-auto" onClick={() => exportToExcel()}>
+                    //         {state.excelLoading ? <IconLoader className=" h-4 w-4 animate-spin" /> : 'Excel'}
+                    //     </button>
+                    // </div>
+
                     <div className="flex items-center gap-3">
                         <button
                             type="button"
@@ -518,8 +671,8 @@ const Contacts = () => {
                 )}
             </div>
 
-            <div className="panel mt-2 flex flex-col gap-4 lg:flex-row lg:items-center ">
-                <div className="relative flex w-full max-w-full items-center rounded-full border border-gray-300 dark:border-white-dark/30 lg:w-1/3">
+            <div className="panel mt-2 flex flex-col gap-4 lg:flex-row lg:items-center">
+                <div className="relative flex flex-1 items-center rounded-full border border-gray-300 dark:border-white-dark/30">
                     <button type="submit" className="flex items-center justify-center px-3 py-2 text-primary">
                         <IconSearch className="h-6 w-6 font-bold" />
                     </button>
@@ -532,381 +685,77 @@ const Contacts = () => {
                     />
                 </div>
 
-                {/* <CustomSelect
-                    value={state.filter_status}
-                    onChange={(e) => {
-                        setState({ filter_status: e });
-                    }}
-                    placeholder="Status"
-                    options={state.statusList}
-                    className="w-full md:w-1/2 lg:w-2/4"
-                /> */}
+                {/* <div className="relative flex flex-1 items-center rounded-full border border-gray-300 dark:border-white-dark/30">
+                    <button type="submit" className="flex items-center justify-center px-3 py-2 text-primary">
+                        <IconSearch className="h-6 w-6 font-bold" />
+                    </button>
+                    <input
+                        type="number"
+                        value={state.phone_number_search}
+                        onChange={(e) => setState({ phone_number_search: e.target.value })}
+                        placeholder="Search phone number"
+                        className="form-input w-full rounded-r-full border-0 bg-white py-1.5 pl-0 text-sm placeholder:tracking-wide focus:shadow-lg focus:outline-none dark:bg-gray-800 dark:shadow-[#1b2e4b] dark:placeholder:text-gray-400"
+                    />
+                </div> */}
 
-                <div className="flex w-full flex-col gap-4 lg:w-2/3 lg:flex-row">
-                    {ROLE.ADMIN == state.role && (
-                        <>
-                            <CustomSelect
-                                options={state.bdmList}
-                                value={state.bdm}
-                                onChange={(e) => setState({ bdm: e, bde: null, roles: null })}
-                                isMulti={false}
-                                placeholder="BDM"
-                                className="w-full "
-                                disabled={state.dm?.value}
-                            />
-                            <CustomSelect
-                                options={
-                                    state.bdm?.value
-                                        ? [
-                                              {
-                                                  value: 'BDE',
-                                                  label: 'BDE',
-                                              },
-                                              {
-                                                  value: 'TM',
-                                                  label: 'TM',
-                                              },
-                                          ]
-                                        : []
-                                }
-                                value={state.roles}
-                                onChange={(e) => setState({ roles: e, bde: null })}
-                                isMulti={false}
-                                placeholder="Choose Role"
-                                className="w-full "
-                                disabled={state.dm?.value}
-                            />
-                            {state.roles ? (
-                                state.roles?.value == 'BDE' ? (
-                                    <CustomSelect
-                                        options={state.bdeOrTMList}
-                                        value={state.bde}
-                                        onChange={(e) => setState({ bde: e })}
-                                        isMulti={false}
-                                        placeholder="BDE"
-                                        className="w-full "
-                                        disabled={state.dm?.value}
-                                    />
-                                ) : (
-                                    <CustomSelect
-                                        options={state.bdeOrTMList}
-                                        value={state.bde}
-                                        onChange={(e) => setState({ bde: e })}
-                                        isMulti={false}
-                                        placeholder="TM"
-                                        className="w-full "
-                                        disabled={state.dm?.value}
-                                    />
-                                )
-                            ) : null}
-                            <CustomSelect
-                                options={state.dmList}
-                                value={state.dm}
-                                onChange={(e) => setState({ dm: e })}
-                                isMulti={false}
-                                placeholder="DM"
-                                className="w-full "
-                                disabled={state.bdm?.value || state.bde?.value || state.roles?.value}
-                            />
-                        </>
-                    )}
-
-                    {ROLE.BDM == state.role && (
-                        <>
-                            <CustomSelect
-                                options={state.bdeList}
-                                value={state.bde}
-                                onChange={(e) => setState({ bde: e })}
-                                disabled={state?.tm?.value || state.dm?.value}
-                                isMulti={false}
-                                placeholder="BDE"
-                                className="w-full"
-                            />
-
-                            <CustomSelect
-                                options={state.assignList}
-                                value={state.tm}
-                                onChange={(e) => setState({ tm: e })}
-                                disabled={state?.bde?.value || state.dm?.value}
-                                isMulti={false}
-                                placeholder="TM"
-                                className="w-full"
-                            />
-
-                            <CustomSelect
-                                options={state.dmList}
-                                value={state.dm}
-                                onChange={(e) => setState({ dm: e })}
-                                disabled={state?.bde?.value || state.tm?.value}
-                                isMulti={false}
-                                placeholder="DM"
-                                className="w-full"
-                            />
-                        </>
-                    )}
-
-                    {(ROLE.BDE == state.role || ROLE.TM == state.role) && (
-                        <>
-                            <CustomSelect
-                                value={state.lead_source}
-                                onChange={(e) => setState({ lead_source: e })}
-                                placeholder={'Source'}
-                                options={state.sourceList}
-                                error={state.errors?.lead_source}
-                                className="w-full"
-                                required
-                            />
-                            <CustomSelect
-                                value={state.lead_status}
-                                onChange={(e) => setState({ lead_status: e })}
-                                placeholder={'Status'}
-                                options={state.statusList}
-                                error={state.errors?.lead_status}
-                                className="w-full"
-                                required
-                            />
-                        </>
-                    )}
-                    {/* <button className="btn btn-primary w-full lg:w-auto" onClick={() => setState({ isOpen: true })}>
-                        <IconFilter />
-                    </button> */}
+                <div className="flex-1">
+                    <CustomSelect
+                        options={state.contactStatusList}
+                        value={state.status}
+                        onChange={(e) => setState({ status: e })}
+                        isMulti={false}
+                        placeholder="Status"
+                        loadMore={() => state.contactStatusHasNext && contactStatusLoadMore()}
+                    />
                 </div>
-
-                {/* <button className="btn btn-primary w-full lg:w-auto" onClick={() => setState({ isOpen: true })}>
-                        <IconFilter />
-                    </button> */}
             </div>
-            {ROLE.ADMIN == state.role ? (
-                <>
-                    {!state?.dm && (state?.bdm || state?.roles || state?.bde || state?.card_lead_status) && (
-                        <p className="flex items-center gap-2 pt-3 text-sm font-semibold">
-                            Filters:
-                            {state?.bdm?.label && (
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('bdm')}>
-                                    {state?.bdm?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            )}
-                            {state?.roles?.label && <div>/</div>}
-                            {state?.roles?.label && (
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('roles')}>
-                                    {state?.roles?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            )}
-                            {state?.bde?.label && <div>/</div>}
-                            {state?.bde?.label && (
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('bde')}>
-                                    {state?.bde?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            )}
-                            {state?.card_lead_status && <div>,</div>}
-                            {state?.card_lead_status && (
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('status')}>
-                                    {`${state?.card_lead_status} (${state.today ? 'Today' : 'Month'})`}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            )}
-                        </p>
-                    )}
-                    {state?.dm && (
-                        <div className="pb-2 pt-3">
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                Filters:
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('dm')}>
-                                    {state?.dm?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                                {state?.card_lead_status && <div>,</div>}
-                                {state?.card_lead_status && (
-                                    <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('status')}>
-                                        {`${state?.card_lead_status} (${state.today ? 'Today' : 'Month'})`}
-                                        <div>
-                                            <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                        </div>
-                                    </div>
-                                )}
+
+            <div className=" mt-2 grid grid-cols-12  gap-4">
+                <div className=" col-span-12 flex flex-col   md:col-span-12">
+                    <div className=" col-span-12 flex flex-col   md:col-span-12">
+                        <div className="flex items-center justify-end pb-2 pr-3">
+                            <div className="rounded-lg bg-gray-300 p-1 font-semibold">
+                                {state.currentPage}-{Math.min(state.currentPage * 10, state.totalRecords)} of {state.totalRecords}
                             </div>
                         </div>
-                    )}
-                </>
-            ) : ROLE.BDM == state.role ? (
-                <>
-                    <div className="flex gap-2 pt-3">
-                        {state?.bde?.label && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('bde')}>
-                                    {state?.bde?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {state?.tm?.label && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('tm')}>
-                                    {state?.tm?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {state?.dm?.label && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('dm')}>
-                                    {state?.dm?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                        <DataTable
+                            className="table-responsive"
+                            records={state.contactList}
+                            fetching={state.loading || state.subLoading}
+                            loaderSize="lg"
+                            loaderVariant="dots"
+                            loaderColor="blue"
+                            loaderBackgroundBlur={0}
+                            columns={[
+                                // { accessor: 'student_name', title: 'Student Name' },
+                                { accessor: 'student_name', title: 'Student Name' },
+                                { accessor: 'phone_number', title: 'Contact Number' },
+                                { accessor: 'date', title: 'Date', width: 120 },
 
-                        {state?.card_lead_status && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('status')}>
-                                    {`${state?.card_lead_status} (${state.today ? 'Today' : 'Month'})`}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </>
-            ) : ROLE.BDE == state.role ? (
-                <>
-                    <div className="flex gap-2 pt-3">
-                        {state?.lead_source?.label && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('lead_source')}>
-                                    {state?.lead_source?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {state?.lead_status?.label && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('lead_status')}>
-                                    {state?.lead_status?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {state?.card_lead_status && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('status')}>
-                                    {`${state?.card_lead_status} (${state.today ? 'Today' : 'Month'})`}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </>
-            ) : (
-                <>
-                    <div className="flex gap-2 pt-3">
-                        {state?.assignRole?.label && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('assignRole')}>
-                                    {state?.assignRole?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {state?.assigned_to?.label && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('assigned_to')}>
-                                    {state?.assigned_to?.label}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {state?.lead_source?.value && (
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('lead_source')}>
-                                    {`${state?.lead_source?.label}`}
-                                    <div>
-                                        <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                                // { accessor: 'category', title: 'Category',  },
+                                // { accessor: 'created_by', title: 'Assign To',  },
+                                // { accessor: 'designation', title: 'Designation' },
 
-                        {state?.card_lead_status && (
-                            <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('status')}>
-                                {`${state?.card_lead_status} (${state.today ? 'Today' : 'Month'})`}
-                                <div>
-                                    <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </>
-            )}
-            <div className=" mt-2 grid grid-cols-12  gap-4">
-                {state.loading || state.subLoading ? (
-                    <div className="relative inset-0 z-10 flex items-center justify-center bg-white bg-opacity-70">
-                        <CommonLoader />
-                    </div>
-                ) : (
-                    <div className=" col-span-12 flex flex-col   md:col-span-12">
-                        <div className=" col-span-12 flex flex-col   md:col-span-12">
-                            <div className="flex items-center justify-end pb-2 pr-3">
-                                <div className="rounded-lg bg-gray-300 p-1 font-semibold">
-                                    {state.currentPage}-{Math.min(state.currentPage * 10, state.totalRecords)} of {state.totalRecords}
-                                </div>
-                            </div>
-                            <DataTable
-                                className="table-responsive"
-                                records={state.contactList}
-                                columns={[
-                                    { accessor: 'company_name', title: 'Company Name' },
-                                    { accessor: 'contact_person', title: 'Contact Person' },
-                                    { accessor: 'phone_number', title: 'Contact Number' },
-                                    // { accessor: 'category', title: 'Category',  },
-                                    // { accessor: 'created_by', title: 'Assign To',  },
-                                    // { accessor: 'designation', title: 'Designation' },
-
-                                    ...(state?.role !== ROLE.BDE ? [{ accessor: 'status', title: 'Status' }] : []),
-                                    {
-                                        accessor: 'remark',
-                                        title: 'Remark',
-                                        render: (row: any) => (
-                                            <Tippy content={row?.remark} placement={'top'} className="rounded-lg bg-black p-1 text-sm text-white">
-                                                <div>{row?.remark?.length > 30 ? `${row.remark.slice(0, 30)}...` : row?.remark}</div>
-                                            </Tippy>
-                                        ),
-                                    },
-                                    {
-                                        accessor: 'actions',
-                                        title: 'Actions',
-                                        render: (row: any) => (
-                                            <div className="mx-auto flex w-max items-center gap-4">
-                                                {/* <button
+                                // ...(state?.role !== ROLE.BDE ? [
+                                { accessor: 'status', title: 'Status' },
+                                // ] : []),
+                                {
+                                    accessor: 'remark',
+                                    title: 'Remark',
+                                    sortable: false,
+                                    render: (row: any) => (
+                                        <Tippy content={row?.remark} placement={'top'} className="rounded-lg bg-black p-1 text-sm text-white">
+                                            <div>{row?.remark?.length > 30 ? `${row.remark.slice(0, 30)}...` : row?.remark}</div>
+                                        </Tippy>
+                                    ),
+                                },
+                                {
+                                    accessor: 'actions',
+                                    title: 'Actions',
+                                    sortable: false,
+                                    render: (row: any) => (
+                                        <div className="mx-auto flex w-max items-center gap-4">
+                                            {/* <button
                                                     className="flex hover:text-primary"
                                                     onClick={(e) => {
                                                         state.expandedRow === row.id ? setState({ expandedRow: null, isClick: true }) : setState({ expandedRow: row.id, isClick: true });
@@ -914,100 +763,91 @@ const Contacts = () => {
                                                 >
                                                     <IconQuickEdit />
                                                 </button> */}
-                                                {/* <button className="flex hover:text-primary" onClick={() => console.log('View task', row)}>
-                                                    <IconEye />
-                                                </button> */}
-                                                <button
-                                                    className="flex hover:text-info"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        router.push(`/update_contact?id=${row?.id}`);
-                                                    }}
-                                                >
-                                                    <IconEdit className="h-4.5 w-4.5" />
-                                                </button>
-                                            </div>
-                                        ),
-                                    },
-                                ]}
-                                rowExpansion={{
-                                    collapseProps: {
-                                        transitionDuration: 500,
-                                        animateOpacity: false,
-                                        transitionTimingFunction: 'ease-out',
-                                    },
-                                    allowMultiple: false,
-                                    content: ({ record, collapse }) =>
-                                        state.expandedRow === record?.id ? (
-                                            <div>
-                                                <ContactQuickEdit
-                                                    key={record.id}
-                                                    collapse={() => collapse()}
-                                                    data={record}
-                                                    updateList={() => {
-                                                        setState({ expandedRow: null });
-                                                        filter(state.currentPage);
-                                                        contactList(state.currentPage);
-                                                    }}
-                                                    resetExpandedRow={() => {
-                                                        setState({ expandedRow: null });
-                                                    }}
-                                                />
-                                            </div>
-                                        ) : null,
-                                }}
-                                onRowClick={({ id }) => {
-                                    if (state.expandedRow !== id) {
-                                        setState({ expandedRow: id });
-                                        // router.push(`/update_contact?id=${id}`);
-                                    }
-                                }}
-                                // onRowClick={({ id }) => {
-                                //     if (state.isClick) {
-                                //         //     setState({ expandedRow: id });
-                                //         router.push(`/update_contact?id=${id}`);
-                                //     }
-                                // }}
-                                highlightOnHover
-                                totalRecords={state.taskList?.length}
-                                recordsPerPage={state.pageSize}
-                                minHeight={200}
-                                page={null}
-                                onPageChange={(p) => {}}
-                                withBorder={true}
-                                sortStatus={sortStatus}
-                                onSortStatusChange={setSortStatus}
-                                paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
-                            />
-                        </div>
-                        {/* <div className="mt-5 flex justify-center gap-3">
-                            <button disabled={!state.previous} onClick={handlePreviousPage} className={`btn ${!state.previous ? 'btn-disabled' : 'btn-primary'}`}>
-                                <IconArrowBackward />
-                            </button>
-                            <button disabled={!state.next} onClick={handleNextPage} className={`btn ${!state.next ? 'btn-disabled' : 'btn-primary'}`}>
-                                <IconArrowForward />
-                            </button>
-                        </div> */}
 
-                        <div className="mt-5 flex justify-center gap-3">
-                            <Pagination
-                                currentPage={state.currentPage}
-                                totalRecords={state.count}
-                                onPageChange={(page) => {
-                                    if (!objIsEmpty(bodyData())) {
-                                        filter(page);
-                                    } else {
-                                        contactList(page);
-                                    }
-                                    setState({ currentPage: page });
-                                }}
-                                hasNext={state.next !== null}
-                                hasPrevious={state.previous !== null}
-                                recordsPerPage={10}
-                            />
-                        </div>
+                                            <button
+                                                className="flex hover:text-info"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    router.push(`/update_contact?id=${row?.id}`);
+                                                    dispatch(contactIndex(state.currentPage));
+                                                }}
+                                            >
+                                                <IconEdit className="h-4.5 w-4.5" />
+                                            </button>
+                                            <button className="flex hover:text-primary" onClick={() => handleDelete(row)}>
+                                                <IconTrash />
+                                            </button>
+                                        </div>
+                                    ),
+                                },
+                            ]}
+                            // rowExpansion={{
+                            //     collapseProps: {
+                            //         transitionDuration: 500,
+                            //         animateOpacity: false,
+                            //         transitionTimingFunction: 'ease-out',
+                            //     },
+                            //     allowMultiple: false,
+                            //     content: ({ record, collapse }) =>
+                            //         state.expandedRow === record.id ? (
+                            //             <div>
+                            //                 <ContactQuickEdit
+                            //                     key={record.id}
+                            //                     collapse={() => collapse()}
+                            //                     data={record}
+                            //                     updateList={() => {
+                            //                         setState({ expandedRow: null });
+                            //                         filter(state.currentPage);
+                            //                         contactList(state.currentPage);
+                            //                     }}
+                            //                     resetExpandedRow={() => {
+                            //                         setState({ expandedRow: null });
+                            //                     }}
+                            //                 />
+                            //             </div>
+                            //         ) : null,
+                            // }}
+                            // onRowClick={({ id }) => {
+                            //     if (state.expandedRow !== id && !state.isClick) {
+                            //         setState({ expandedRow: id });
+                            //         // router.push(`/update_contact?id=${id}`);
+                            //     }
+                            //     setState({ isClick: false });
+                            // }}
+                            // onRowClick={({ id }) => {
+                            //     if (state.isClick) {
+                            //         //     setState({ expandedRow: id });
+                            //         router.push(`/update_contact?id=${id}`);
+                            //     }
+                            // }}
+                            highlightOnHover
+                            totalRecords={state.taskList?.length}
+                            recordsPerPage={state.pageSize}
+                            minHeight={200}
+                            page={null}
+                            onPageChange={(p) => {}}
+                            withBorder={true}
+                            // sortStatus={sortStatus}
+                            // onSortStatusChange={handleSortStatusChange}
+                            paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
+                        />
                     </div>
-                )}
+                    <div className="mt-5 flex justify-center gap-3">
+                        <Pagination
+                            currentPage={state.currentPage}
+                            totalRecords={state.count}
+                            onPageChange={(page) => {
+                                setState({ currentPage: page });
+                                dispatch(contactIndex(page));
+
+                                contactList(page);
+                            }}
+                            hasNext={state.next !== null}
+                            hasPrevious={state.previous !== null}
+                            recordsPerPage={10}
+                        />
+                    </div>
+                </div>
             </div>
             <SideMenu
                 title={state.contactId ? 'Update Contact' : 'Add Contact'}
@@ -1083,6 +923,7 @@ const Contacts = () => {
                                     options={state.leadList}
                                     error={state.errors?.lead}
                                     required
+                                    loadMore={() => leadListLoadMore()}
                                 />
                             )}
                         </div>
@@ -1093,7 +934,7 @@ const Contacts = () => {
             <Modal
                 open={state.isOpenImport}
                 addHeader={'Import Contact'}
-                close={() => setState({ isOpenImport: false, file: null })}
+                close={() => setState({ isOpenImport: false, file: null, errorContacts: [], importLoading: false })}
                 renderComponent={() => (
                     <div className="flex flex-col gap-5 p-5">
                         <FileUpload
@@ -1112,7 +953,7 @@ const Contacts = () => {
                             </ol>
                         )}
                         <div className="mt-3 flex items-center justify-end gap-3">
-                            <button type="button" className="btn btn-outline-danger border " onClick={() => setState({ isOpenImport: false, file: null })}>
+                            <button type="button" className="btn btn-outline-danger border " onClick={() => setState({ isOpenImport: false, file: null, errorContacts: [] })}>
                                 Cancel
                             </button>
                             <button type="button" className="btn btn-primary" onClick={() => importContact()}>

@@ -17,6 +17,7 @@ import moment from 'moment';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Validation } from '@/utils/imports.utils';
 import CustomPhoneInput from '@/components/PhoneInput';
+import { ROLE } from '@/utils/constant.utils';
 
 const UpdateContact = () => {
     const router = useRouter();
@@ -90,7 +91,6 @@ const UpdateContact = () => {
         leadStatusList();
         contactStatusList();
         qualificationList();
-        usersList();
     }, []);
 
     const getDetail = async () => {
@@ -133,7 +133,12 @@ const UpdateContact = () => {
                 relation_to_student: res?.relation_to_student,
                 remark: res?.remark,
                 personal_remarks: res?.personal_remarks,
-                achieved:res?.achieved
+                achieved: res?.achieved,
+                contact_assigned_to: res?.assigned_to
+                    ? { value: res?.assigned_to?.id, label: `${capitalizeFLetter(res?.assigned_to?.first_name)} ${capitalizeFLetter(res?.assigned_to?.last_name)} ` }
+                    : null,
+                contact_assign_role: res?.assigned_to ? (res?.assigned_to?.is_staff ? { value: 'staff', label: 'Staff' } : { value: 'admin', label: 'Admin' }) : null,
+
                 // status:res?.status
             });
         } catch (error) {
@@ -304,19 +309,30 @@ const UpdateContact = () => {
         }
     };
 
-    const usersList = async () => {
+    const usersList = async (e, type = '') => {
         try {
-            setState({ loading: true });
-            const res: any = await Models.user.userList(1, null);
-            console.log('usersList --->', res);
+            if (type == 'contact') {
+                setState({ contact_assign_role: e, contact_assigned_to: null });
+            } else {
+                setState({ assign_role: e, assigned_to: null });
+            }
+            setState({ userloading: true });
+            let body: any = {};
+            if (e?.label == ROLE.ADMIN) {
+                body.show_admins_only = 'Yes';
+            } else {
+                body.exclude_admin = 'Yes';
+            }
+
+            const res: any = await Models.user.includeAdminuserList(1, body);
             const dropdownList = res?.results?.map((item) => ({
                 label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}`,
                 value: item?.id,
             }));
 
-            setState({ usersList: dropdownList, loading: false, userPage: 1, userHasNext: res?.next });
+            setState({ usersList: dropdownList, userloading: false, userPage: 1, userHasNext: res?.next });
         } catch (error) {
-            setState({ loading: false });
+            setState({ userloading: false });
             console.log('error: ', error);
         }
     };
@@ -388,7 +404,7 @@ const UpdateContact = () => {
             remark: state.remark?.trim(),
             is_archive: !!state.is_archive,
             lead_status: state.lead_status?.value,
-            assigned_to: state.assigned_to?.value,
+            assign_to: state.assigned_to?.value,
             student_name: state.student_name?.trim(),
             email: state.email?.trim(),
             alternate_email: state.alternate_email?.trim(),
@@ -422,7 +438,8 @@ const UpdateContact = () => {
             state: state.state ? state.state?.value : null,
             country: state.country ? state.country?.value : null,
             source_details: state.source_details,
-            achieved:state.achieved
+            achieved: state.achieved,
+            assigned_to: state?.contact_assigned_to?.value,
         };
 
         try {
@@ -482,7 +499,7 @@ const UpdateContact = () => {
                 await createOpportunity(res?.id);
             }
         } catch (error) {
-             if (error?.inner) {
+            if (error?.inner) {
                 const validationErrors = {};
                 error.inner.forEach((err) => {
                     validationErrors[err.path] = err?.message;
@@ -533,16 +550,52 @@ const UpdateContact = () => {
             <Breadcrumb items={breadcrumbItems} />
 
             <div className="panel  flex  items-center justify-between gap-5 ">
-                <div className="flex items-center gap-2">
-                    <div className="flex h-[50px] w-[50px] overflow-hidden bg-white" style={{ borderRadius: 50 }}>
-                        <img src="/assets/images/profile-1.jpeg" height={'100%'} width={'100%'} />
+                <div className="flex w-full items-center justify-between gap-2">
+                    <div className="flex flex-shrink-0 items-center gap-4">
+                        <div className="flex h-[50px] w-[50px] overflow-hidden bg-white" style={{ borderRadius: 50 }}>
+                            <img src="/assets/images/profile-1.jpeg" height={'100%'} width={'100%'} />
+                        </div>
+                        <div>
+                            <h5 className="font-semibold " style={{ fontSize: '18px' }}>
+                                Update Contact
+                            </h5>
+                            <div className="  " style={{ fontSize: '14px', color: 'grey' }}>
+                                Your data journey starts here...
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <h5 className="font-semibold " style={{ fontSize: '18px' }}>
-                            Update Contact
-                        </h5>
-                        <div className="  " style={{ fontSize: '14px', color: 'grey' }}>
-                            Your data journey starts here...
+                    <div className="flex flex-grow justify-end gap-4">
+                        <div className="w-1/3">
+                            {' '}
+                            {/* 33% width */}
+                            <CustomSelect
+                                value={state.contact_assign_role}
+                                onChange={(e) => {
+                                    usersList(e, 'contact');
+                                }}
+                                placeholder={'Choose Role'}
+                                title={'Choose Role'}
+                                options={[
+                                    { value: 'admin', label: 'Admin' },
+                                    { value: 'staff', label: 'Staff' },
+                                ]}
+                                error={state.errors?.contact_assign_role}
+                            />
+                        </div>
+                        <div className="w-1/3">
+                            {' '}
+                            {/* 33% width */}
+                            <CustomSelect
+                                title="Assign To"
+                                value={state.contact_assigned_to}
+                                onChange={(e) => setState({ contact_assigned_to: e })}
+                                placeholder={'Assign To'}
+                                options={state.usersList}
+                                error={state.errors?.assigned_to}
+                                isMulti={false}
+                                loadMore={() => state.userHasNext && usersListLoadMore()}
+                                loading={state.userloading || state.leadStatusloadMore}
+                            />
                         </div>
                     </div>
                 </div>
@@ -649,7 +702,7 @@ const UpdateContact = () => {
                                 error={state.errors?.source_details}
                             />
 
-                               <CheckboxInput
+                            <CheckboxInput
                                 className="mt-2 w-full md:w-1/2 lg:w-3/4"
                                 checked={state.achieved}
                                 disabled={state.isMoveToLead}
@@ -861,6 +914,20 @@ const UpdateContact = () => {
                                     error={state.errors?.stage}
                                     loadMore={() => state.leadStatusHasNext && leadStatusLoadMore()}
                                     required
+                                />
+
+                                <CustomSelect
+                                    value={state.assign_role}
+                                    onChange={(e) => {
+                                        usersList(e, '');
+                                    }}
+                                    placeholder={'Choose Role'}
+                                    title={'Choose Role'}
+                                    options={[
+                                        { value: 'admin', label: 'Admin' },
+                                        { value: 'staff', label: 'Staff' },
+                                    ]}
+                                    error={state.errors?.assign_role}
                                 />
                                 <CustomSelect
                                     title="Assigned To"

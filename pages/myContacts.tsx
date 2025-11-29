@@ -167,6 +167,7 @@ const Contacts = () => {
                 status: item?.status?.status,
                 allData: item,
                 date: moment(item?.created_on).format('DD-MM-YYYY'),
+                assigned_to: item?.assigned_to ? `${capitalizeFLetter(item?.assigned_to?.first_name)} ${capitalizeFLetter(item?.assigned_to?.last_name)}` : '',
             };
         });
         console.log('data: ', data);
@@ -742,6 +743,8 @@ const Contacts = () => {
 
                                 // ...(state?.role !== ROLE.BDE ? [
                                 { accessor: 'status', title: 'Status' },
+                                { accessor: 'assigned_to', title: 'Assigned To' },
+
                                 // ] : []),
                                 {
                                     accessor: 'remark',

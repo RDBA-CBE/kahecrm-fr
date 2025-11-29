@@ -101,7 +101,7 @@ const Contacts = () => {
         let filter: any = {};
 
         // Always include team=true for ADMIN and BDM roles
-            filter.team = "Yes";
+        filter.team = 'Yes';
 
         if (state.search) {
             filter.search = state.search;
@@ -182,6 +182,7 @@ const Contacts = () => {
                 status: item?.status?.status,
                 allData: item,
                 date: moment(item?.created_on).format('DD-MM-YYYY'),
+                assigned_to: item?.assigned_to ? `${capitalizeFLetter(item?.assigned_to?.first_name)} ${capitalizeFLetter(item?.assigned_to?.last_name)}` : '',
             };
         });
         console.log('data: ', data);
@@ -586,6 +587,7 @@ const Contacts = () => {
                 status: item?.status?.status,
                 allData: item,
                 date: moment(item?.created_on).format('DD-MM-YYYY'),
+                assigned_to: item?.assigned_to ? { value: item?.assigned_to?.id, label: item?.assigned_to?.first_name + ' ' + item?.assigned_to?.last_name } : '',
             };
         });
 
@@ -635,7 +637,6 @@ const Contacts = () => {
                 <div className="flex items-center gap-5 pl-3">
                     <h5 className="text-lg font-semibold ">TEAM CONTACTS</h5>
                 </div>
-                
             </div>
 
             <div className="panel mt-2 flex flex-col gap-4 lg:flex-row lg:items-center">
@@ -705,6 +706,8 @@ const Contacts = () => {
                                 //
                                 // ...(state?.role !== ROLE.BDE ? [
                                 { accessor: 'status', title: 'Status' },
+                                { accessor: 'assigned_to', title: 'Assigned To' },
+
                                 // ] : []),
                                 {
                                     accessor: 'remark',

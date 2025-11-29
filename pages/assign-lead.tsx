@@ -333,7 +333,11 @@ const Leads = () => {
                 assigned_to: item.assigned_to?.username,
                 follow_up: moment(item.status_date).format('DD-MM-YYYY'),
                 contact_number: item.primary_contact?.phone_number,
+                phone_number:item?.college_contact?.phone_number,
+
                 updated_on: item?.updated_at ? moment(item?.updated_at).format('DD-MM-YYYY') : '',
+                created_by: item.created_by ? capitalizeFLetter(item?.created_by?.first_name) + ' ' + capitalizeFLetter(item?.created_by?.last_name) : '',
+
                 assigned: item.assign_to ? capitalizeFLetter(item?.assign_to?.first_name) + ' ' + capitalizeFLetter(item?.assign_to?.last_name) : '',
             };
         });
@@ -864,6 +868,7 @@ const Leads = () => {
                                 accessor: 'contact_person',
                                 title: 'Contact Person',
                             },
+                            { accessor: 'phone_number', title: 'Phone Number' },
 
                             { accessor: 'source', title: 'Source' },
 
@@ -872,6 +877,8 @@ const Leads = () => {
                                 accessor: 'lead_status',
                                 title: 'Lead Status',
                             },
+                            { accessor: 'created_by', title: 'Created By' },
+
                             { accessor: 'assigned', title: 'Assigned To' },
 
                             // { accessor: 'status_date', title: `${ROLE.TM == state.role ? 'Follow Up' : 'Status Date'}` },

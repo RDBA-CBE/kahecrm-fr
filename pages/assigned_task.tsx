@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import CustomfullCalender from '@/common_component/fullCalender';
-import { Dropdown, Failure, getDate, Success, useSetState } from '@/utils/functions.utils';
+import { capitalizeFLetter, Dropdown, Failure, getDate, Success, useSetState } from '@/utils/functions.utils';
 import IconSearch from '@/components/Icon/IconSearch';
 import CustomSelect from '@/components/Select';
 import CustomeDatePicker from '@/common_component/datePicker';
@@ -25,7 +25,7 @@ import IconTrash from '@/components/Icon/IconTrash';
 import { ROLE } from '@/utils/constant.utils';
 import IconEye from '@/components/Icon/IconEye';
 import TaskCard from '@/components/TaskCard';
-import IconArrowLeft from '@/components/Icon/IconArrowLeft';
+import next from 'next';
 import Pagination from '@/components/Pagination';
 
 const Calendar = () => {
@@ -53,64 +53,41 @@ const Calendar = () => {
         task: '',
         isOpenTaskView: false,
         taskDetails: {},
-        conversationList: [],
         viewLoad: false,
     });
 
     useEffect(() => {
-        // taskList(state.currentPage);
-        calendarList();
-        getUserData();
+        initializeData();
+        leadList();
+        filterUsersList();
     }, []);
 
-   
-
-    const debouncedSearch = useDebounce(state.search, 500);
+    const debouncedSearch = useDebounce(state.search, 1000);
 
     useEffect(() => {
-        console.log('useEffect triggered, calling taskList(1)');
-        if (state.role === ROLE.ADMIN || state.role === ROLE.BDM || state.userId) {
-            taskList(1);
-        } else {
-            console.log('Skipping taskList call, waiting for userId/role...');
-        }
-    }, [debouncedSearch, state.from_date, state.to_date, state.assigned, state.bdm, state.bde, state.dm, state.tm, state.role, state.userId]);
-
+        calendarList();
+        taskList(state.currentPage);
+    }, [debouncedSearch, state.from_date, state.to_date, state.assigned_to_filter]);
 
     const bodyData = () => {
         let body: any = {};
 
-        // body.team = true;
+        if (state.assigned_to_filter) {
+            body.userId = state.assigned_to_filter?.value;
+            body.assigned_tasks = 'Yes';
+        } else {
+            body.team = 'Yes';
+        }
+        body.exclude_all_tasks = 'Yes';
 
         if (state.search) {
-            body.contact = debouncedSearch;
+            body.search = debouncedSearch;
         }
         if (state.from_date) {
-            body.from_date_to_date_after = moment(state.from_date).format('YYYY-MM-DD');
+            body.task_date_time_after = moment(state.from_date).format('YYYY-MM-DD');
         }
         if (state.to_date) {
-            body.from_date_to_date_before = moment(state.to_date).format('YYYY-MM-DD');
-        }
-
-        body.assigned_to_me = true;
-        if (state.assigned_to) {
-            body.assigned_to = state.assigned_to?.value;
-        } else if (state.bdm) {
-            if (state.bde) {
-                body.bde = state.bde?.value;
-            } else if (state.tm) {
-                body.tm = state.tm?.value;
-            } else {
-                body.bdm = state.bdm?.value;
-            }
-        } else if (state.bde) {
-            body.bde = state.bde?.value;
-        } else if (state.tm) {
-            body.tm = state.tm?.value;
-        }
-
-        if (state.dm) {
-            body.dm = state.dm?.value;
+            body.task_date_time_before = moment(state.to_date).format('YYYY-MM-DD');
         }
 
         return body;
@@ -118,27 +95,18 @@ const Calendar = () => {
 
     const calendarList = async () => {
         try {
-            const user: any = await Models.auth.userDetails();
             const body = bodyData();
-            const res: any = await Models.task.calendarTask(body, false);
+            const res: any = await Models.task.calendarTask(body, true);
             const data = res
                 ?.map((item) => {
-                    if (!item?.task_date_time) {
-                        console.error('Invalid task_date_time for item:', item);
-                        return null;
-                    }
+                    if (!item?.task_date_time) return null;
 
                     const taskDate = new Date(item.task_date_time);
-                    if (isNaN(taskDate.getTime())) {
-                        console.error('Invalid date parsed from task_date_time:', item.task_date_time);
-                        return null;
-                    }
+                    if (isNaN(taskDate.getTime())) return null;
 
                     const startDate = new Date(taskDate);
                     const endDate = new Date(taskDate);
-
                     startDate.setHours(14, 30, 0, 0);
-
                     endDate.setHours(16, 30, 0, 0);
 
                     return {
@@ -159,169 +127,206 @@ const Calendar = () => {
         }
     };
 
-    const getUserData = async () => {
+    const initializeData = async () => {
         try {
-            const userString = localStorage.getItem('crmUser');
+            const [userResponse] = await Promise.all([Models.auth.userDetails()]);
+
+            const userDetails: any = userResponse;
+            console.log('✌️userDetails --->', userDetails);
             const token = localStorage.getItem('crmToken');
-            const user = userString ? JSON.parse(userString) : null;
-            setState({ userData: user, token, userId: user.id, role: user.designation });
+            setState({
+                userData: userDetails,
+                token,
+                userId: userDetails.user?.id,
+            });
+
+            // Now fetch calendar and task data with userId
+            await Promise.all([calendarList(), taskList(state.currentPage)]);
         } catch (error) {
             console.log('error: ', error);
         }
     };
-
-    // const taskList = async (page) => {
-    //     const body = bodyData();
-    //     const res: any = await Models.task.list(body, page);
-    //     tableData(res);
-    //     setState({ currentPage: page });
-
-    //     try {
-    //     } catch (error) {
-    //         console.log('error: ', error);
-    //     }
-    // };
 
     const taskList = async (page) => {
         try {
             const body = bodyData();
-
-            let res: any;
-            if (ROLE.ADMIN == state.role || ROLE.BDM == state.role) {
-                res = await Models.task.assignlist(body, page);
-            } else {
-                res = await Models.task.assignlist(body, page, state?.userId);
-            }
-
-            tableData(res);
-            setState({ currentPage: page });
-        } catch (error) {
-            console.log('taskList error: ', error);
-        }
-    };
-
-    const tableData = (res: any) => {
-        const data = res?.results?.map((item) => {
-            return {
-                ...item,
-                assignData: item?.assignment_details,
-                leadData: { value: item.contact?.lead?.id, label: item.contact?.lead?.name },
-                contactData: { value: item.contact?.id, label: item.contact?.name },
-                leadName: item.contact?.lead?.name,
-                leadId: item.contact?.lead?.id,
-                task: item?.task_type,
-                contact: item?.contact?.name,
-                // date: item?.task_date_time ? moment(item?.task_date_time).format('DD-MM-YYYY') : '',
-                date: item?.task_date_time ? getDate(item?.task_date_time) : '',
-                // task_conversation_logs:item?.task_conversation_logs,
-                description: item?.task_detail ? item?.task_detail : '',
-                // assigned_to: item?.assignment_details?.length > 0 ? item.assignment_details.map((detail) => detail.assigned_to.username).join(', ') : item.created_by?.username,
-                assigned_to:
-                    item?.assignment_details?.length > 0
-                        ? item.assignment_details.map((detail) => `${detail.assigned_by.first_name} ${detail.assigned_by.last_name}`).join(', ')
-                        : `${item.created_by?.first_name} ${item.created_by?.last_name}`,
-            };
-        });
-
-        setState({ taskList: data, next: res.next, previous: res.previous, totalRecords: res.count, count: res?.count });
-    };
-
-    const getContactList = async (val) => {
-        try {
-            const res: any = await Models.contact.listByLeadId(val.value);
-            const dropdown = Dropdown(res.results, 'name');
-            setState({
-                contactList: dropdown,
-                contactCount: res?.count,
-                contactNext: res.next,
-            });
+            const res: any = await Models.task.list(body, page);
+            tableData(res, page);
         } catch (error) {
             console.log('error: ', error);
         }
     };
 
-    const createAndUpdateTask = async () => {
+    const tableData = (res: any, page: number) => {
+        const data = res?.results?.map((item) => {
+            return {
+                ...item,
+                assignData: item?.assigned_to,
+                leadData: { value: item.contact?.id, label: item?.contact?.student_name },
+                contactData: { value: item.contact?.id, label: item.contact?.name },
+                leadName: item.contact?.lead?.name,
+                leadId: item.contact?.lead?.id,
+                task: item?.task_type,
+                contact: capitalizeFLetter(item?.contact?.student_name),
+                created_at: item?.created_at ? moment(item?.created_at).format('DD-MM-YYYY a') : '',
+                created_by: `${item?.created_by?.first_name} ${item?.created_by?.last_name}`,
+                date: item?.task_date_time ? getDate(item?.task_date_time) : '',
+
+                description: item?.task_detail ? item?.task_detail : '',
+                assigned_to:
+                    item?.assigned_to?.length > 0
+                        ? item.assigned_to.map((detail) => `${capitalizeFLetter(detail?.first_name)} ${capitalizeFLetter(detail?.last_name)}`)?.join(', ')
+                        : `${capitalizeFLetter(item.created_by?.first_name)} ${capitalizeFLetter(item.created_by?.last_name)}`,
+            };
+        });
+
+        setState({
+            currentPage: page,
+            count: res?.count,
+            next: res.next,
+            previous: res.previous,
+            taskList: data,
+            totalRecords: res.count,
+        });
+    };
+
+    const leadList = async (page = 1) => {
         try {
-            setState({ taskLoading: true });
+            setState({ LeadMoreloading: true });
+            const res: any = await Models.lead.list(null, page, null);
+            const dropdown = res?.results?.map((item) => ({
+                value: item.college_contact?.id,
+                label: `${capitalizeFLetter(item.college_contact?.student_name)} (${item.college_contact?.phone_number})`,
+            }));
+            console.log('✌️dropdown --->', dropdown);
 
-            const validateField = {
-                lead: state.lead?.value,
-                contact: state.contact?.value,
-                task_date_time: state.task_date_time ? moment(state.task_date_time).format('YYYY-MM-DD') : '',
-                task_type: state.task_type?.value,
-                assigned_to: state.assigned_to,
-                remark: state.remark,
-                assignRole: state.assignRole?.value,
-            };
-            await Validation.createTask.validate(validateField, {
-                abortEarly: false,
-            });
-
-            const body: any = {
-                task_detail: state.details,
-                // task_date_time: moment(state.task_date_time).format('YYYY-MM-DD'),
-                contact: state.contact?.value,
-                task_type: state.task_type?.value,
-                task_assignment: state.assigned_to?.map((item) => ({ assigned_to: item.value })),
-                remark: state.remark,
-            };
-            console.log('body: ', body);
-
-            if (state.task_date_time) {
-                body.task_date_time = moment(state.task_date_time).format('YYYY-MM-DD');
-            }
-            if (state.taskId) {
-                const res: any = await Models.task.update(body, state.taskId);
-                Success('Task updated successfully');
-            } else {
-                const res: any = await Models.task.create(body);
-                Success(state.task_date_time ? 'Task created successfully' : 'Log created successfully');
-            }
-            // const res: any = await Models.task.update(body, state.taskId);
-            clearTaskData();
-            setState({ taskLoading: false });
-            taskList(state.currentPage);
-            calendarList();
+            setState({ LeadMoreloading: false, leadList: dropdown, count: res?.count, leadnext: res?.next, previous: res?.previous, currentPage: page });
         } catch (error) {
-            if (error instanceof Yup.ValidationError) {
-                const validationErrors = {};
-                error.inner.forEach((err) => {
-                    validationErrors[err.path] = err?.message; // Set the error message for each field
-                });
-
-                setState({ errors: validationErrors, taskLoading: false });
-            } else {
-                setState({ taskLoading: false });
-            }
+            setState({ LeadMoreloading: false });
+            console.log('error: ', error);
         }
     };
 
-    // const assignList = async () => {
-    //     try {
-    //         const res: any = await Models.task.all_user();
-    //         const dropdownList = Dropdown(res?.results, 'full_name');
-    //         setState({ assignList: dropdownList, loading: false });
-    //     } catch (error) {
-    //         setState({ loading: false });
+    const leadListLoadMore = async () => {
+        try {
+            setState({ LeadMoreloading: true });
 
-    //         console.log('error: ', error);
-    //     }
-    // };
+            const res: any = await Models.lead.list(null, state.currentPage + 1, null);
+            const dropdown = res?.results?.map((item) => ({
+                value: item.college_contact?.id,
+                label: `${capitalizeFLetter(item.college_contact?.student_name)} (${item.college_contact?.phone_number})`,
+            }));
+            setState({ LeadMoreloading: false, leadList: [...state.leadList, ...dropdown], count: res?.count, leadnext: res?.next, previous: res?.previous, currentPage: state.currentPage + 1 });
+        } catch (error) {
+            setState({ loading: false });
+            console.log('error: ', error);
+        }
+    };
 
-  
+    const usersList = async (e) => {
+        try {
+            setState({ assignRole: e, assigned_to: null });
+            setState({ loading: true });
+            let body: any = {};
+            if (e?.label == ROLE.ADMIN) {
+                body.show_admins_only = 'Yes';
+            } else {
+                body.exclude_admin = 'Yes';
+            }
+
+            const res: any = await Models.user.includeAdminuserList(1, body);
+            const dropdownList = res?.results?.map((item) => ({
+                label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}`,
+                value: item?.id,
+            }));
+
+            setState({ usersList: dropdownList, loading: false, userPage: 1, userHasNext: res?.next });
+        } catch (error) {
+            setState({ loading: false });
+            console.log('error: ', error);
+        }
+    };
+
+    const usersListLoadMore = async () => {
+        try {
+            setState({ leadStatusloadMore: true });
+            let body: any = {};
+            if (state.assignRole?.label == ROLE.ADMIN) {
+                body.show_admins_only = 'Yes';
+            } else {
+                body.exclude_admin = 'Yes';
+            }
+
+            const res: any = await Models.user.includeAdminuserList(1, body);
+
+            const dropdownList = res?.results?.map((item) => ({
+                label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}`,
+                value: item?.id,
+            }));
+            setState({ usersList: dropdownList, loading: false, userPage: 1, userHasNext: res?.next });
+
+            setState({
+                usersList: [...state.usersList, ...dropdownList],
+                leadStatusloadMore: false,
+                userPage: state.userPage + 1,
+                userHasNext: res.next,
+            });
+        } catch (error) {
+            setState({ leadStatusloadMore: false });
+            console.log('error: ', error);
+        }
+    };
+
+    const filterUsersList = async () => {
+        try {
+            setState({ loading: true });
+            let body: any = {};
+
+            body.exclude_admin = 'Yes';
+
+            const res: any = await Models.user.includeAdminuserList(1, body);
+            const dropdownList = res?.results?.map((item) => ({
+                label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}`,
+                value: item?.id,
+            }));
+
+            setState({ filterUsersList: dropdownList, loading: false, userPage: 1, filterUserHasNext: res?.next });
+        } catch (error) {
+            setState({ loading: false });
+            console.log('error: ', error);
+        }
+    };
+
+    const filterUsersListLoadMore = async () => {
+        try {
+            setState({ leadStatusloadMore: true });
+            let body: any = {};
+
+            body.exclude_admin = 'Yes';
+
+            const res: any = await Models.user.includeAdminuserList(1, body);
+
+            const dropdownList = res?.results?.map((item) => ({
+                label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}`,
+                value: item?.id,
+            }));
+            setState({
+                filterUsersList: [...state.filterUsersList, ...dropdownList],
+                leadStatusloadMore: false,
+                userPage: state.userPage + 1,
+                filterUserHasNext: res.next,
+            });
+        } catch (error) {
+            setState({ leadStatusloadMore: false });
+            console.log('error: ', error);
+        }
+    };
+
     const updateTask = (row) => {
-        let role = row.assignment_details?.[0]?.assigned_to;
         let value = {};
-        if (role?.groups[0] == 'Admin') {
-            value = { value: 'owner', label: 'Owner' };
-        } else if (role?.groups[0] == 'BDM') {
-            value = { value: 'bdm', label: 'BDM' };
-        } else if (role?.groups[0] == 'BDE') {
-            value = { value: 'bde', label: 'BDE' };
-        } else if (role?.groups[0] == 'TM') {
-            value = { value: 'tm', label: 'TM' };
-        } else {
-            value = null;
+        if (row?.assignData?.length > 0) {
+            value = { value: row?.assignData?.[0]?.groups, label: capitalizeFLetter(row?.assignData?.[0]?.groups) };
+            usersList(value);
         }
         setState({
             taskId: row.id,
@@ -359,6 +364,7 @@ const Calendar = () => {
             console.log('error: ', error);
         }
     };
+
     const taskDetails = async (row: any) => {
         try {
             setState({ viewLoad: true });
@@ -392,11 +398,6 @@ const Calendar = () => {
         });
     };
 
-    const options = [
-        { label: 'Assigned by me', value: 'assigned_by_me' },
-        { label: 'Assigned to me', value: 'assigned_to_me' },
-    ];
-
     const replayRemark = async () => {
         try {
             setState({ replayLoad: true });
@@ -404,7 +405,6 @@ const Calendar = () => {
                 task: state.task_id,
                 message: state.replayRemark,
             };
-
             const res = await Models.task.reply_task(body);
             setState({ replayLoad: false, isOpenRemark: false, replayRemark: '', task_id: null });
             Success('Task replied successfully');
@@ -430,23 +430,10 @@ const Calendar = () => {
         <div className="p-2">
             <div className="panel  mb-3 flex items-center justify-between gap-5 ">
                 <div className="flex w-full items-center justify-between gap-5 pl-3">
-                    {/* <h5 className="text-lg font-semibold ">ASSIGNED TASKS</h5> */}
-                    <h5 className="text-lg font-semibold"> {(state.role == ROLE.ADMIN || state.role == ROLE.BDM) && 'TEAM '}ASSIGNED TASKS</h5>
-
-                    {state.role !== ROLE.ADMIN && state.role !== ROLE.BDM && (
-                        <button
-                            type="button"
-                            className="btn btn-primary"
-                            onClick={() => {
-                                setState({ isOpenTask: true, taskId: '' });
-                            }}
-                        >
-                            Add
-                            {/* {submitLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : submitTitle ? submitTitle : 'Submit'} */}
-                        </button>
-                    )}
+                    <h5 className="text-lg font-semibold ">TEAM ASSIGNED TASKS</h5>
                 </div>
             </div>
+
             <div className="panel mt-2 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                 {/* Search Bar */}
                 <div className="relative flex w-full max-w-full items-center rounded-full border border-gray-300 dark:border-white-dark/30 lg:w-1/3">
@@ -457,125 +444,26 @@ const Calendar = () => {
                         type="text"
                         value={state.search}
                         onChange={(e) => setState({ search: e.target.value })}
-                        placeholder="Search contact name"
+                        placeholder="Search ..."
                         className="form-input w-full rounded-r-full border-0 bg-white py-1.5 pl-0 text-sm placeholder:tracking-wide focus:shadow-lg focus:outline-none dark:bg-gray-800 dark:shadow-[#1b2e4b] dark:placeholder:text-gray-400"
                     />
                 </div>
 
                 {/* Filters */}
                 <div className="flex w-full flex-col gap-4 lg:w-2/3 lg:flex-row">
-                    {/* <CustomSelect value={state.assigned} options={options} placeholder="Filter" onChange={(e) => setState({ assigned: e })} className="" /> */}
+                    <CustomSelect
+                        value={state.assigned_to_filter}
+                        onChange={(e) => setState({ assigned_to_filter: e })}
+                        placeholder={'Assign To'}
+                        options={state.filterUsersList}
+                        error={state.errors?.assigned_to}
+                        required
+                        loadMore={() => state.filterUserHasNext && filterUsersListLoadMore()}
+                        loading={state.loading || state.leadStatusloadMore}
+                    />
 
                     <CustomeDatePicker value={state.from_date} placeholder="From Date" onChange={(e) => setState({ from_date: e })} className="w-full md:w-1/2 lg:w-1/4" />
                     <CustomeDatePicker value={state.to_date} placeholder="To Date" onChange={(e) => setState({ to_date: e })} className="w-full md:w-1/2 lg:w-1/4" />
-
-                    {ROLE.ADMIN == state.role && (
-                        <>
-                            {/* <CustomeDatePicker value={state.from_date} placeholder="From Date" onChange={(e) => setState({ from_date: e })} />
-                            <CustomeDatePicker value={state.to_date} placeholder="To Date" onChange={(e) => setState({ to_date: e })} /> */}
-
-                            <CustomSelect
-                                options={state.bdmList}
-                                value={state.bdm}
-                                onChange={(e) => setState({ bdm: e, bde: null, roles: null })}
-                                isMulti={false}
-                                placeholder="BDM"
-                                className="w-full "
-                                disabled={state.dm?.value}
-                            />
-                            <CustomSelect
-                                options={
-                                    state.bdm?.value
-                                        ? [
-                                              {
-                                                  value: 'BDE',
-                                                  label: 'BDE',
-                                              },
-                                              {
-                                                  value: 'TM',
-                                                  label: 'TM',
-                                              },
-                                          ]
-                                        : []
-                                }
-                                value={state.roles}
-                                onChange={(e) => setState({ roles: e, bde: null })}
-                                isMulti={false}
-                                placeholder="Choose Role"
-                                className="w-full "
-                                disabled={state.dm?.value}
-                            />
-                            {state.roles ? (
-                                state.roles?.value == 'BDE' ? (
-                                    <CustomSelect
-                                        options={state.bdeOrTMList}
-                                        value={state.bde}
-                                        onChange={(e) => setState({ bde: e })}
-                                        isMulti={false}
-                                        placeholder="BDE"
-                                        className="w-full "
-                                        disabled={state.dm?.value}
-                                    />
-                                ) : (
-                                    <CustomSelect
-                                        options={state.bdeOrTMList}
-                                        value={state.bde}
-                                        onChange={(e) => setState({ bde: e })}
-                                        isMulti={false}
-                                        placeholder="TM"
-                                        className="w-full "
-                                        disabled={state.dm?.value}
-                                    />
-                                )
-                            ) : null}
-                            <CustomSelect
-                                options={state.dmList}
-                                value={state.dm}
-                                onChange={(e) => setState({ dm: e })}
-                                isMulti={false}
-                                placeholder="DM"
-                                className="w-full "
-                                disabled={state.bdm?.value || state.bde?.value || state.roles?.value}
-                            />
-                        </>
-                    )}
-
-                    {ROLE.BDM == state.role && (
-                        <>
-                            {/* <CustomeDatePicker value={state.from_date} placeholder="From Date" onChange={(e) => setState({ from_date: e })} />
-                            <CustomeDatePicker value={state.to_date} placeholder="To Date" onChange={(e) => setState({ to_date: e })} /> */}
-
-                            <CustomSelect
-                                options={state.bdeList}
-                                value={state.bde}
-                                onChange={(e) => setState({ bde: e })}
-                                disabled={state?.tm?.value || state.dm?.value}
-                                isMulti={false}
-                                placeholder="BDE"
-                                className="w-full"
-                            />
-
-                            <CustomSelect
-                                options={state.assignList}
-                                value={state.tm}
-                                onChange={(e) => setState({ tm: e })}
-                                disabled={state?.bde?.value || state.dm?.value}
-                                isMulti={false}
-                                placeholder="TM"
-                                className="w-full"
-                            />
-
-                            <CustomSelect
-                                options={state.dmList}
-                                value={state.dm}
-                                onChange={(e) => setState({ dm: e })}
-                                disabled={state?.bde?.value || state.tm?.value}
-                                isMulti={false}
-                                placeholder="DM"
-                                className="w-full"
-                            />
-                        </>
-                    )}
 
                     {/* <button className="btn btn-primary w-full lg:w-auto" onClick={() => setState({ isOpen: true })}>
                         <IconFilter />
@@ -615,17 +503,6 @@ const Calendar = () => {
                         </div>
                     </div>
                 )}
-
-                {state?.card_lead_status && (
-                    <div className="flex items-center gap-2 text-sm font-semibold">
-                        <div className="flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1" onClick={() => handleRemove('status')}>
-                            {`${state?.card_lead_status} (${state.today ? 'Today' : 'Month'})`}
-                            <div>
-                                <IconX className="h-4 w-4 cursor-pointer text-gray-600 hover:text-red-500" />
-                            </div>
-                        </div>
-                    </div>
-                )}
             </div>
 
             <div className=" mt-2 grid grid-cols-12  gap-4">
@@ -645,24 +522,17 @@ const Calendar = () => {
                             loaderColor="blue"
                             loaderBackgroundBlur={0}
                             columns={[
-                                {
-                                    accessor: 'leadName',
-                                    title: 'Lead Name',
-                                    render: (row: any) => {
-                                        return (
-                                            <Link href={`/viewLead?id=${row?.leadId}`} className=" cursor-pointer hover:text-blue-600">
-                                                {row.leadName}
-                                            </Link>
-                                        );
-                                    },
-                                },
                                 { accessor: 'contact', title: 'Contact Name' },
                                 { accessor: 'task', title: 'Task Type' },
                                 { accessor: 'date', title: 'Task Date' },
-                                { accessor: 'assigned_to', title: 'Assigned By', sortable: false },
+                                { accessor: 'created_by', title: 'Created By' },
+                                { accessor: 'assigned_to', title: 'Assign To', sortable: false },
+                                { accessor: 'created_at', title: 'Created Date' },
+
                                 {
                                     accessor: 'remark',
                                     title: 'Remark',
+                                    sortable: false,
                                     render: (row) => (
                                         <Tippy content={row?.remark} placement="top" className="rounded-lg bg-black p-1 text-sm text-white">
                                             <div>{row?.remark?.length > 20 ? `${row.remark.slice(0, 20)}...` : row?.remark}</div>
@@ -677,25 +547,18 @@ const Calendar = () => {
                                             <button className="flex hover:text-primary" onClick={() => setState({ isOpenRemark: true, replayRemark: '', task_id: row?.id })}>
                                                 <IconArrowBackward />
                                             </button>
-                                            {state?.userData?.id == row?.created_by?.id && (
-                                                <button className="flex hover:text-info" onClick={() => updateTask(row)}>
-                                                    <IconEdit className="h-4.5 w-4.5" />
-                                                </button>
-                                            )}
-                                            {/* <button className="flex hover:text-info" onClick={() => taskDetails(row)}>
-                                                        <IconEye className="h-4.5 w-4.5" />
-                                                    </button> */}
+                                            <button className="flex hover:text-info" onClick={() => updateTask(row)}>
+                                                <IconEdit className="h-4.5 w-4.5" />
+                                            </button>
 
                                             <button className="relative flex hover:text-primary" onClick={() => taskDetails(row)}>
                                                 {state.viewLoad && row?.id == state?.taskDetails?.id ? <IconLoader className=" h-4  w-4 animate-spin" /> : <IconEye />}
                                                 {row.reply_counts > 0 && <p className="absolute right-[-15px] top-[-10px] rounded-md bg-gray-200 px-[5px] py-[1px] text-[10px]">{row.reply_counts}</p>}
                                             </button>
-                                            {/* )} */}
-                                            {state?.userData?.designation == ROLE.ADMIN && (
-                                                <button className="flex hover:text-primary" onClick={() => setState({ isDeleteOpen: true, deleteId: row.id })}>
-                                                    <IconTrash className="h-4.5 w-4.5" />
-                                                </button>
-                                            )}
+
+                                            <button className="flex hover:text-primary" onClick={() => setState({ isDeleteOpen: true, deleteId: row.id })}>
+                                                <IconTrash className="h-4.5 w-4.5" />
+                                            </button>
                                         </div>
                                     ),
                                 },
@@ -712,22 +575,12 @@ const Calendar = () => {
                             paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
                         />
                     </div>
-                    {/* <div className="mt-5 flex justify-center gap-3">
-                            <button disabled={!state.previous} onClick={handlePreviousPage} className={`btn ${!state.previous ? 'btn-disabled' : 'btn-primary'}`}>
-                                <IconArrowBackward />
-                            </button>
-                            <button disabled={!state.next} onClick={handleNextPage} className={`btn ${!state.next ? 'btn-disabled' : 'btn-primary'}`}>
-                                <IconArrowForward />
-                            </button>
-                        </div> */}
-
                     <div className="mt-5 flex justify-center gap-3">
                         <Pagination
                             currentPage={state.currentPage}
                             totalRecords={state.count}
                             onPageChange={(page) => {
                                 taskList(page);
-
                                 setState({ currentPage: page });
                             }}
                             hasNext={state.next !== null}
@@ -736,6 +589,7 @@ const Calendar = () => {
                         />
                     </div>
                 </div>
+                {/* )} */}
             </div>
 
             <Modal
@@ -744,104 +598,6 @@ const Calendar = () => {
                 height={state.popupHeight}
                 close={() => setState({ isOpenTaskView: false, taskDetails: {} })}
                 renderComponent={() => <TaskCard task={state.taskDetails} conversationList={state.conversationList} btn={false} />}
-            />
-
-            <SideMenu
-                title={state.taskId ? 'Update Task' : 'Create Task'}
-                open={state.isOpenTask}
-                close={() => clearTaskData()}
-                cancelOnClick={() => clearTaskData()}
-                submitOnClick={() => createAndUpdateTask()}
-                submitLoading={state.loading}
-                canceTitle="Reset"
-                renderComponent={() => (
-                    <div className="flex flex-col gap-5">
-                        <div className="flex flex-col gap-5 ">
-                            <CustomSelect
-                                title="Lead "
-                                value={state.lead}
-                                onChange={(e) => {
-                                    if (e) {
-                                        getContactList(e);
-                                    }
-                                    setState({ lead: e, contact: '' });
-                                }}
-                                placeholder={'Lead '}
-                                options={state.leadList}
-                                error={state.errors?.lead}
-                                required
-                                loading={state.leadLoading}
-                            />
-                            <CustomSelect
-                                title="Contact"
-                                value={state.contact}
-                                onChange={(e) => setState({ contact: e })}
-                                placeholder={'Contact '}
-                                options={state.contactList}
-                                error={state.errors?.contact}
-                                required
-                            />
-                        </div>
-
-                        <CustomeDatePicker
-                            value={state.task_date_time}
-                            placeholder="Task Date"
-                            title="Task Date"
-                            onChange={(e) => setState({ task_date_time: e })}
-                            error={state.errors?.task_date_time}
-                            required
-                        />
-                        <CustomSelect
-                            title="Task Type"
-                            value={state.task_type}
-                            onChange={(e) => setState({ task_type: e })}
-                            placeholder={'Task Type'}
-                            options={[
-                                {
-                                    label: 'Call',
-                                    value: 'Call',
-                                },
-                                {
-                                    label: 'Follow Up',
-                                    value: 'Follow Up',
-                                },
-                                {
-                                    label: 'To Do',
-                                    value: 'To Do',
-                                },
-                            ]}
-                            error={state.errors?.task_type}
-                            required
-                        />
-
-                        <CustomSelect
-                            value={state.assignRole}
-                            onChange={(e) => setState({ assignRole: e, assigned_to: '', assignList: [] })}
-                            placeholder={'Choose Role'}
-                            title={'Choose Role'}
-                            options={[
-                                { value: 'owner', label: 'Owner' },
-                                { value: 'bdm', label: 'BDM' },
-                                { value: 'bde', label: 'BDE' },
-                                { value: 'tm', label: 'TM' },
-                            ]}
-                            error={state.errors?.assignRole}
-                            required
-                        />
-                        <CustomSelect
-                            title="Assign To"
-                            value={state.assigned_to}
-                            onChange={(e) => setState({ assigned_to: e })}
-                            placeholder={'Assign To'}
-                            options={state.assignList}
-                            error={state.errors?.assigned_to}
-                            required
-                            isMulti={true}
-                        />
-
-                        <TextArea height="150px" value={state.remark} onChange={(e) => setState({ remark: e })} placeholder={'Remark'} title={'Remark'} error={state.errors?.remark} required />
-                    </div>
-                )}
             />
 
             <Modal

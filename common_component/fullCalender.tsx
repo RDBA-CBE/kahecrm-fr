@@ -5,6 +5,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import Modal from '@/common_component/modal'; // Assuming you have a modal component
 import { capitalizeFLetter } from '@/utils/functions.utils';
+import moment from 'moment';
 
 export default function CustomFullCalendar(props) {
     const { events, setEvents, selectDate } = props;
@@ -96,16 +97,16 @@ export default function CustomFullCalendar(props) {
                                 </div>
                                 <div className="text-sm">
                                     <span className="font-medium text-gray-700">Description:</span>
-                                    <p className="mt-1 text-gray-900">{currentEvent.extendedProps?.remark}</p>
+                                    <p className="mt-1 text-gray-900">{capitalizeFLetter(currentEvent.extendedProps?.remark)}</p>
                                 </div>
                                 <div className="text-sm">
-                                    <span className="font-medium text-gray-700">Start Date:</span>
-                                    <p className="mt-1 text-gray-900">{currentEvent.start ? new Date(currentEvent.start).toLocaleString() : 'N/A'}</p>
+                                    <span className="font-medium text-gray-700">Task Date:</span>
+                                    <p className="mt-1 text-gray-900">{currentEvent.start ? moment(currentEvent.start).format('MMM DD, YYYY') : ''}</p>
                                 </div>
-                                <div className="text-sm">
+                                {/* <div className="text-sm">
                                     <span className="font-medium text-gray-700">End Date:</span>
                                     <p className="mt-1 text-gray-900">{currentEvent.end ? new Date(currentEvent.end).toLocaleString() : 'N/A'}</p>
-                                </div>
+                                </div> */}
                                 <div className="text-sm">
                                     <span className="font-medium text-gray-700">Type:</span>
                                     <p className="mt-1 text-gray-900">{currentEvent.extendedProps?.task_type}</p>

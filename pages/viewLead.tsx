@@ -50,7 +50,7 @@ import IconVerticalDots from '@/components/Icon/IconVerticalDots';
 import IconMenu from '@/components/Icon/IconMenu';
 import IconPencil from '@/components/Icon/IconPencil';
 import IconPencilPaper from '@/components/Icon/IconPencilPaper';
-import { LEADTYPE } from '@/utils/constant.utils';
+import { LEADTYPE, ROLE, TASK_TYPE } from '@/utils/constant.utils';
 import TextWithValue from '@/components/TextWithValue';
 import CustomPhoneInput from '@/components/PhoneInput';
 
@@ -133,6 +133,7 @@ export default function ViewLead() {
         logAssignList: [],
 
         isOpenCourse: false,
+        best_time_to_contact: null,
     });
 
     useEffect(() => {
@@ -144,7 +145,6 @@ export default function ViewLead() {
         sourceList();
         leadStatusList();
         getLogList();
-        usersList();
 
         // getContactList();
         // verticalList();
@@ -421,40 +421,55 @@ export default function ViewLead() {
         }
     };
 
-    const usersList = async () => {
+    const usersList = async (e) => {
         try {
-            setState({ loading: true });
-            const res: any = await Models.user.userList(1, null);
+            setState({ assignRole: e, assign_to: null });
+            setState({ userLoading: true });
+            let body: any = {};
+            if (e?.label == ROLE.ADMIN) {
+                body.show_admins_only = 'Yes';
+            } else {
+                body.exclude_admin = 'Yes';
+            }
+
+            const res: any = await Models.user.includeAdminuserList(1, body);
             const dropdownList = res?.results?.map((item) => ({
                 label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}`,
                 value: item?.id,
             }));
 
-            setState({ usersList: dropdownList, loading: false, userPage: 1, userHasNext: res?.next });
+            setState({ usersList: dropdownList, userLoading: false, userPage: 1, userHasNext: res?.next });
         } catch (error) {
-            setState({ loading: false });
+            setState({ userLoading: false });
             console.log('error: ', error);
         }
     };
 
     const usersListLoadMore = async () => {
         try {
-            setState({ leadStatusloadMore: true });
-            const res: any = await Models.master.lead_status_list(state.leadStatusPage + 1);
+            setState({ userloadMore: true });
+            let body: any = {};
+            if (state.assignRole?.label == ROLE.ADMIN) {
+                body.show_admins_only = 'Yes';
+            } else {
+                body.exclude_admin = 'Yes';
+            }
+
+            const res: any = await Models.user.includeAdminuserList(1, body);
+
             const dropdownList = res?.results?.map((item) => ({
                 label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}`,
                 value: item?.id,
             }));
-            setState({ usersList: dropdownList, loading: false, userPage: 1, userHasNext: res?.next });
 
             setState({
                 usersList: [...state.usersList, ...dropdownList],
-                leadStatusloadMore: false,
+                userloadMore: false,
                 userPage: state.userPage + 1,
                 userHasNext: res.next,
             });
         } catch (error) {
-            setState({ leadStatusloadMore: false });
+            setState({ userloadMore: false });
             console.log('error: ', error);
         }
     };
@@ -525,9 +540,9 @@ export default function ViewLead() {
     const handleEditLead = async () => {
         try {
             const response = state.detail;
-console.log('✌️response --->', response);
+            console.log('✌️response --->', response);
             const res = state.contact;
-console.log('✌️res --->', res);
+            console.log('✌️res --->', res);
 
             const contact = response?.college_contact;
             setState({
@@ -633,14 +648,22 @@ console.log('✌️res --->', res);
                 isEditLead1: !state.isEditLead1,
                 isOpenLeadInfo: true,
                 preferred_location: response?.preferred_location || '',
-                best_time_to_contact: response?.best_time_to_contact ? new Date(response.best_time_to_contact) : null,
+                best_time_to_contact: response?.best_time_to_contact ? moment(response.best_time_to_contact).format('DD-MM-YYYY HH:mm:ss') : null,
                 lead_status: response?.stage ? { value: response?.stage?.id, label: response?.stage?.stage } : null,
                 lead_source_category: response?.lead_source_category ? { value: response?.lead_source_category?.id, label: response?.lead_source_category?.name } : null,
                 source_details: response?.source_details || '',
                 remark: response?.remark || '',
                 leadId: response?.id,
-                assign_to: response?.assign_to ? { value: response?.assign_to?.id, label: `${capitalizeFLetter(response?.assign_to?.first_name)} ${capitalizeFLetter(response?.assign_to?.last_name)}` } : null,
-
+                assign_to: response?.assign_to
+                    ? { value: response?.assign_to?.id, label: `${capitalizeFLetter(response?.assign_to?.first_name)} ${capitalizeFLetter(response?.assign_to?.last_name)}` }
+                    : null,
+                assignRole: response?.assign_to
+                    ? response?.assign_to?.groups?.length > 0
+                        ? response?.assign_to?.groups?.[0] == 1
+                            ? { value: 'admin', label: 'Admin' }
+                            : { value: 'staff', label: 'Staff' }
+                        : null
+                    : null,
             });
         } catch (error) {
             console.log('✌️error --->', error);
@@ -658,7 +681,8 @@ console.log('✌️res --->', res);
                 assign_to: state.assign_to?.value,
                 lead_source_category: state.lead_source_category?.value,
                 preferred_location: state.preferred_location,
-                best_time_to_contact: moment(state.best_time_to_contact).format('YYYY-MM-DD HH:mm:ss'),
+
+                best_time_to_contact: state.best_time_to_contact,
                 source_details: state.source_details,
                 remark: state.remark,
             };
@@ -1105,7 +1129,7 @@ console.log('✌️res --->', res);
                                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                                             {state.isEditLead1 ? (
                                                 <>
-                                                    <CustomSelect
+                                                    {/* <CustomSelect
                                                         title="Assigned To"
                                                         value={state.assign_to}
                                                         onChange={(e) => setState({ assign_to: e })}
@@ -1113,6 +1137,31 @@ console.log('✌️res --->', res);
                                                         options={state.usersList}
                                                         error={state.errors?.assigned_to}
                                                         loadMore={() => state.userHasNext && usersListLoadMore()}
+                                                    /> */}
+
+                                                    <CustomSelect
+                                                        value={state.assignRole}
+                                                        onChange={(e) => {
+                                                            usersList(e);
+                                                        }}
+                                                        placeholder={'Choose Role'}
+                                                        title={'Choose Role'}
+                                                        options={[
+                                                            { value: 'admin', label: 'Admin' },
+                                                            { value: 'staff', label: 'Staff' },
+                                                        ]}
+                                                        error={state.errors?.assignRole}
+                                                    />
+                                                    <CustomSelect
+                                                        title="Assign To"
+                                                        value={state.assign_to}
+                                                        onChange={(e) => setState({ assign_to: e })}
+                                                        placeholder={'Assign To'}
+                                                        options={state.usersList}
+                                                        error={state.errors?.assign_to}
+                                                        isMulti={false}
+                                                        loadMore={() => state.userHasNext && usersListLoadMore()}
+                                                        loading={state.userloadMore || state.userLoading}
                                                     />
                                                     <CustomSelect
                                                         title="Lead Status"
@@ -1367,20 +1416,7 @@ console.log('✌️res --->', res);
                                         setState({ task_type: e });
                                     }}
                                     placeholder={'Task Type'}
-                                    options={[
-                                        {
-                                            label: 'Call',
-                                            value: 'Call',
-                                        },
-                                        {
-                                            label: 'Follow Up',
-                                            value: 'Follow Up',
-                                        },
-                                        {
-                                            label: 'To Do',
-                                            value: 'To Do',
-                                        },
-                                    ]}
+                                    options={TASK_TYPE}
                                     error={state.errors?.task_type}
                                     required
                                 />

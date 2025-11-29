@@ -87,10 +87,31 @@ const contact = {
         return promise;
     },
 
-    archive_list: (page, userId = null) => {
+    archive_list: (page, body) => {
         let promise = new Promise((resolve, reject) => {
             let url = `crm/contacts/?is_archive=true&page=${page}&page_size=10&achieved=True`;
-         
+            if (body?.userId) {
+                url += `&user_id=${encodeURIComponent(body?.userId)}`;
+            }
+
+               if (body?.team == 'Yes') {
+                url += `&teams=${encodeURIComponent(true)}`;
+            }
+
+            if (body?.search) {
+                url += `&search=${encodeURIComponent(body?.search)}`;
+            }
+
+            if (body.status) {
+                url += `&status=${encodeURIComponent(body.status)}`;
+            }
+
+            if (body.from_date) {
+                url += `&from_date=${encodeURIComponent(body.from_date)}`;
+            }
+            if (body.to_date) {
+                url += `&to_date=${encodeURIComponent(body.to_date)}`;
+            }
 
             instance()
                 .get(url)

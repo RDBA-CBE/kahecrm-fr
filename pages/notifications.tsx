@@ -80,7 +80,7 @@ const Notifications = () => {
 
     useEffect(() => {
         contactList(1);
-    }, [debouncedSearch, state.types]);
+    }, [debouncedSearch, state.types,state.from_date,state.end_date]);
 
     const contactList = async (page) => {
         setState({ loading: true });
@@ -100,16 +100,7 @@ const Notifications = () => {
         if (!res?.results) return;
 
         const data = res?.results?.map((item) => {
-            switch (item?.type) {
-                case 'Task':
-                    return taskData(item);
-                case 'Opportunity':
-                    return OppData(item);
-                case 'Contact':
-                    return contactData(item);
-                default:
-                    return leadData(item);
-            }
+            return notificationData(item);
         });
 
         setState({
@@ -122,82 +113,94 @@ const Notifications = () => {
         });
     };
 
-    const conversationData = (row) => {
-        return {
-            id: row?.conversation?.task?.id,
-            type: 'Conversation',
-            lead_name: row?.conversation?.task?.contact?.lead?.name,
-            contact: row?.conversation?.task?.contact?.name,
-            assigned_to: `${row?.assigned_by?.first_name} ${row?.assigned_by?.last_name}`,
-            status: row?.conversation?.task?.task_type,
-            date: row?.created_at ? moment(row?.created_at).format('DD-MM-YYYY') : '',
-            remark: row?.conversation?.message,
-        };
-    };
+    const notificationData = (row) => {
+        // Determine notification type and extract relevant data
+        let type = '';
+        let Ids = null;
+        let lead_name = '';
+        let contact = '';
+        let status = '';
+        let remark = '';
+        let action = '';
 
-    const taskData = (row) => {
-        return {
-            Ids: row?.conversation?.task?.id || row?.task?.id,
-            type: 'Task',
-            lead_name: row?.conversation?.task?.contact?.lead?.name || row?.task?.contact?.lead?.name,
-            contact: row?.conversation?.task?.contact?.name || row?.task?.contact?.name,
-            assigned_to: `${row?.assigned_by?.first_name} ${row?.assigned_by?.last_name}`,
-            status: row?.task?.task_type || row?.conversation?.task?.task_type,
-            date: row?.created_at ? moment(row?.created_at).format('DD-MM-YYYY') : '',
-            remark: row?.task?.remark,
-        };
-    };
-
-    const OppData = (row) => {
-        return {
-            Ids: row?.opportunity?.lead?.id,
-            type: 'Opportunity',
-            lead_name: row?.opportunity?.lead?.name,
-            contact: row?.opportunity?.lead?.primary_contact?.name,
-            assigned_to: `${row?.assigned_by?.first_name} ${row?.assigned_by?.last_name}`,
-            status: row?.opportunity?.lead?.opportunity_status?.name,
-            date: row?.created_at ? moment(row?.created_at).format('DD-MM-YYYY') : '',
-            remark: row?.opportunity?.remark,
-        };
-    };
-
-    const contactData = (row) => {
-        return {
-            Ids: row?.contact?.id,
-            type: 'Contact',
-            lead_name: row?.contact?.company_name,
-            contact: row?.contact?.name,
-            assigned_to: `${row?.assigned_by?.first_name} ${row?.assigned_by?.last_name}`,
-            status: row?.contact?.status,
-            date: row?.created_at ? moment(row?.created_at).format('DD-MM-YYYY') : '',
-            remark: row?.contact?.remark,
-        };
-    };
-
-    const leadData = (row) => {
-        return {
-            Ids: row?.lead?.id,
-            type: 'Lead',
-            lead_name: row?.lead?.name,
-            contact: row?.lead?.primary_contact?.name,
-            assigned_to: `${row?.assigned_by?.first_name} ${row?.assigned_by?.last_name}`,
-            status: row?.lead?.opportunity_status?.name,
-            date: row?.created_at ? moment(row?.created_at).format('DD-MM-YYYY') : '',
-            remark: row?.lead?.opportunity_remark,
-        };
-    };
-
-    const assign_to = (item) => {
-        let value = '';
-        if (item?.type == 'task') {
-            value =
-                item?.assignment_details?.length > 0
-                    ? item.assignment_details.map((detail) => `${detail.assigned_to.first_name} ${detail.assigned_to.last_name}`).join(', ')
-                    : `${item.created_by?.first_name} ${item.created_by?.last_name}`;
-        } else {
-            value = `${item?.assigned_to?.first_name} ${item?.assigned_to?.last_name}`;
+        // Parse the value field if it exists
+        let valueData = null;
+        try {
+            valueData = row.value ? JSON.parse(row.value.replace(/\\"/g, '"')) : null;
+        } catch (e) {
+            valueData = null;
         }
-        return value;
+
+        // Determine notification type and extract data
+        if (row.type === 'Lead' || row.type === 'lead_updated') {
+            type = 'Lead';
+            Ids = row.college_lead?.id;
+            lead_name = row.college_lead ? 'Lead Assign' : valueData?.updated_what || row.message;
+            contact = `${row?.assigned_by?.first_name} ${row?.assigned_by?.last_name}` || valueData?.updated_by;
+            status = 'Updated';
+            action = valueData?.updated_what || 'Lead Updated';
+        } else if (row.type === 'Contact') {
+            type = 'Contact';
+            Ids = row.contact?.id;
+            lead_name = row.contact?.student_name || 'Contact Data';
+            contact = `${row?.assigned_by?.first_name} ${row?.assigned_by?.last_name}` || valueData?.updated_by;
+
+            // contact = valueData?.updated_by || valueData?.created_by || `${row?.assigned_by?.first_name} ${row?.assigned_by?.last_name}`;
+            status = valueData?.created_by ? 'Created' : 'Updated';
+            action = valueData?.created_what || valueData?.updated_what || 'Contact Action';
+        } else if (row.type === 'opportunity') {
+            type = 'Opportunity';
+            Ids = row.college_lead?.id;
+            lead_name = row.college_lead ? 'Opportunity Data' : valueData?.updated_what || row.message;
+            contact = valueData?.updated_by || `${row?.assigned_by?.first_name} ${row?.assigned_by?.last_name}`;
+            status = 'Updated';
+            action = valueData?.updated_what || 'Opportunity Updated';
+        } else if (row.type.includes('task')) {
+            type = 'Task';
+            Ids = row.task || row.conversation?.id;
+
+            if (row.type === 'task_conversation_created') {
+                lead_name = 'Conversation';
+                contact = `${row?.assigned_by?.first_name} ${row?.assigned_by?.last_name}`;
+                status = 'Reply';
+                action = 'Task Conversation';
+                remark = row.conversation?.message;
+            } else if (row.type === 'task_updated') {
+                lead_name = 'Task Assign';
+                contact = `${row?.assigned_by?.first_name} ${row?.assigned_by?.last_name}` || valueData?.updated_by;
+
+                // contact = valueData?.updated_by || `${row?.assigned_by?.first_name} ${row?.assigned_by?.last_name}`;
+                status = 'Assigned';
+                action = valueData?.updated_what || 'Task Updated';
+            } else {
+                lead_name = 'Task Action';
+                contact = `${row?.assigned_by?.first_name} ${row?.assigned_by?.last_name}`;
+                status = 'Task';
+                action = row.message;
+            }
+        } else {
+            // Default case for unknown types
+            type = capitalizeFLetter(row.type) || 'Notification';
+            Ids = row.id;
+            lead_name = row.message;
+            contact = `${row?.assigned_by?.first_name} ${row?.assigned_by?.last_name}`;
+            status = 'Info';
+            action = row.type;
+        }
+
+        return {
+            Ids,
+            type,
+            lead_name,
+            contact,
+            assigned_to: `${row.assigned_by?.first_name} ${row.assigned_by?.last_name}`,
+            status,
+            date: row.created_at ? moment(row.created_at).format('DD-MM-YYYY HH:mm') : '',
+            remark: remark || row.message,
+            action,
+            rawData: row, // Keep original data for reference
+            is_read: row.is_read,
+        };
     };
 
     const bodyData = () => {
@@ -208,6 +211,15 @@ const Notifications = () => {
         if (state.types) {
             body.type = state.types?.value;
         }
+
+        if (state.from_date) {
+            body.from_date = moment(state.from_date).format('YYYY-MM-DD HH:mm:ss');
+        }
+
+        if (state.end_date) {
+            body.end_date = moment(state.end_date).format('YYYY-MM-DD HH:mm:ss');
+        }
+
         return body;
     };
 
@@ -235,12 +247,15 @@ const Notifications = () => {
     };
 
     const onView = (row) => {
-        if (row?.type == 'Lead' || row?.type == 'Opportunity') {
+        if (row?.type === 'Lead' || row?.type === 'Opportunity') {
             router.push(`/viewLead?id=${row.Ids}`);
-        } else if (row?.type == 'Contact') {
+        } else if (row?.type === 'Contact') {
             router.push(`/update_contact?id=${row?.Ids}`);
-        } else {
+        } else if (row?.type === 'Task') {
             taskDetails(row);
+        } else {
+            // For other notification types, show details in modal or console
+            console.log('Notification details:', row);
         }
     };
 
@@ -254,8 +269,21 @@ const Notifications = () => {
             setState({ viewLoad: false });
         } catch (error) {
             setState({ viewLoad: false });
-
             console.log('✌️error --->', error);
+        }
+    };
+
+    const markAsRead = async (notificationId) => {
+        try {
+            // Call API to mark notification as read
+            // await Models.notication.markAsRead(notificationId);
+            // // Update local state
+            // const updatedList = state.notificationList.map(item =>
+            //     item.rawData.id === notificationId ? {...item, is_read: true} : item
+            // );
+            // setState({ notificationList: updatedList });
+        } catch (error) {
+            console.log('Error marking as read:', error);
         }
     };
 
@@ -267,8 +295,8 @@ const Notifications = () => {
                 </div>
             </div>
 
-            <div className="panel mt-2 flex flex-col gap-4 lg:flex-row lg:items-center ">
-                <div className="relative flex w-full max-w-full items-center rounded-full border border-gray-300 dark:border-white-dark/30 lg:w-1/3">
+            <div className="panel mt-2 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="relative flex w-full items-center rounded-full border border-gray-300 dark:border-white-dark/30 lg:w-2/5">
                     <button type="submit" className="flex items-center justify-center px-3 py-2 text-primary">
                         <IconSearch className="h-6 w-6 font-bold" />
                     </button>
@@ -276,38 +304,58 @@ const Notifications = () => {
                         type="text"
                         value={state.search}
                         onChange={(e) => setState({ search: e.target.value })}
-                        placeholder="Search by lead name"
+                        placeholder="Search ..."
                         className="form-input w-full rounded-r-full border-0 bg-white py-1.5 pl-0 text-sm placeholder:tracking-wide focus:shadow-lg focus:outline-none dark:bg-gray-800 dark:shadow-[#1b2e4b] dark:placeholder:text-gray-400"
                     />
                 </div>
-                <div className="flex w-full flex-col gap-4 lg:w-2/3 lg:flex-row">
+
+                {/* Filter Select - Takes 1/5 of the width */}
+                <div className="w-full lg:w-1/5">
                     <CustomSelect
                         value={state.types}
                         onChange={(e) => setState({ types: e })}
                         placeholder={'Filter By Type'}
                         options={[
                             { value: 'Lead', label: 'Lead' },
-                            { value: 'Task', label: 'Task' },
-                            { value: 'Opportunity', label: 'Opportunity' },
+                            { value: 'Contact', label: 'Contact' },
+                            { value: 'task_created', label: 'Assigned Task' },
+                            { value: 'Task Reply', label: 'Task Replay' },
                         ]}
                         className="w-full"
                     />
                 </div>
+
+                {/* Date Filters - Each takes 1/5 of the width */}
+                <div className="flex w-full gap-2 lg:w-2/5">
+                    <div className="w-1/2">
+                        <input
+                            type="datetime-local"
+                            value={state.from_date}
+                            onChange={(e) => setState({ from_date: e.target.value })}
+                            id="dateTimeCreated"
+                            name="dateTimeCreated"
+                            className="form-input w-full"
+                        />
+                    </div>
+                    <div className="w-1/2">
+                        <input
+                            type="datetime-local"
+                            value={state.end_date}
+                            onChange={(e) => setState({ end_date: e.target.value })}
+                            id="dateTimeCreated"
+                            name="dateTimeCreated"
+                            className="form-input w-full"
+                        />
+                    </div>
+                </div>
             </div>
 
             <div className=" mt-2 grid grid-cols-12  gap-4">
-                {/* {state.loading || state.subLoading ? (
-                    <div className="relative inset-0 z-10 flex items-center justify-center bg-white bg-opacity-70">
-                        <CommonLoader />
-                    </div>
-                ) : ( */}
                 <div className=" col-span-12 flex flex-col   md:col-span-12">
                     <div className=" col-span-12 flex flex-col   md:col-span-12">
-                        <div className="flex items-center justify-end pb-2 pr-3">
-                            <div className="rounded-lg bg-gray-300 p-1 font-semibold">
-                                {pageCounts(state.currentPage, state.totalRecords)}
-                                {/* {state.currentPage}-{state.totalRecords ? Math.min(state.currentPage * 10, state.totalRecords) : 0} of {state.totalRecords ? state.totalRecords : 0} */}
-                            </div>
+                        <div className="flex items-center justify-between pb-2 pr-3">
+                            <div className="text-sm text-gray-500">Total: {state.totalRecords} notifications</div>
+                            <div className="rounded-lg bg-gray-300 p-1 font-semibold">{pageCounts(state.currentPage, state.totalRecords)}</div>
                         </div>
                         <DataTable
                             className="table-responsive"
@@ -321,38 +369,83 @@ const Notifications = () => {
                                 {
                                     accessor: 'type',
                                     title: 'Type',
-
                                     render: (row: any) => (
                                         <div
-                                            className={` font-bold ${
-                                                row?.type == 'Lead' ? 'text-green-600' : row?.type == 'Opportunity' ? ' text-blue-600' : row?.type == 'Conversation' ? 'text-pink-600' : 'text-red-600'
+                                            className={`font-bold ${
+                                                row?.type === 'Lead'
+                                                    ? 'text-green-600'
+                                                    : row?.type === 'Opportunity'
+                                                    ? 'text-blue-600'
+                                                    : row?.type === 'Contact'
+                                                    ? 'text-purple-600'
+                                                    : 'text-orange-600'
                                             }`}
                                         >
                                             {capitalizeFLetter(row?.type)}
                                         </div>
                                     ),
                                 },
-                                { accessor: 'lead_name', title: 'Lead Name' },
-                                { accessor: 'contact', title: 'Contact Name' },
-                                { accessor: 'assigned_to', title: 'Assign to' },
-                                { accessor: 'status', title: 'Status' },
-                                { accessor: 'date', title: 'Date' },
+                                {
+                                    accessor: 'lead_name',
+                                    title: 'Title',
+                                    render: (row: any) => <div className={!row.is_read ? 'font-semibold' : ''}>{row.lead_name}</div>,
+                                },
+                                {
+                                    accessor: 'contact',
+                                    title: 'Created By',
+                                    render: (row: any) => <div className="text-sm text-gray-600">{row.contact}</div>,
+                                },
+                                {
+                                    accessor: 'assigned_to',
+                                    title: 'Assigned To',
+                                    render: (row: any) => <div className="text-sm">{row.assigned_to}</div>,
+                                },
+                                {
+                                    accessor: 'status',
+                                    title: 'Action',
+                                    render: (row: any) => (
+                                        <span
+                                            className={`rounded-full px-2 py-1 text-xs ${
+                                                row.status === 'Created'
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : row.status === 'Updated'
+                                                    ? 'bg-blue-100 text-blue-800'
+                                                    : row.status === 'Reply'
+                                                    ? 'bg-purple-100 text-purple-800'
+                                                    : 'bg-gray-100 text-gray-800'
+                                            }`}
+                                        >
+                                            {row.status}
+                                        </span>
+                                    ),
+                                },
+                                { accessor: 'date', title: 'Date & Time' },
                                 {
                                     accessor: 'remark',
-                                    title: 'Remark',
+                                    title: 'Message',
                                     sortable: false,
                                     render: (row) => (
                                         <Tippy content={row?.remark} placement="top" className="rounded-lg bg-black p-1 text-sm text-white">
-                                            <div>{row?.remark?.length > 20 ? `${row.remark.slice(0, 20)}...` : row?.remark}</div>
+                                            <div className={`max-w-xs truncate ${!row.is_read ? 'font-medium' : ''}`}>{row?.remark}</div>
                                         </Tippy>
                                     ),
                                 },
-
                                 {
                                     accessor: 'actions',
                                     title: 'Actions',
                                     render: (row: any) => (
                                         <div className="mx-auto flex w-max items-center gap-4">
+                                            {!row.is_read && (
+                                                <button
+                                                    className="text-xs text-blue-600 hover:text-blue-800"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        markAsRead(row.rawData.id);
+                                                    }}
+                                                >
+                                                    Mark Read
+                                                </button>
+                                            )}
                                             <button className="flex hover:text-primary" onClick={() => onView(row)}>
                                                 <IconEye />
                                             </button>
@@ -373,14 +466,6 @@ const Notifications = () => {
                             paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
                         />
                     </div>
-                    {/* <div className="mt-5 flex justify-center gap-3">
-                        <button disabled={!state.previous} onClick={handlePreviousPage} className={`btn ${!state.previous ? 'btn-disabled' : 'btn-primary'}`}>
-                            <IconArrowBackward />
-                        </button>
-                        <button disabled={!state.next} onClick={handleNextPage} className={`btn ${!state.next ? 'btn-disabled' : 'btn-primary'}`}>
-                            <IconArrowForward />
-                        </button>
-                    </div> */}
 
                     <div className="mt-5 flex justify-center gap-3">
                         <Pagination
@@ -388,7 +473,6 @@ const Notifications = () => {
                             totalRecords={state.count}
                             onPageChange={(page) => {
                                 contactList(page);
-
                                 setState({ currentPage: page });
                             }}
                             hasNext={state.next !== null}
@@ -397,7 +481,6 @@ const Notifications = () => {
                         />
                     </div>
                 </div>
-                {/* )} */}
             </div>
 
             <Modal

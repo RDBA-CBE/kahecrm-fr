@@ -21,12 +21,12 @@ const TaskReplayCard = (props: any) => {
                                     <div className={`${item?.details ? 'w-1/2 pr-2' : 'w-full pr-0'}`}>
                                         <div className="mt-4 w-full rounded-lg border border-gray-200 bg-white p-4  shadow-lg">
                                             <p className="text-sm">
-                                                <strong>Created By:</strong> {`${item?.created_by?.first_name} ${item?.created_by?.last_name}`}
+                                                <strong>Created By:</strong> {`${capitalizeFLetter(item?.created_by?.first_name)} ${capitalizeFLetter(item?.created_by?.last_name)}`}
                                             </p>
                                             {item?.message && (
                                                 <p className=" flex text-sm">
                                                     <strong>Message:</strong>
-                                                    <ReadMore children={item?.message} />
+                                                    <ReadMore children={capitalizeFLetter(item?.message)} />
                                                 </p>
                                             )}
                                         </div>

@@ -293,6 +293,7 @@ const Leads = () => {
                 assigned_to: item.assigned_to?.username,
                 follow_up: moment(item.status_date).format('DD-MM-YYYY'),
                 contact_number: item.primary_contact?.phone_number,
+                phone_number:item?.college_contact?.phone_number,
                 updated_on: item?.updated_at ? moment(item?.updated_at).format('DD-MM-YYYY') : '',
                 assigned: item.assign_to ? capitalizeFLetter(item?.assign_to?.first_name) + ' ' + capitalizeFLetter(item?.assign_to?.last_name) : '',
             };
@@ -711,74 +712,6 @@ const Leads = () => {
                 </div>
 
                 <div className="flex w-full flex-col gap-4 lg:w-2/3 lg:flex-row">
-                    {ROLE.ADMIN == state.role && (
-                        <>
-                            <CustomSelect
-                                options={state.bdmList}
-                                value={state.bdm}
-                                onChange={(e) => setState({ bdm: e, bde: null, roles: null, tm: null })}
-                                isMulti={false}
-                                placeholder="BDM"
-                                className="w-full "
-                                disabled={state.dm?.value}
-                            />
-                            <CustomSelect
-                                options={
-                                    state.bdm?.value
-                                        ? [
-                                              {
-                                                  value: 'BDE',
-                                                  label: 'BDE',
-                                              },
-                                              {
-                                                  value: 'TM',
-                                                  label: 'TM',
-                                              },
-                                          ]
-                                        : []
-                                }
-                                value={state.roles}
-                                onChange={(e) => setState({ roles: e, bde: null, tm: null })}
-                                isMulti={false}
-                                placeholder="Choose Role"
-                                className="w-full "
-                                disabled={state.dm?.value}
-                            />
-                            {state.roles ? (
-                                state.roles?.value == 'BDE' ? (
-                                    <CustomSelect
-                                        options={state.bdeOrTMList}
-                                        value={state.bde}
-                                        onChange={(e) => setState({ bde: e })}
-                                        isMulti={false}
-                                        placeholder="BDE"
-                                        className="w-full "
-                                        disabled={state.dm?.value}
-                                    />
-                                ) : (
-                                    <CustomSelect
-                                        options={state.bdeOrTMList}
-                                        value={state.tm}
-                                        onChange={(e) => setState({ tm: e })}
-                                        isMulti={false}
-                                        placeholder="TM"
-                                        className="w-full "
-                                        disabled={state.dm?.value}
-                                    />
-                                )
-                            ) : null}
-                            <CustomSelect
-                                options={state.dmList}
-                                value={state.dm}
-                                onChange={(e) => setState({ dm: e })}
-                                isMulti={false}
-                                placeholder="DM"
-                                className="w-full "
-                                disabled={state.bdm?.value || state.bde?.value || state.roles?.value}
-                            />
-                        </>
-                    )}
-
                     <CustomSelect
                         value={state.lead_status}
                         onChange={(e) => setState({ lead_status: e })}
@@ -828,8 +761,10 @@ const Leads = () => {
                                 accessor: 'contact_person',
                                 title: 'Contact Person',
                             },
+                            { accessor: 'phone_number', title: 'Phone Number' },
 
                             { accessor: 'source', title: 'Source' },
+
 
                             { accessor: 'date', title: 'Created Date', width: 120 },
                             {

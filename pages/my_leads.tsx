@@ -293,6 +293,8 @@ const Leads = () => {
                 assigned_to: item.assigned_to?.username,
                 follow_up: moment(item.status_date).format('DD-MM-YYYY'),
                 contact_number: item.primary_contact?.phone_number,
+                phone_number: item?.college_contact?.phone_number,
+
                 updated_on: item?.updated_at ? moment(item?.updated_at).format('DD-MM-YYYY') : '',
                 assigned: item.assign_to ? capitalizeFLetter(item?.assign_to?.first_name) + ' ' + capitalizeFLetter(item?.assign_to?.last_name) : '',
             };
@@ -807,6 +809,8 @@ const Leads = () => {
                 </div>
             </div>
 
+         
+
             <>
                 <div className="flex items-center justify-end pb-2 pr-3">
                     <div className="rounded-lg bg-gray-300 p-1 font-semibold">{pageCounts(state.currentPage, state.totalRecords)}</div>
@@ -826,6 +830,7 @@ const Leads = () => {
                                 accessor: 'contact_person',
                                 title: 'Contact Person',
                             },
+                            { accessor: 'phone_number', title: 'Phone Number' },
 
                             { accessor: 'source', title: 'Source' },
 

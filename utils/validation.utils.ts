@@ -232,21 +232,19 @@ export const createNewContactWithOpp = Yup.object().shape({
 
 export const createTask = Yup.object().shape({
     lead: Yup.string().required('Lead is required'),
-    contact: Yup.string().required('Contact is required'),
     task_type: Yup.string().required('Task Type is required'),
-    assignRole: Yup.string().required('Role is required'),
     task_date_time: Yup.string().required('Task date is required'),
     remark: Yup.string().required('Remark is required'),
-    assigned_to: Yup.array()
-        .of(
-            Yup.object().shape({
-                value: Yup.number().required('Value is required'),
-                label: Yup.string().required('Label is required'),
-            })
-        )
-        .nullable() // Allow null values
-        .min(1, 'At least one assigned member is required')
-        .required('Assigned to is required'),
+    // assigned_to: Yup.array()
+    //     .of(
+    //         Yup.object().shape({
+    //             value: Yup.number().required('Value is required'),
+    //             label: Yup.string().required('Label is required'),
+    //         })
+    //     )
+    //     .nullable() // Allow null values
+    //     .min(1, 'At least one assigned member is required')
+    //     .required('Assigned to is required'),
 });
 
 export const createTask1 = Yup.object().shape({

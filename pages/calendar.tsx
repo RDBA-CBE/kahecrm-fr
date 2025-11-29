@@ -22,7 +22,7 @@ import IconLoader from '@/components/Icon/IconLoader';
 import IconX from '@/components/Icon/IconX';
 import Link from 'next/link';
 import IconTrash from '@/components/Icon/IconTrash';
-import { ROLE } from '@/utils/constant.utils';
+import { ROLE, TASK_TYPE } from '@/utils/constant.utils';
 
 const Calendar = () => {
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
@@ -146,8 +146,8 @@ const Calendar = () => {
 
     const calendarList = async () => {
         try {
-            const user:any=Models.auth.userDetails()
-            const res: any = await Models.task.calendarTask(user?.id,true);
+            const user: any = Models.auth.userDetails();
+            const res: any = await Models.task.calendarTask(user?.id, true);
             const data = res
                 ?.map((item) => {
                     if (!item?.task_date_time) {
@@ -579,7 +579,7 @@ const Calendar = () => {
                                         {
                                             accessor: 'leadName',
                                             title: 'Lead Name',
-                                            render: (row:any) => {
+                                            render: (row: any) => {
                                                 return (
                                                     <Link href={`/viewLead?id=${row?.leadId}`} className=" cursor-pointer hover:text-blue-600">
                                                         {row.leadName}
@@ -587,9 +587,9 @@ const Calendar = () => {
                                                 );
                                             },
                                         },
-                                        { accessor: 'contact', title: 'Contact Name',  },
-                                        { accessor: 'task', title: 'Task Type',  },
-                                        { accessor: 'date', title: 'Task Date',  },
+                                        { accessor: 'contact', title: 'Contact Name' },
+                                        { accessor: 'task', title: 'Task Type' },
+                                        { accessor: 'date', title: 'Task Date' },
                                         { accessor: 'assigned_to', title: 'Assign To', sortable: false },
                                         {
                                             accessor: 'remark',
@@ -702,20 +702,7 @@ const Calendar = () => {
                             value={state.task_type}
                             onChange={(e) => setState({ task_type: e })}
                             placeholder={'Task Type'}
-                            options={[
-                                {
-                                    label: 'Call',
-                                    value: 'Call',
-                                },
-                                {
-                                    label: 'Follow Up',
-                                    value: 'Follow Up',
-                                },
-                                {
-                                    label: 'To Do',
-                                    value: 'To Do',
-                                },
-                            ]}
+                            options={TASK_TYPE}
                             error={state.errors?.task_type}
                             required
                         />
