@@ -8,11 +8,16 @@ import { capitalizeFLetter, getDate, useSetState } from '@/utils/functions.utils
 import Models from '@/imports/models.import';
 import moment from 'moment';
 import IconEye from '@/components/Icon/IconEye';
+import { useSelector } from 'react-redux';
+import { IRootState } from '@/store';
 
 const ApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
 export default function DashboardCustomTabs() {
     const [activeTab, setActiveTab] = useState('summary');
+
+        const isDark = useSelector((state: IRootState) => state.themeConfig.theme === 'dark' || state.themeConfig.isDarkMode);
+    
 
     const [state, setState] = useSetState({
         page: 1,
@@ -166,6 +171,170 @@ export default function DashboardCustomTabs() {
         },
     ];
 
+    const salesByCategory: any = {
+      series: [985, 737, 270],
+      options: {
+          chart: {
+              type: 'donut',
+              height: 460,
+              fontFamily: 'Nunito, sans-serif',
+          },
+          dataLabels: {
+              enabled: false,
+          },
+          stroke: {
+              show: true,
+              width: 25,
+              colors: isDark ? '#0e1726' : '#fff',
+          },
+          colors: isDark ? ['#5c1ac3', '#e2a03f', '#e7515a', '#e2a03f'] : ['#e2a03f', '#5c1ac3', '#e7515a'],
+          legend: {
+              position: 'bottom',
+              horizontalAlign: 'center',
+              fontSize: '14px',
+              markers: {
+                  width: 10,
+                  height: 10,
+                  offsetX: -2,
+              },
+              height: 50,
+              offsetY: 20,
+          },
+          plotOptions: {
+              pie: {
+                  donut: {
+                      size: '65%',
+                      background: 'transparent',
+                      labels: {
+                          show: true,
+                          name: {
+                              show: true,
+                              fontSize: '29px',
+                              offsetY: -10,
+                          },
+                          value: {
+                              show: true,
+                              fontSize: '26px',
+                              color:  '#bfc9d4',
+                              offsetY: 16,
+                              formatter: (val: any) => {
+                                  return val;
+                              },
+                          },
+                          total: {
+                              show: true,
+                              label: 'Total',
+                              color: '#888ea8',
+                              fontSize: '29px',
+                              formatter: (w: any) => {
+                                  return w.globals.seriesTotals.reduce(function (a: any, b: any) {
+                                      return a + b;
+                                  }, 0);
+                              },
+                          },
+                      },
+                  },
+              },
+          },
+          labels: ['Apparel', 'Sports', 'Others'],
+          states: {
+              hover: {
+                  filter: {
+                      type: 'none',
+                      value: 0.15,
+                  },
+              },
+              active: {
+                  filter: {
+                      type: 'none',
+                      value: 0.15,
+                  },
+              },
+          },
+      },
+  };
+
+  const dailySales: any = {
+    series: [
+        {
+            name: 'Sales',
+            data: [44, 55, 41, 67, 22, 43, 21],
+        },
+        {
+            name: 'Last Week',
+            data: [13, 23, 20, 8, 13, 27, 33],
+        },
+    ],
+    options: {
+        chart: {
+            height: 300,
+            type: 'bar',
+            fontFamily: 'Nunito, sans-serif',
+            toolbar: {
+                show: false,
+            },
+            stacked: true,
+            stackType: '100%',
+        },
+        dataLabels: {
+            enabled: false,
+        },
+        stroke: {
+            show: true,
+            width: 1,
+        },
+        colors: ['#e2a03f', '#e0e6ed'],
+        responsive: [
+            {
+                breakpoint: 480,
+                options: {
+                    legend: {
+                        position: 'bottom',
+                        offsetX: -10,
+                        offsetY: 0,
+                    },
+                },
+            },
+        ],
+        xaxis: {
+            labels: {
+                show: false,
+            },
+            categories: ['Sun', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat'],
+        },
+        yaxis: {
+            show: false,
+        },
+        fill: {
+            opacity: 1,
+        },
+        plotOptions: {
+            bar: {
+                horizontal: false,
+                columnWidth: '25%',
+            },
+        },
+        legend: {
+            show: false,
+        },
+        grid: {
+            show: false,
+            xaxis: {
+                lines: {
+                    show: false,
+                },
+            },
+            padding: {
+                top: 10,
+                right: -20,
+                bottom: -20,
+                left: -20,
+            },
+        },
+    },
+};
+
+
     return (
         <div className=" p-4">
             {/* ---------- TABS NAV ---------- */}
@@ -230,16 +399,20 @@ export default function DashboardCustomTabs() {
                     <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div className="rounded-xl bg-white p-4 shadow">
                             <h3 className="mb-2 font-semibold">Lead Status</h3>
-                            <ApexChart {...leadStatusData} type="pie" height={300} />
+                            {/* <ApexChart {...leadStatusData} type="pie" height={300} /> */}
+                            <ApexChart series={salesByCategory.series} options={salesByCategory.options} type="donut" height={460} width={'100%'} />
+
                         </div>
 
                         <div className="rounded-xl bg-white p-4 shadow">
                             <h3 className="mb-2 font-semibold">Lead Source</h3>
-                            <ApexChart {...leadSourceData} type="bar" height={300} />
+                            <ApexChart series={dailySales.series} options={dailySales.options} type="bar" height={160} width={'100%'} />
+
+                            {/* <ReactApexChart {...leadSourceData} type="bar" height={300} /> */}
                         </div>
                     </div>
 
-                    <div className="mt-4 rounded-xl bg-white p-4 shadow">
+                    {/* <div className="mt-4 rounded-xl bg-white p-4 shadow">
                         <h3 className="mb-2 font-semibold">Monthly Leads Trend</h3>
                         <ApexChart {...monthlyLeadsData} type="line" height={300} />
                     </div>
@@ -247,7 +420,7 @@ export default function DashboardCustomTabs() {
                     <div className="mt-4 rounded-xl bg-white p-4 shadow">
                         <h3 className="mb-2 font-semibold">Lead Funnel</h3>
                         <ApexChart {...leadFunnelData} type="bar" height={300} />
-                    </div>
+                    </div> */}
                 </div>
             )}
         </div>
