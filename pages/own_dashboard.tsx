@@ -272,21 +272,20 @@ function CountCard({ title, count, icon }) {
 
 function ActivityItem({ item }) {
   const taskData = item;
-    const contactData = item?.contact;
+  const contactData = item?.contact;
 
-    // Format date and time
-    const taskDateTime = taskData?.task_date_time ? moment(taskData.task_date_time).format('DD-MM-YYYY HH:mm') : '';
-    const createdDate = taskData?.created_at ? moment(taskData.created_at).format('DD-MM-YYYY HH:mm') : '';
+  // Format date and time
+  const taskDateTime = taskData?.task_date_time ? moment(taskData.task_date_time).format('DD-MM-YYYY HH:mm') : '';
+  const createdDate = taskData?.created_at ? moment(taskData.created_at).format('DD-MM-YYYY HH:mm') : '';
 
-    // Get assigned users
-    const assignedUsers =
-        taskData?.assigned_to?.length > 0
-            ? taskData.assigned_to.map((user) => `${capitalizeFLetter(user?.first_name)} ${capitalizeFLetter(user?.last_name)}`)?.join(', ')
-            : `${capitalizeFLetter(taskData.created_by?.first_name)} ${capitalizeFLetter(taskData.created_by?.last_name)}`;
+  // Get assigned users
+  const assignedUsers =
+      taskData?.assigned_to?.length > 0
+          ? taskData.assigned_to.map((user) => `${capitalizeFLetter(user?.first_name)} ${capitalizeFLetter(user?.last_name)}`)?.join(', ')
+          : `${capitalizeFLetter(taskData.created_by?.first_name)} ${capitalizeFLetter(taskData.created_by?.last_name)}`;
 
-    // Get created by user
-    const createdBy = `${capitalizeFLetter(taskData.created_by?.first_name)} ${capitalizeFLetter(taskData.created_by?.last_name)}`;
-
+  // Get created by user
+  const createdBy = `${capitalizeFLetter(taskData.created_by?.first_name)} ${capitalizeFLetter(taskData.created_by?.last_name)}`;
 
   return (
       <div className="rounded-lg border border-gray-200 p-4 transition-colors hover:bg-gray-50">
@@ -309,7 +308,9 @@ function ActivityItem({ item }) {
               {/* TASK STATUS */}
               <div className="flex flex-col">
                   <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">TASK STATUS</span>
-                  <span className="w-fit rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">{taskData?.task_type || 'To Do'}</span>
+                  <span className="w-fit rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
+                      {taskData?.task_type || 'To Do'}
+                  </span>
               </div>
 
               {/* TASK DATE */}
@@ -334,12 +335,12 @@ function ActivityItem({ item }) {
               </div>
 
               {/* REMARK & ACTION */}
-              <div className="flex  justify-between">
+              <div className="flex justify-between">
                   <div className="flex flex-col flex-1 min-w-0">
                       <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">REMARK</span>
                       <span className="text-sm text-gray-700 truncate">{taskData?.remark || 'No remarks'}</span>
                   </div>
-                  <button className="ml-2 flex items-center pt-2 justify-center rounded-lg p-1 text-gray-500 transition-colors hover:bg-gray-100 hover:text-blue-600">
+                  <button className="ml-2 flex items-center justify-center rounded-lg p-1 pt-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-blue-600">
                       <IconEye className="h-4 w-4" />
                   </button>
               </div>
