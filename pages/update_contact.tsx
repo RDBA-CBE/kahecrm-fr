@@ -137,10 +137,15 @@ const UpdateContact = () => {
                 contact_assigned_to: res?.assigned_to
                     ? { value: res?.assigned_to?.id, label: `${capitalizeFLetter(res?.assigned_to?.first_name)} ${capitalizeFLetter(res?.assigned_to?.last_name)} ` }
                     : null,
-                contact_assign_role: res?.assigned_to ? (res?.assigned_to?.is_staff ? { value: 'staff', label: 'Staff' } : { value: 'admin', label: 'Admin' }) : null,
+                contact_assign_role: res?.assigned_to?.groups?.length > 0 ? (res?.assigned_to?.groups[0] == 2 ? { value: 'staff', label: 'Staff' } : { value: 'admin', label: 'Admin' }) : null,
 
                 // status:res?.status
             });
+
+            if (res?.assigned_to?.groups?.length > 0) {
+                const value = res?.assigned_to?.groups[0] == 2 ? { value: 'staff', label: 'Staff' } : { value: 'admin', label: 'Admin' };
+                usersList(value, 'initial');
+            }
         } catch (error) {
             setState({ loading: false });
 
@@ -313,6 +318,7 @@ const UpdateContact = () => {
         try {
             if (type == 'contact') {
                 setState({ contact_assign_role: e, contact_assigned_to: null });
+            } else if (type == 'initial') {
             } else {
                 setState({ assign_role: e, assigned_to: null });
             }

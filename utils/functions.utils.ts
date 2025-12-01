@@ -33,6 +33,15 @@ export const useSetState = (initialState: any) => {
     return [state, newSetState];
 };
 
+export const viewPhoneNumber = (phone) => {
+    if (!phone) return '';
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length === 12 && cleaned.startsWith('91')) {
+        return `+91 ${cleaned.slice(2, 7)} ${cleaned.slice(7)}`;
+    }
+    return phone;
+};
+
 export const validateEmail = (email: string) => {
     return Mail.test(email);
 };
@@ -563,4 +572,43 @@ export const sortedResults = (results) => {
         }
         return a.month - b.month;
     });
+};
+
+
+
+export const getBadgeColor = (task) => {
+    switch (task?.toLowerCase()) {
+        case 'call': return 'bg-blue-100 text-blue-800';
+        case 'follow up': return 'bg-green-100 text-green-800';
+        case 'to do': return 'bg-yellow-100 text-yellow-800';
+        default: return 'bg-gray-100 text-gray-800';
+    }
+};
+
+
+export const leadStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+        case 'follow-up': return 'bg-blue-100 text-blue-800';
+        case 'interested': return 'bg-green-100 text-green-800';
+        case 'in progress': return 'bg-yellow-100 text-yellow-800';
+        case 'call': return 'bg-purple-100 text-purple-800';
+        case 'appointments': return 'bg-indigo-100 text-indigo-800';
+        case 'converted': return 'bg-emerald-100 text-emerald-800';
+        default: return 'bg-gray-100 text-gray-800';
+    }
+};
+
+export const leadSourceColor = (source) => {
+    switch (source?.toLowerCase()) {
+        case 'campaign': return 'bg-violet-100 text-violet-800';
+        case 'email': return 'bg-sky-100 text-sky-800';
+        case 'call': return 'bg-lime-100 text-lime-800';
+        case 'referral': return 'bg-amber-100 text-amber-800';
+        case 'google ads': return 'bg-rose-100 text-rose-800';
+        case 'social media': return 'bg-fuchsia-100 text-fuchsia-800';
+        case 'website': return 'bg-cyan-100 text-cyan-800';
+        case 'walk in': return 'bg-orange-100 text-orange-800';
+        case 'whatsapp': return 'bg-teal-100 text-teal-800';
+        default: return 'bg-slate-100 text-slate-800';
+    }
 };

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import CustomfullCalender from '@/common_component/fullCalender';
-import { capitalizeFLetter, Dropdown, Failure, getDate, Success, useSetState } from '@/utils/functions.utils';
+import { capitalizeFLetter, Dropdown, Failure, getBadgeColor, getDate, Success, useSetState } from '@/utils/functions.utils';
 import IconSearch from '@/components/Icon/IconSearch';
 import CustomSelect from '@/components/Select';
 import CustomeDatePicker from '@/common_component/datePicker';
@@ -535,7 +535,14 @@ const Calendar = () => {
                             loaderBackgroundBlur={0}
                             columns={[
                                 { accessor: 'contact', title: 'Contact Name' },
-                                { accessor: 'task', title: 'Task Type' },
+
+                                {
+                                    accessor: 'task',
+                                    title: 'Task Type',
+                                    render: (row) => {
+                                        return <span className={`text-md rounded-full px-2 py-1 font-medium ${getBadgeColor(row?.task)}`}>{row?.task}</span>;
+                                    },
+                                },
                                 { accessor: 'date', title: 'Task Date' },
                                 { accessor: 'assigned_to', title: 'Assign To', sortable: false },
                                 { accessor: 'created_at', title: 'Created Date' },

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import CustomfullCalender from '@/common_component/fullCalender';
-import { Dropdown, Failure, Success, capitalizeFLetter, objIsEmpty, useSetState } from '@/utils/functions.utils';
+import { Dropdown, Failure, Success, capitalizeFLetter, objIsEmpty, useSetState, viewPhoneNumber } from '@/utils/functions.utils';
 import IconSearch from '@/components/Icon/IconSearch';
 import CustomSelect from '@/components/Select';
 import IconFilter from '@/components/Icon/IconFilter';
@@ -622,58 +622,21 @@ const Contacts = () => {
                 <div className="flex items-center gap-5 pl-3">
                     <h5 className="text-lg font-semibold ">{(ROLE.ADMIN == state.role || ROLE.BDM == state.role) && 'TEAM'} CONTACTS</h5>
                 </div>
-                {ROLE.ADMIN !== state.role && ROLE.BDM !== state.role && (
-                    // <div className="flex items-center gap-3">
-                    //     <button
-                    //         type="button"
-                    //         className="btn btn-primary"
-                    //         onClick={() => {
-                    //             router.push('create_contact');
-                    //         }}
-                    //     >
-                    //         Add
-                    //     </button>
-                    //     <button type="button" className="btn btn-primary" onClick={() => setState({ isOpenImport: true, errorContacts: [] })}>
-                    //         Import
-                    //     </button>
-                    //     <button type="button" className="btn btn-primary w-full md:w-auto" onClick={() => exportToExcel()}>
-                    //         {state.excelLoading ? <IconLoader className=" h-4 w-4 animate-spin" /> : 'Excel'}
-                    //     </button>
-                    // </div>
 
-                    <div className="flex items-center gap-3">
-                        <button
-                            type="button"
-                            className="btn btn-primary"
-                            onClick={() => {
-                                router.push('create_contact');
-                                // setState({
-                                //     name: '',
-                                //     department: '',
-                                //     designation: '',
-                                //     phone_number: '',
-                                //     email_id: '',
-                                //     lead_source: '',
-                                //     status: '',
-                                //     is_active: false,
-                                //     isOpenCreateContact: true,
-                                //     errors: '',
-                                //     remark: '',
-                                //     moveToLead: false,
-                                //     is_archive: false,
-                                //     contactId: null,
-                                // });
-                            }}
-                        >
-                            Add
-                            {/* {submitLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : submitTitle ? submitTitle : 'Submit'} */}
-                        </button>
-                        <button type="button" className="btn btn-primary" onClick={() => setState({ isOpenImport: true })}>
-                            Import
-                            {/* {submitLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : submitTitle ? submitTitle : 'Submit'} */}
-                        </button>
-                    </div>
-                )}
+                <div className="flex items-center gap-3">
+                    <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={() => {
+                            router.push('create_contact');
+                        }}
+                    >
+                        Add
+                    </button>
+                    {/* <button type="button" className="btn btn-primary" onClick={() => setState({ isOpenImport: true })}>
+                        Import
+                    </button> */}
+                </div>
             </div>
 
             <div className="panel mt-2 flex flex-col gap-4 lg:flex-row lg:items-center">
@@ -734,7 +697,20 @@ const Contacts = () => {
                             columns={[
                                 // { accessor: 'student_name', title: 'Student Name' },
                                 { accessor: 'student_name', title: 'Student Name' },
-                                { accessor: 'phone_number', title: 'Contact Number' },
+                                {
+                                    accessor: 'phone_number',
+                                    title: 'Contact',
+                                    render: (row) => {
+                                        return (
+                                            <div className="flex flex-col gap-1">
+                                                <div className="text-sm font-medium">{viewPhoneNumber(row?.phone_number)}</div>
+                                                <a href={`mailto:${row?.email}`} className="text-xs text-blue-500 hover:underline">
+                                                    {row?.email}
+                                                </a>
+                                            </div>
+                                        );
+                                    },
+                                },
                                 { accessor: 'date', title: 'Date', width: 120 },
 
                                 // { accessor: 'category', title: 'Category',  },
@@ -742,7 +718,28 @@ const Contacts = () => {
                                 // { accessor: 'designation', title: 'Designation' },
 
                                 // ...(state?.role !== ROLE.BDE ? [
-                                { accessor: 'status', title: 'Status' },
+                                { 
+                                    accessor: 'status', 
+                                    title: 'Status',
+                                    render: (row) => {
+                                        const getBadgeColor = (status) => {
+                                            switch (status?.toLowerCase()) {
+                                                case 'contacted': return 'bg-blue-100 text-blue-800';
+                                                case 'new': return 'bg-green-100 text-green-800';
+                                                case 'not interested': return 'bg-red-100 text-red-800';
+                                                case 'follow-up': return 'bg-yellow-100 text-yellow-800';
+                                                case 'converted to lead': return 'bg-emerald-100 text-emerald-800';
+                                                case 'no response': return 'bg-gray-100 text-gray-800';
+                                                default: return 'bg-gray-100 text-gray-800';
+                                            }
+                                        };
+                                        return (
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getBadgeColor(row?.status)}`}>
+                                                {row?.status}
+                                            </span>
+                                        );
+                                    }
+                                },
                                 { accessor: 'assigned_to', title: 'Assigned To' },
 
                                 // ] : []),

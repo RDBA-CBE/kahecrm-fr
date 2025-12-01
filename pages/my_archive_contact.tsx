@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import CustomfullCalender from '@/common_component/fullCalender';
-import { Dropdown, Failure, Success, capitalizeFLetter, objIsEmpty, useSetState } from '@/utils/functions.utils';
+import { Dropdown, Failure, Success, capitalizeFLetter, objIsEmpty, useSetState, viewPhoneNumber } from '@/utils/functions.utils';
 import IconSearch from '@/components/Icon/IconSearch';
 import CustomSelect from '@/components/Select';
 import IconFilter from '@/components/Icon/IconFilter';
@@ -621,58 +621,6 @@ const Contacts = () => {
                 <div className="flex items-center gap-5 pl-3">
                     <h5 className="text-lg font-semibold ">{(ROLE.ADMIN == state.role || ROLE.BDM == state.role) && 'TEAM'} ARCHIVE CONTACTS</h5>
                 </div>
-                {ROLE.ADMIN !== state.role && ROLE.BDM !== state.role && (
-                    // <div className="flex items-center gap-3">
-                    //     <button
-                    //         type="button"
-                    //         className="btn btn-primary"
-                    //         onClick={() => {
-                    //             router.push('create_contact');
-                    //         }}
-                    //     >
-                    //         Add
-                    //     </button>
-                    //     <button type="button" className="btn btn-primary" onClick={() => setState({ isOpenImport: true, errorContacts: [] })}>
-                    //         Import
-                    //     </button>
-                    //     <button type="button" className="btn btn-primary w-full md:w-auto" onClick={() => exportToExcel()}>
-                    //         {state.excelLoading ? <IconLoader className=" h-4 w-4 animate-spin" /> : 'Excel'}
-                    //     </button>
-                    // </div>
-
-                    <div className="flex items-center gap-3">
-                        <button
-                            type="button"
-                            className="btn btn-primary"
-                            onClick={() => {
-                                router.push('create_contact');
-                                // setState({
-                                //     name: '',
-                                //     department: '',
-                                //     designation: '',
-                                //     phone_number: '',
-                                //     email_id: '',
-                                //     lead_source: '',
-                                //     status: '',
-                                //     is_active: false,
-                                //     isOpenCreateContact: true,
-                                //     errors: '',
-                                //     remark: '',
-                                //     moveToLead: false,
-                                //     is_archive: false,
-                                //     contactId: null,
-                                // });
-                            }}
-                        >
-                            Add
-                            {/* {submitLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : submitTitle ? submitTitle : 'Submit'} */}
-                        </button>
-                        <button type="button" className="btn btn-primary" onClick={() => setState({ isOpenImport: true })}>
-                            Import
-                            {/* {submitLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : submitTitle ? submitTitle : 'Submit'} */}
-                        </button>
-                    </div>
-                )}
             </div>
 
             <div className="panel mt-2 flex flex-col gap-4 lg:flex-row lg:items-center">
@@ -733,7 +681,20 @@ const Contacts = () => {
                             columns={[
                                 // { accessor: 'student_name', title: 'Student Name' },
                                 { accessor: 'student_name', title: 'Student Name' },
-                                { accessor: 'phone_number', title: 'Contact Number' },
+                                {
+                                    accessor: 'phone_number',
+                                    title: 'Contact',
+                                    render: (row) => {
+                                        return (
+                                            <div className="flex flex-col gap-1">
+                                                <div className="text-sm font-medium">{viewPhoneNumber(row?.phone_number)}</div>
+                                                <a href={`mailto:${row?.email}`} className="text-xs text-blue-500 hover:underline">
+                                                    {row?.email}
+                                                </a>
+                                            </div>
+                                        );
+                                    },
+                                },
                                 { accessor: 'date', title: 'Date', width: 120 },
 
                                 // { accessor: 'category', title: 'Category',  },

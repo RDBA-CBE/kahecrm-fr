@@ -1,7 +1,20 @@
 import IconBitcoin from '@/components/Icon/IconBitcoin';
 import IconSearch from '@/components/Icon/IconSearch';
 import CustomSelect from '@/components/Select';
-import { Dropdown, Success, capitalizeFLetter, chartData, filterByDates, getDateRange, objIsEmpty, pageCounts, useSetState } from '@/utils/functions.utils';
+import {
+    Dropdown,
+    Success,
+    capitalizeFLetter,
+    chartData,
+    filterByDates,
+    getDateRange,
+    leadSourceColor,
+    leadStatusColor,
+    objIsEmpty,
+    pageCounts,
+    useSetState,
+    viewPhoneNumber,
+} from '@/utils/functions.utils';
 import { Loader, SimpleGrid } from '@mantine/core';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
@@ -161,7 +174,7 @@ const Leads = () => {
             const body = bodyData();
             const res: any = await Models.lead.list(body, page, null);
             tableData(res);
-            setState({ loading: false, count: res?.count, next: res?.next, previous: res?.previous, currentPage: page });
+            setState({ loading: false, count: res?.count, next: res?.next, previous: res?.previous, currentPage: page, totalRecords: res?.count });
         } catch (error) {
             setState({ loading: false });
             console.log('error: ', error);
@@ -227,11 +240,9 @@ const Leads = () => {
 
     const countData = async () => {
         try {
-            // setState({ chartLoading: true });
             let body = bodyData();
 
             const res: any = await Models.lead.cart_count(body);
-            console.log('countData --->', res);
 
             const count = [
                 { title: 'Call', total: res?.total_call, this_month: res?.this_month_call, name1: 'This Month', name2: 'Total' },
@@ -239,7 +250,7 @@ const Leads = () => {
                 { title: 'Follow-Up', total: res?.['total_follow-up'], this_month: res?.['this_month_follow-up'], name1: 'This Month', name2: 'Total' },
                 { title: 'Interested', total: res?.total_interested, this_month: res?.this_month_interested, name1: 'This Month', name2: 'Total' },
                 { title: 'In Progress', total: res?.total_in_progress, this_month: res?.this_month_in_progress, name1: 'This Month', name2: 'Total' },
-                { title: 'Closed', total: res?.total_closed, this_month: res?.this_month_closed, name1: 'This Month', name2: 'Total' },
+                { title: 'Converted', total: res?.total_converted, this_month: res?.this_month_converted, name1: 'This Month', name2: 'Total' },
             ];
 
             setState({ cardData: count, chartLoading: false });
@@ -326,7 +337,7 @@ const Leads = () => {
             month: false,
         });
         // getAllData(state.currentPage);
-        // countData();
+        countData();
     };
 
     const filterCustomDate = async () => {
@@ -593,6 +604,8 @@ const Leads = () => {
         );
     };
 
+    console.log('✌️state.data --->', state.data);
+
     return (
         <div className="p-2">
             <div className="panel mb-3 flex items-center justify-between gap-5">
@@ -731,13 +744,13 @@ const Leads = () => {
                                         <div>
                                             <div className="text-sm font-normal ">{card.name1}</div>
                                             <div>
-                                                <span className="text-xl font-bold  text-success">{card.this_month}</span>
+                                                <span className="text-xl font-bold  text-success">{card.this_month || 0}</span>
                                             </div>
                                         </div>
                                         <div>
                                             <div className="text-sm font-normal "> {card.name2}</div>
                                             <div>
-                                                <span className="text-xl font-bold text-success">{card.total}</span>
+                                                <span className="text-xl font-bold text-success">{card.total || 0}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -752,7 +765,7 @@ const Leads = () => {
             </div>
 
             <>
-                <div className="flex items-center justify-end pb-2 pr-3">
+                <div className="flex items-center justify-end pb-2 pr-3 pt-2">
                     <div className="rounded-lg bg-gray-300 p-1 font-semibold">{pageCounts(state.currentPage, state.totalRecords)}</div>
                 </div>
                 <div>
@@ -768,16 +781,36 @@ const Leads = () => {
                         columns={[
                             {
                                 accessor: 'contact_person',
-                                title: 'Contact Person',
+                                title: 'Student Name',
                             },
-                            { accessor: 'phone_number', title: 'Phone Number' },
+                            {
+                                accessor: 'phone_number',
+                                title: 'Contact',
+                                render: (row) => (
+                                    <div className="flex flex-col gap-1">
+                                        <div className="text-sm font-medium">{viewPhoneNumber(row?.phone_number)}</div>
+                                        <a href={`mailto:${row?.college_contact?.email}`} className="text-xs text-blue-500 hover:underline">
+                                            {row?.college_contact?.email}
+                                        </a>
+                                    </div>
+                                ),
+                            },
 
-                            { accessor: 'source', title: 'Source' },
+                            {
+                                accessor: 'source',
+                                title: 'Source',
+                                render: (row) => {
+                                    return <span className={`text-md rounded-full px-2 py-1 font-medium ${leadSourceColor(row?.source)}`}>{row?.source}</span>;
+                                },
+                            },
 
                             { accessor: 'date', title: 'Created Date', width: 120 },
                             {
                                 accessor: 'lead_status',
                                 title: 'Lead Status',
+                                render: (row) => {
+                                    return <span className={`text-md rounded-full px-2 py-1 font-medium ${leadStatusColor(row?.lead_status)}`}>{row?.lead_status}</span>;
+                                },
                             },
                             { accessor: 'assigned', title: 'Assigned To' },
 

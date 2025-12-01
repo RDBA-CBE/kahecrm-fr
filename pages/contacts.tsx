@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import CustomfullCalender from '@/common_component/fullCalender';
-import { Dropdown, Failure, Success, capitalizeFLetter, objIsEmpty, useSetState } from '@/utils/functions.utils';
+import { Dropdown, Failure, Success, capitalizeFLetter, objIsEmpty, useSetState, viewPhoneNumber } from '@/utils/functions.utils';
 import IconSearch from '@/components/Icon/IconSearch';
 import CustomSelect from '@/components/Select';
 import IconFilter from '@/components/Icon/IconFilter';
@@ -697,7 +697,20 @@ const Contacts = () => {
                             columns={[
                                 // { accessor: 'student_name', title: 'Student Name' },
                                 { accessor: 'student_name', title: 'Student Name' },
-                                { accessor: 'phone_number', title: 'Contact Number' },
+                               {
+                                                                   accessor: 'phone_number',
+                                                                   title: 'Contact',
+                                                                   render: (row) => {
+                                                                       return (
+                                                                           <div className="flex flex-col gap-1">
+                                                                               <div className="text-sm font-medium">{viewPhoneNumber(row?.phone_number)}</div>
+                                                                               <a href={`mailto:${row?.email}`} className="text-xs text-blue-500 hover:underline">
+                                                                                   {row?.email}
+                                                                               </a>
+                                                                           </div>
+                                                                       );
+                                                                   },
+                                                               },
                                 { accessor: 'date', title: 'Date', width: 120 },
 
                                 // { accessor: 'category', title: 'Category',  },
@@ -705,7 +718,28 @@ const Contacts = () => {
                                 // { accessor: 'designation', title: 'Designation' },
                                 //
                                 // ...(state?.role !== ROLE.BDE ? [
-                                { accessor: 'status', title: 'Status' },
+                                    { 
+                                        accessor: 'status', 
+                                        title: 'Status',
+                                        render: (row) => {
+                                            const getBadgeColor = (status) => {
+                                                switch (status?.toLowerCase()) {
+                                                    case 'contacted': return 'bg-blue-100 text-blue-800';
+                                                    case 'new': return 'bg-green-100 text-green-800';
+                                                    case 'not interested': return 'bg-red-100 text-red-800';
+                                                    case 'follow-up': return 'bg-yellow-100 text-yellow-800';
+                                                    case 'converted to lead': return 'bg-emerald-100 text-emerald-800';
+                                                    case 'no response': return 'bg-gray-100 text-gray-800';
+                                                    default: return 'bg-gray-100 text-gray-800';
+                                                }
+                                            };
+                                            return (
+                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getBadgeColor(row?.status)}`}>
+                                                    {row?.status}
+                                                </span>
+                                            );
+                                        }
+                                    },
                                 { accessor: 'assigned_to', title: 'Assigned To' },
 
                                 // ] : []),
