@@ -786,7 +786,7 @@ const Leads = () => {
                             {
                                 accessor: 'phone_number',
                                 title: 'Contact',
-                                render: (row) => (
+                                render: (row:any) => (
                                     <div className="flex flex-col gap-1">
                                         <div className="text-sm font-medium">{viewPhoneNumber(row?.phone_number)}</div>
                                         <a href={`mailto:${row?.college_contact?.email}`} className="text-xs text-blue-500 hover:underline">

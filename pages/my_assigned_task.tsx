@@ -539,7 +539,7 @@ const Calendar = () => {
                                 {
                                     accessor: 'task',
                                     title: 'Task Type',
-                                    render: (row) => {
+                                    render: (row:any) => {
                                         return <span className={`text-md rounded-full px-2 py-1 font-medium ${getBadgeColor(row?.task)}`}>{row?.task}</span>;
                                     },
                                 },
@@ -613,7 +613,7 @@ const Calendar = () => {
             <Modal
                 open={state.isOpenTaskView}
                 addHeader={'Task Details'}
-                height={state.popupHeight}
+                
                 close={() => setState({ isOpenTaskView: false, taskDetails: {} })}
                 renderComponent={() => <TaskCard task={state.taskDetails} conversationList={state.conversationList} btn={false} />}
             />

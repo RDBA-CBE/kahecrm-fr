@@ -473,7 +473,6 @@ const Notifications = () => {
             <Modal
                 open={state.isOpenTask}
                 addHeader={'Task Details'}
-                height={state.popupHeight}
                 close={() => setState({ isOpenTask: false, task: {} })}
                 renderComponent={() => <TaskCard task={state.task} conversationList={state.conversationList} close={() => setState({ isOpenTask: false })} />}
             />

@@ -570,12 +570,12 @@ const Header = () => {
                                 </ul>
                             </Dropdown>
                         </div> */}
-                        <button
+                        {/* <button
                             className={'block rounded-full bg-white-light/40 p-2 hover:bg-white-light/90 hover:text-primary dark:bg-dark/40 dark:hover:bg-dark/60'}
                             onClick={() => setState({ isOpenTask: true })}
                         >
                             <IconTask />
-                        </button>
+                        </button> */}
 
                         <Modal
                             open={state.isOpenTask}

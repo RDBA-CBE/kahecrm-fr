@@ -737,7 +737,6 @@ export default function DashboardCustomTabs() {
             <Modal
                 open={state.isOpenTaskView}
                 addHeader={'Task Details'}
-                height={state.popupHeight}
                 close={() => updateState({ isOpenTaskView: false, taskDetails: null })}
                 renderComponent={() => <TaskCard task={state.taskDetails} conversationList={state.conversationList} btn={false} />}
             />
