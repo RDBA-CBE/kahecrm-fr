@@ -18,6 +18,12 @@ import useDebounce from '@/common_component/useDebounce';
 
 const ApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
+// Add proper TypeScript interfaces
+interface ChartDataItem {
+    label: string;
+    value: number;
+}
+
 interface FunnelStage {
     stage: string;
     count: number;
@@ -65,6 +71,8 @@ interface DashboardState {
 
 export default function DashboardCustomTabs() {
     const [activeTab, setActiveTab] = useState('summary');
+    const [isMount, setIsMount] = useState(false);
+
     const isDark = useSelector((state: IRootState) => state.themeConfig.theme === 'dark' || state.themeConfig.isDarkMode);
 
     // Initialize state properly
@@ -119,6 +127,7 @@ export default function DashboardCustomTabs() {
     useEffect(() => {
         taskList(1);
         dasboardData(1);
+        setIsMount(true);
     }, []);
 
     const taskList = async (page: number) => {
@@ -138,44 +147,35 @@ export default function DashboardCustomTabs() {
         }
     };
 
-    const dasboardData = async (page: number) => {
-        try {
-            updateState({ loading: true });
-            const res: any = await Models.lead.dashbaord(null);
-            console.log('dasboardData --->', res);
+    const createSalesByCategoryChart = (leadStatusData: ChartDataItem[] = []) => {
+        // Always enforce array
+        const safeData = Array.isArray(leadStatusData) ? leadStatusData : [];
 
-            // Safely extract data from API response
-            const countsData = res?.data?.find((item: any) => item?.counts)?.counts || {};
-            const taskStatsData = res?.data?.find((item: any) => item?.task_list)?.task_list || {};
-            const chartsData = res?.charts || {};
+        // Always ensure series and labels are arrays
+        const series = safeData.map((item) => Number(item?.value) || 0);
+        const labels = safeData.map((item) => item?.label || 'Unknown');
 
-            // Create safe default options for donut chart
-            const getDefaultDonutOptions = (isDark: boolean) => ({
+        return {
+            series, // always array
+            options: {
                 chart: {
-                    type: 'donut' as const,
+                    type: 'donut',
                     height: 460,
                     fontFamily: 'Nunito, sans-serif',
-                    toolbar: {
-                        show: false,
-                    },
-                    animations: {
-                        enabled: true,
-                        easing: 'easeinout',
-                        speed: 800,
-                    },
                 },
+                labels, // always array
                 dataLabels: {
                     enabled: false,
                 },
                 stroke: {
                     show: true,
-                    width: 2,
-                    colors: isDark ? '#0e1726' : '#fff',
+                    width: 25,
+                    colors: isDark ? ['#0e1726'] : ['#fff'], // <-- MUST BE ARRAY
                 },
-                colors: isDark ? ['#5c1ac3', '#e2a03f', '#e7515a', '#00E396', '#775DD0'] : ['#008FFB', '#FEB019', '#FF4560', '#00E396', '#775DD0'],
+                colors: isDark ? ['#5c1ac3', '#e2a03f', '#e7515a', '#00E396', '#008FFB'] : ['#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0'],
                 legend: {
-                    position: 'bottom' as const,
-                    horizontalAlign: 'center' as const,
+                    position: 'bottom',
+                    horizontalAlign: 'center',
                     fontSize: '14px',
                     markers: {
                         width: 10,
@@ -184,15 +184,8 @@ export default function DashboardCustomTabs() {
                     },
                     height: 50,
                     offsetY: 20,
-                    itemMargin: {
-                        horizontal: 10,
-                        vertical: 5,
-                    },
-                    onItemClick: {
-                        toggleDataSeries: true,
-                    },
-                    onItemHover: {
-                        highlightDataSeries: true,
+                    labels: {
+                        colors: isDark ? '#bfc9d4' : '#373d3f',
                     },
                 },
                 plotOptions: {
@@ -206,106 +199,72 @@ export default function DashboardCustomTabs() {
                                     show: true,
                                     fontSize: '29px',
                                     offsetY: -10,
-                                    formatter: function (val: string) {
-                                        return val;
-                                    },
+                                    color: isDark ? '#bfc9d4' : undefined,
                                 },
                                 value: {
                                     show: true,
                                     fontSize: '26px',
-                                    color: isDark ? '#bfc9d4' : '#373d3f',
+                                    color: isDark ? '#bfc9d4' : undefined,
                                     offsetY: 16,
-                                    formatter: function (val: string) {
-                                        return val;
-                                    },
                                 },
                                 total: {
                                     show: true,
                                     showAlways: true,
                                     label: 'Total',
-                                    color: isDark ? '#888ea8' : '#373d3f',
+                                    color: isDark ? '#bfc9d4' : '#888ea8',
                                     fontSize: '29px',
-                                    formatter: function (w: any) {
-                                        return w.globals.seriesTotals.reduce((a: number, b: number) => a + b, 0);
-                                    },
+                                    formatter: (w: any) => w.globals.seriesTotals.reduce((a: number, b: number) => a + b, 0),
                                 },
                             },
                         },
                     },
                 },
-                labels: ['No Data Available'],
                 states: {
                     hover: {
                         filter: {
-                            type: 'none' as const,
+                            type: 'none',
                             value: 0.15,
                         },
                     },
                     active: {
                         filter: {
-                            type: 'none' as const,
+                            type: 'none',
                             value: 0.15,
                         },
                     },
                 },
-                grid: {
-                    padding: {
-                        top: 0,
-                        right: 0,
-                        bottom: 0,
-                        left: 0,
-                    },
-                },
                 tooltip: {
-                    enabled: true,
-                    y: {
-                        formatter: function (val: number) {
-                            return val.toString();
-                        },
-                    },
+                    theme: isDark ? 'dark' : 'light',
                 },
-                responsive: [
-                    {
-                        breakpoint: 480,
-                        options: {
-                            chart: {
-                                height: 300,
-                            },
-                            legend: {
-                                position: 'bottom' as const,
-                            },
-                        },
-                    },
-                ],
-            });
+            },
+        };
+    };
 
-            // Sales by Category with safe defaults
-            const leadStatusData = Array.isArray(chartsData?.lead_status) ? chartsData.lead_status : [];
-            // Make sure your salesByCategory is properly structured
-            const salesByCategory = {
-                series: leadStatusData.length > 0 ? leadStatusData.map((item: any) => item?.value || 0) : [1],
-                options: {
-                    ...getDefaultDonutOptions(isDark),
-                    labels: leadStatusData.length > 0 ? leadStatusData.map((item: any) => item?.label || 'Unknown') : ['No Data Available'],
-                    colors:
-                        leadStatusData.length > 0
-                            ? isDark
-                                ? ['#5c1ac3', '#e2a03f', '#e7515a', '#00E396', '#775DD0']
-                                : ['#008FFB', '#FEB019', '#FF4560', '#00E396', '#775DD0']
-                            : isDark
-                            ? ['#5c1ac3']
-                            : ['#008FFB'],
-                },
-            };
-            console.log('✌️salesByCategory --->', salesByCategory);
+    const dasboardData = async (page: number) => {
+        try {
+            updateState({ loading: true });
+            const res: any = await Models.lead.dashbaord(null);
+            console.log('dasboardData --->', res);
 
-            // Lead Funnel Data with safe defaults
+            const countsData = res?.data?.find((item: any) => item?.counts)?.counts || {};
+            const taskStatsData = res?.data?.find((item: any) => item?.task_list)?.task_list || {};
+            const chartsData = res?.charts || {};
+
+            const leadStatusData: ChartDataItem[] = Array.isArray(chartsData?.lead_status) ? chartsData.lead_status : [];
+
+            const salesByCategory = createSalesByCategoryChart(leadStatusData);
+
+            if (salesByCategory && (!Array.isArray(salesByCategory.series) || salesByCategory.series.length === 0)) {
+                salesByCategory.series = [0];
+                salesByCategory.options.labels = ['No Data'];
+            }
+
             const leadFunnelDataArray = Array.isArray(chartsData?.lead_funnel) ? chartsData.lead_funnel : [];
             const leadFunnelData = {
                 series: [
                     {
                         name: 'Leads',
-                        data: leadFunnelDataArray.map((item: any) => item?.count || 0),
+                        data: leadFunnelDataArray.map((item: any) => Number(item?.count) || 0),
                     },
                 ],
                 options: {
@@ -318,6 +277,7 @@ export default function DashboardCustomTabs() {
                             easing: 'easeinout',
                             speed: 800,
                         },
+                        foreColor: isDark ? '#bfc9d4' : '#373d3f',
                     },
                     plotOptions: {
                         bar: {
@@ -330,10 +290,26 @@ export default function DashboardCustomTabs() {
                     colors: ['#008FFB', '#FEB019', '#FF4560', '#00E396', '#775DD0'],
                     xaxis: {
                         categories: leadFunnelDataArray.map((item: any) => item?.stage || 'Unknown'),
-                        labels: { show: true },
+                        labels: {
+                            show: true,
+                            style: {
+                                colors: isDark ? '#bfc9d4' : '#373d3f',
+                            },
+                        },
                     },
-                    yaxis: { labels: { show: true } },
-                    grid: { show: true, borderColor: isDark ? '#191e3a' : '#e0e6ed', strokeDashArray: 0 },
+                    yaxis: {
+                        labels: {
+                            show: true,
+                            style: {
+                                colors: isDark ? '#bfc9d4' : '#373d3f',
+                            },
+                        },
+                    },
+                    grid: {
+                        show: true,
+                        borderColor: isDark ? '#191e3a' : '#e0e6ed',
+                        strokeDashArray: 0,
+                    },
                     dataLabels: {
                         enabled: true,
                         style: {
@@ -341,16 +317,18 @@ export default function DashboardCustomTabs() {
                         },
                     },
                     legend: { show: false },
+                    tooltip: {
+                        theme: isDark ? 'dark' : 'light',
+                    },
                 },
             };
 
-            // Lead Source Bar Chart
             const leadSourceDataArray = Array.isArray(chartsData?.lead_source) ? chartsData.lead_source : [];
             const leadSourceData = {
                 series: [
                     {
                         name: 'Leads',
-                        data: leadSourceDataArray.map((item: any) => item?.value || 0),
+                        data: leadSourceDataArray.map((item: any) => Number(item?.value) || 0),
                     },
                 ],
                 options: {
@@ -363,6 +341,7 @@ export default function DashboardCustomTabs() {
                             easing: 'easeinout',
                             speed: 800,
                         },
+                        foreColor: isDark ? '#bfc9d4' : '#373d3f',
                     },
                     plotOptions: {
                         bar: {
@@ -394,6 +373,9 @@ export default function DashboardCustomTabs() {
                     dataLabels: {
                         enabled: false,
                     },
+                    tooltip: {
+                        theme: isDark ? 'dark' : 'light',
+                    },
                 },
             };
 
@@ -403,21 +385,21 @@ export default function DashboardCustomTabs() {
                 leadFunnelData,
                 leadSourceData,
                 counts: {
-                    total_contacts: countsData.total_contacts || 0,
-                    total_leads: countsData.total_leads || 0,
-                    total_appointments: countsData.total_appointments || 0,
-                    total_tasks: countsData.total_tasks || 0,
-                    this_month_total_contacts: countsData.this_month_total_contacts || 0,
-                    this_month_total_leads: countsData.this_month_total_leads || 0,
-                    this_month_total_appointments: countsData.this_month_total_appointments || 0,
-                    this_month_total_tasks: countsData.this_month_total_tasks || 0,
+                    total_contacts: Number(countsData.total_contacts) || 0,
+                    total_leads: Number(countsData.total_leads) || 0,
+                    total_appointments: Number(countsData.total_appointments) || 0,
+                    total_tasks: Number(countsData.total_tasks) || 0,
+                    this_month_total_contacts: Number(countsData.this_month_total_contacts) || 0,
+                    this_month_total_leads: Number(countsData.this_month_total_leads) || 0,
+                    this_month_total_appointments: Number(countsData.this_month_total_appointments) || 0,
+                    this_month_total_tasks: Number(countsData.this_month_total_tasks) || 0,
                 },
                 taskStats: {
-                    total_tasks: taskStatsData.total_tasks || 0,
-                    completed_tasks: taskStatsData.completed_tasks || 0,
-                    pending_tasks: taskStatsData.pending_tasks || 0,
-                    overdue_tasks: taskStatsData.overdue_tasks || 0,
-                    upcoming_tasks: taskStatsData.upcoming_tasks || 0,
+                    total_tasks: Number(taskStatsData.total_tasks) || 0,
+                    completed_tasks: Number(taskStatsData.completed_tasks) || 0,
+                    pending_tasks: Number(taskStatsData.pending_tasks) || 0,
+                    overdue_tasks: Number(taskStatsData.overdue_tasks) || 0,
+                    upcoming_tasks: Number(taskStatsData.upcoming_tasks) || 0,
                 },
                 dashboardData: res,
             });
@@ -512,6 +494,37 @@ export default function DashboardCustomTabs() {
         );
     };
 
+    // Safe chart rendering function
+    const renderDonutChart = () => {
+        if (!state.salesByCategory || !Array.isArray(state.salesByCategory.series) || state.salesByCategory.series.length === 0) {
+            return <div className="flex h-80 items-center justify-center text-gray-500 dark:text-gray-400">No chart data available</div>;
+        }
+
+        // Ensure series data is valid
+        const validSeries = state.salesByCategory.series.filter((item) => typeof item === 'number' && !isNaN(item));
+        if (validSeries.length === 0) {
+            return <div className="flex h-80 items-center justify-center text-gray-500 dark:text-gray-400">No valid chart data</div>;
+        }
+
+        try {
+            return (
+                <ApexChart
+                    series={validSeries}
+                    options={{
+                        ...state.salesByCategory.options,
+                        labels: state.salesByCategory.options.labels?.slice(0, validSeries.length) || [],
+                    }}
+                    type="donut"
+                    height={460}
+                    width={'100%'}
+                />
+            );
+        } catch (error) {
+            console.error('Error rendering chart:', error);
+            return <div className="flex h-80 items-center justify-center text-red-500">Error rendering chart</div>;
+        }
+    };
+
     return (
         <div className="p-4">
             {/* ---------- TABS NAV ---------- */}
@@ -546,35 +559,6 @@ export default function DashboardCustomTabs() {
                         <CountCard title="Appointments" count={state.counts.total_appointments} thisMonthCount={state.counts.this_month_total_appointments} icon={<Calendar className="h-6 w-6" />} />
                         <CountCard title="Tasks" count={state.counts.total_tasks} thisMonthCount={state.counts.this_month_total_tasks} icon={<Target className="h-6 w-6" />} />
                     </div>
-
-                    {/* Task Statistics Cards */}
-                    {/* <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-5">
-                        <StatCard 
-                            title="Total Tasks" 
-                            count={state.taskStats.total_tasks} 
-                            color="blue"
-                        />
-                        <StatCard 
-                            title="Completed" 
-                            count={state.taskStats.completed_tasks} 
-                            color="green"
-                        />
-                        <StatCard 
-                            title="Pending" 
-                            count={state.taskStats.pending_tasks} 
-                            color="yellow"
-                        />
-                        <StatCard 
-                            title="Overdue" 
-                            count={state.taskStats.overdue_tasks} 
-                            color="red"
-                        />
-                        <StatCard 
-                            title="Upcoming" 
-                            count={state.taskStats.upcoming_tasks} 
-                            color="purple"
-                        />
-                    </div> */}
 
                     {/* Activity List */}
                     <div className="mt-6 rounded-xl bg-white p-4 shadow dark:bg-gray-800">
@@ -628,16 +612,14 @@ export default function DashboardCustomTabs() {
             {activeTab === 'charts' && (
                 <div>
                     <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-                        {/* Lead Status Donut Chart */}
-                        {/* <div className="rounded-xl bg-white p-6 shadow dark:bg-gray-800">
+                        <div className="rounded-xl bg-white p-6 shadow dark:bg-gray-800">
                             <h3 className="mb-4 text-lg font-semibold dark:text-white-light">Lead Status</h3>
-                            {state.salesByCategory?.series?.length > 0 && state.salesByCategory?.options?.labels?.length > 0 ? (
-                                <ApexChart series={state.salesByCategory?.series} options={state.salesByCategory?.options} type="donut" height={460} width={'100%'} />
+                            {isMount && !state.loading ? (
+                                renderDonutChart()
                             ) : (
-                                <div className="flex h-80 items-center justify-center text-gray-500 dark:text-gray-400">No chart data available</div>
+                                <div className="flex h-80 items-center justify-center text-gray-500 dark:text-gray-400">{state.loading ? 'Loading chart...' : 'No chart data available'}</div>
                             )}
-                        </div> */}
-
+                        </div>
                         <div className="rounded-xl bg-white p-6 shadow dark:bg-gray-800">
                             <h3 className="mb-4 text-lg font-semibold dark:text-white-light">Lead Source</h3>
                             {state.leadSourceData?.series?.[0]?.data?.length > 0 ? (

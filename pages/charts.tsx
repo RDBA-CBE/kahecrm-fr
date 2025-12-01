@@ -440,7 +440,7 @@ const Charts = () => {
 
     // pieChartOptions
     const pieChart: any = {
-        series: [44, 55, 13, 43, 22],
+        series: Array.isArray([44, 55, 13, 43, 22]) ? [44, 55, 13, 43, 22] : [],
         options: {
             chart: {
                 height: 300,
