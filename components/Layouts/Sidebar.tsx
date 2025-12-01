@@ -79,7 +79,6 @@ const Sidebar = () => {
                 value: item.college_contact?.id,
                 label: `${capitalizeFLetter(item.college_contact?.student_name)} (${item.college_contact?.phone_number})`,
             }));
-            console.log('✌️dropdown --->', dropdown);
 
             setState({ LeadMoreloading: false, leadList: dropdown, count: res?.count, leadnext: res?.next, previous: res?.previous, currentPage: page });
         } catch (error) {

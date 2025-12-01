@@ -1,11 +1,12 @@
 import React, { useEffect } from 'react';
 import CustomSelect from './Select';
-import { Dropdown, objIsEmpty, Success, useSetState } from '@/utils/functions.utils';
+import { capitalizeFLetter, Dropdown, objIsEmpty, Success, useSetState } from '@/utils/functions.utils';
 import IconLoader from './Icon/IconLoader';
 import NumberInput from './NumberInput';
 import CustomeDatePicker from '@/common_component/datePicker';
 import Models from '@/imports/models.import';
 import moment from 'moment';
+import { ROLE } from '@/utils/constant.utils';
 
 export default function QuickEdit(props) {
     const { collapse, data, statusList, updateList, id, resetExpandedRow } = props;
@@ -20,93 +21,50 @@ export default function QuickEdit(props) {
 
     useEffect(() => {
         assignData();
-        assignRole();
     }, []);
 
-    // useEffect(() => {
-    //     if (state.assignRole) {
-    //         if (state.assignRole?.value == 'owner') {
-    //             ownerList();
-    //         } else if (state.assignRole?.value == 'bdm') {
-    //             bdmList();
-    //         } else {
-    //             bdeList();
-    //         }
-    //     }
-    // }, [state.assignRole]);
-
-    // const ownerList = async () => {
-    //     try {
-    //         const res: any = await Models.lead.ownerList();
-    //         const dropdownList = Dropdown(res?.results, 'full_name');
-    //         setState({ assignList: dropdownList, loading: false });
-    //     } catch (error) {
-    //         setState({ loading: false });
-    //         console.log('error: ', error);
-    //     }
-    // };
-
-    const assignRole = async () => {
+    const assignData = async () => {
         try {
-            let role = {};
-            let res = data?.lead?.assigned_to;
+            const arrgnedRole = data?.assign_to?.groups?.length > 0 ? (data?.assign_to?.groups?.[0] == 1 ? { value: 'admin', label: 'Admin' } : { value: 'staff', label: 'Staff' }) : null;
+            setState({ assignRole: arrgnedRole });
 
-            if (res !== null && res?.groups?.length > 0) {
-                if (res?.groups[0] == 'Admin') {
-                    role = { value: 'owner', label: 'Owner' };
-                } else if (res?.groups[0] == 'BDM') {
-                    role = { value: 'bdm', label: 'BDM' };
-                } else if (res?.groups[0] == 'BDE') {
-                    role = { value: 'bde', label: 'BDE' };
-                } else {
-                    role = null;
+            setState({
+                follow_up: data?.best_time_to_contact ? data?.best_time_to_contact : null,
+                assign_to: !objIsEmpty(data?.assign_to)
+                    ? { value: data?.assign_to?.id, label: `${capitalizeFLetter(data?.assign_to?.first_name)} ${capitalizeFLetter(data?.assign_to?.last_name)}` }
+                    : null,
+            });
+            if (data?.assign_to) {
+                if (data?.assign_to?.groups?.length > 0) {
+                    data?.assign_to?.groups?.[0] == 1 ? initialUsersList('Admin') : initialUsersList('Staff');
                 }
-                setState({ assignRole: role, loading: false });
-            } else {
-                setState({ assignRole: null });
             }
         } catch (error) {
-            setState({ loading: false, assignRole: null });
+            setState({ loading: false });
 
             console.log('error: ', error);
         }
     };
 
-    // const bdmList = async () => {
-    //     try {
-    //         const res: any = await Models.lead.bdmList();
-    //         const dropdownList = Dropdown(res?.results, 'full_name');
-    //         setState({ assignList: dropdownList, loading: false });
-    //     } catch (error) {
-    //         setState({ loading: false });
-    //         console.log('error: ', error);
-    //     }
-    // };
-
-    // const bdeList = async () => {
-    //     try {
-    //         const res: any = await Models.lead.bdeList();
-    //         const dropdownList = Dropdown(res?.results, 'full_name');
-    //         setState({ assignList: dropdownList, loading: false });
-    //     } catch (error) {
-    //         setState({ loading: false });
-    //         console.log('error: ', error);
-    //     }
-    // };
-
-    const assignData = async () => {
+    const initialUsersList = async (e) => {
         try {
-            setState({
-                lead_status: !objIsEmpty(data?.allData?.lead_status) ? { value: data?.allData?.lead_status?.id, label: data?.allData?.lead_status?.name } : null,
-                follow_up: data?.status_date ? moment(data?.status_date, 'DD-MM-YYYY').toDate() : null,
-                assigned_to: !objIsEmpty(data?.lead?.assigned_to)
-                    ? { value: data?.lead?.assigned_to?.id, label: data?.lead?.assigned_to?.first_name + ' ' + data?.lead?.assigned_to?.last_name }
-                    : null,
-                // department: { value: data?.allData?.primary_contact?.department?.id, label: data?.allData?.primary_contact?.department?.department },
-            });
-        } catch (error) {
-            setState({ loading: false });
+            setState({ userLoading: true });
+            let body: any = {};
+            if (e == ROLE.ADMIN) {
+                body.show_admins_only = 'Yes';
+            } else {
+                body.exclude_admin = 'Yes';
+            }
 
+            const res: any = await Models.user.includeAdminuserList(1, body);
+            const dropdownList = res?.results?.map((item) => ({
+                label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}`,
+                value: item?.id,
+            }));
+
+            setState({ usersList: dropdownList, userLoading: false, userPage: 1, userHasNext: res?.next });
+        } catch (error) {
+            setState({ userLoading: false });
             console.log('error: ', error);
         }
     };
@@ -115,14 +73,12 @@ export default function QuickEdit(props) {
         try {
             setState({ submitLoad: true });
             const body = {
-                lead_status: state.lead_status?.value,
-                assigned_to: state.assigned_to?.value,
-                department: state.department?.value,
-                status_date: state.follow_up ? moment(state.follow_up).format('YYYY-MM-DD') : null,
+                assign_to: state.assign_to?.value,
+                best_time_to_contact: state.best_time_to_contact,
             };
-            const res: any = await Models.lead.update(body, data?.lead?.id);
+            const res: any = await Models.lead.update(body, data?.id);
             setState({ submitLoad: false });
-            Success("Lead updated successfully");
+            Success('Lead updated successfully');
             updateList();
         } catch (error) {
             setState({ submitLoad: false });
@@ -132,6 +88,59 @@ export default function QuickEdit(props) {
     const cancelQuickEdit = () => {
         resetExpandedRow(); // Reset the expandedRow to null
         collapse(); // Collapse the row
+    };
+
+    const usersList = async (e) => {
+        try {
+            setState({ assignRole: e, assign_to: null });
+            setState({ userLoading: true });
+            let body: any = {};
+            if (e?.label == ROLE.ADMIN) {
+                body.show_admins_only = 'Yes';
+            } else {
+                body.exclude_admin = 'Yes';
+            }
+
+            const res: any = await Models.user.includeAdminuserList(1, body);
+            const dropdownList = res?.results?.map((item) => ({
+                label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}`,
+                value: item?.id,
+            }));
+
+            setState({ usersList: dropdownList, userLoading: false, userPage: 1, userHasNext: res?.next });
+        } catch (error) {
+            setState({ userLoading: false });
+            console.log('error: ', error);
+        }
+    };
+
+    const usersListLoadMore = async () => {
+        try {
+            setState({ userloadMore: true });
+            let body: any = {};
+            if (state.assignRole?.label == ROLE.ADMIN) {
+                body.show_admins_only = 'Yes';
+            } else {
+                body.exclude_admin = 'Yes';
+            }
+
+            const res: any = await Models.user.includeAdminuserList(1, body);
+
+            const dropdownList = res?.results?.map((item) => ({
+                label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}`,
+                value: item?.id,
+            }));
+
+            setState({
+                usersList: [...state.usersList, ...dropdownList],
+                userloadMore: false,
+                userPage: state.userPage + 1,
+                userHasNext: res.next,
+            });
+        } catch (error) {
+            setState({ userloadMore: false });
+            console.log('error: ', error);
+        }
     };
 
     return (
@@ -150,26 +159,30 @@ export default function QuickEdit(props) {
                         options={statusList}
                     /> */}
 
-                    <CustomeDatePicker value={state.follow_up} placeholder="Follow up" title="Follow up" onChange={(e) => setState({ follow_up: e })} />
+                    <CustomeDatePicker value={state.follow_up} placeholder="Best Time Yo Contact" title="Best Time Yo Contact" onChange={(e) => setState({ follow_up: e })} />
                     <CustomSelect
                         value={state.assignRole}
-                        onChange={(e) => setState({ assignRole: e, assigned_to: '', assignList: [] })}
+                        onChange={(e) => {
+                            usersList(e);
+                        }}
                         placeholder={'Choose Role'}
                         title={'Choose Role'}
                         options={[
-                            { value: 'owner', label: 'Owner' },
-                            { value: 'bdm', label: 'BDM' },
-                            { value: 'bde', label: 'BDE' },
+                            { value: 'admin', label: 'Admin' },
+                            { value: 'staff', label: 'Staff' },
                         ]}
+                        error={state.errors?.assignRole}
                     />
                     <CustomSelect
-                        title="Assigned To"
-                        value={state.assigned_to}
-                        onChange={(e) => {
-                            setState({ assigned_to: e });
-                        }}
-                        placeholder={'Assigned To'}
-                        options={state.assignList}
+                        title="Assign To"
+                        value={state.assign_to}
+                        onChange={(e) => setState({ assign_to: e })}
+                        placeholder={'Assign To'}
+                        options={state.usersList}
+                        error={state.errors?.assign_to}
+                        isMulti={false}
+                        loadMore={() => state.userHasNext && usersListLoadMore()}
+                        loading={state.userloadMore || state.userLoading}
                     />
 
                     {/* <CustomSelect

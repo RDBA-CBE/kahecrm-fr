@@ -4,7 +4,6 @@ import 'react-datepicker/dist/react-datepicker.css';
 
 const CustomeDatePicker = (props: any) => {
     const { value, onChange, title, name, required, className, error, placeholder, minDate, ...rest } = props;
-    console.log('✌️value --->', value);
 
     const CustomInput = ({ value: inputValue, onClick }: any) => (
         <input

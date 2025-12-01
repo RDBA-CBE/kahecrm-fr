@@ -205,21 +205,17 @@ const lead = {
         let promise = new Promise((resolve, reject) => {
             let url = `crm/dashboard/`;
 
+            const hasParams = body?.userId || body?.team == 'Yes';
+            let firstParam = true;
+
             if (body?.userId) {
-                url += `&user_id=${encodeURIComponent(body?.userId)}`;
+                url += `?user_id=${encodeURIComponent(body?.userId)}`;
+                firstParam = false;
             }
-            if (body?.my_leads == 'Yes') {
-                url += `&my_leads=${encodeURIComponent(true)}`;
-            }
-
-            if (body?.assigned_leads == 'Yes') {
-                url += `&assigned_leads=${encodeURIComponent(true)}`;
-            }
-
+         
             if (body?.team == 'Yes') {
-                url += `&teams=${encodeURIComponent(true)}`;
+                url += `${firstParam ? '?' : '&'}team=${encodeURIComponent(true)}`;
             }
-           
 
             instance()
                 .get(url)

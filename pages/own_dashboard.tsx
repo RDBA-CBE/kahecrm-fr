@@ -15,6 +15,7 @@ import TaskCard from '@/components/TaskCard';
 import IconSearch from '@/components/Icon/IconSearch';
 import CustomeDatePicker from '@/common_component/datePicker';
 import useDebounce from '@/common_component/useDebounce';
+import { Text } from '@mantine/core';
 
 const ApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
@@ -49,6 +50,7 @@ interface DashboardState {
     salesByCategory: any;
     leadFunnelData: any;
     leadSourceData: any;
+    monthlyLeadsTrend: any;
     dashboardData: any;
     counts: {
         total_contacts: number;
@@ -96,6 +98,7 @@ export default function DashboardCustomTabs() {
         salesByCategory: null,
         leadFunnelData: null,
         leadSourceData: null,
+        monthlyLeadsTrend: null,
         dashboardData: null,
         counts: {
             total_contacts: 0,
@@ -243,7 +246,9 @@ export default function DashboardCustomTabs() {
     const dasboardData = async (page: number) => {
         try {
             updateState({ loading: true });
-            const res: any = await Models.lead.dashbaord(null);
+
+            const body = bodyData();
+            const res: any = await Models.lead.dashbaord(body);
             console.log('dasboardData --->', res);
 
             const countsData = res?.data?.find((item: any) => item?.counts)?.counts || {};
@@ -323,6 +328,38 @@ export default function DashboardCustomTabs() {
                 },
             };
 
+            // Monthly Leads Trend Line Chart
+            const monthlyLeadsTrendArray = Array.isArray(chartsData?.monthly_leads_trend) ? chartsData.monthly_leads_trend : [];
+            const monthlyLeadsTrend = {
+                series: [
+                    {
+                        name: 'Leads',
+                        data: monthlyLeadsTrendArray.map((item: any) => Number(item?.count) || 0),
+                    },
+                ],
+                options: {
+                    chart: {
+                        type: 'line' as const,
+                        height: 350,
+                        toolbar: { show: false },
+                    },
+                    stroke: {
+                        width: 3,
+                        curve: 'smooth' as const,
+                    },
+                    colors: [isDark ? '#00ab55' : '#008FFB'],
+                    xaxis: {
+                        categories: monthlyLeadsTrendArray.map((item: any) => item?.month || 'Unknown'),
+                    },
+                    markers: {
+                        size: 6,
+                    },
+                    tooltip: {
+                        theme: isDark ? 'dark' : 'light',
+                    },
+                },
+            };
+
             const leadSourceDataArray = Array.isArray(chartsData?.lead_source) ? chartsData.lead_source : [];
             const leadSourceData = {
                 series: [
@@ -384,6 +421,7 @@ export default function DashboardCustomTabs() {
                 salesByCategory,
                 leadFunnelData,
                 leadSourceData,
+                monthlyLeadsTrend,
                 counts: {
                     total_contacts: Number(countsData.total_contacts) || 0,
                     total_leads: Number(countsData.total_leads) || 0,
@@ -527,8 +565,22 @@ export default function DashboardCustomTabs() {
 
     return (
         <div className="p-4">
+            <div className="panel bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold">{'Kahe CRM'}</h1>
+                        <p className="text-blue-100">Dashboard - {'2025'}</p>
+                    </div>
+                    <div className="text-right">
+                        <Text size="sm" className="text-blue-100">
+                            Last Updated
+                        </Text>
+                        <Text fw={500}>{moment(new Date()).format('DD-MM-YYYY')}</Text>
+                    </div>
+                </div>
+            </div>
             {/* ---------- TABS NAV ---------- */}
-            <div className="mb-6 flex justify-center">
+            <div className="mb-6 mt-6 flex justify-center">
                 <div className="flex rounded-xl border-2 border-gray-300 bg-white p-1 dark:border-gray-600 dark:bg-gray-800">
                     <button
                         className={`rounded-lg px-8 py-3 transition-all duration-200 ${
@@ -629,7 +681,16 @@ export default function DashboardCustomTabs() {
                             )}
                         </div>
 
-                        <div className="rounded-xl bg-white p-6 shadow dark:bg-gray-800 lg:col-span-2">
+                        <div className="rounded-xl bg-white p-6 shadow dark:bg-gray-800">
+                            <h3 className="mb-4 text-lg font-semibold dark:text-white-light">Monthly Leads Trend</h3>
+                            {state.monthlyLeadsTrend?.series?.[0]?.data?.length > 0 ? (
+                                <ApexChart series={state.monthlyLeadsTrend.series} options={state.monthlyLeadsTrend.options} type="line" height={350} width={'100%'} />
+                            ) : (
+                                <div className="flex h-80 items-center justify-center text-gray-500 dark:text-gray-400">No trend data available</div>
+                            )}
+                        </div>
+
+                        <div className="rounded-xl bg-white p-6 shadow dark:bg-gray-800">
                             <h3 className="mb-4 text-lg font-semibold dark:text-white-light">Lead Funnel</h3>
                             {state.leadFunnelData?.series?.[0]?.data?.length > 0 ? (
                                 renderFunnelChart(

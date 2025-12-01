@@ -809,7 +809,52 @@ const Leads = () => {
                 </div>
             </div>
 
-         
+            <div className="panel   flex items-center justify-between ">
+                    <div className="  flex items-center">
+                        <div className="pb-2 ">
+                            <SimpleGrid
+                                cols={7}
+                                spacing="sm"
+                                breakpoints={[
+                                    { maxWidth: 768, cols: 2 },
+                                    { maxWidth: 576, cols: 1 },
+                                ]}
+                            >
+                                {state.cardData?.map((card, index) => (
+                                    <div className="panel">
+                                        <div className="mb-5 flex items-center font-semibold">
+                                            <div className="grid h-10 w-10 shrink-0 place-content-center rounded-full">
+                                                <IconBitcoin />
+                                            </div>
+                                            <div className="ltr:ml-2 rtl:mr-2">
+                                                <h6 className="text-lg font-bold text-dark dark:text-white-light">{card.title}</h6>
+                                                {/* <p className="text-xs text-white-dark">Bitcoin</p> */}
+                                            </div>
+                                        </div>
+                                        {/* <div className="mb-5">{!state.loading && <ReactApexChart series={bitcoin.series} options={bitcoin.options} type="line" height={45} width={'100%'} />}</div> */}
+                                        <div className="flex items-center justify-between text-base font-bold">
+                                            {/* <div>
+                                                <div className="text-sm font-normal ">{card.name1}</div>
+                                                <div>
+                                                    <span className="text-xl font-bold  text-success">{card.todayCount}</span>
+                                                </div>
+                                            </div> */}
+                                            {/* <div>
+                                                <div className="text-sm font-normal "> {card.name2}</div>
+                                                <div>
+                                                    <span className="text-xl font-bold text-success">{card.monthCount}</span>
+                                                </div>
+                                            </div> */}
+                                        </div>
+                                    </div>
+                                ))}
+                            </SimpleGrid>
+                        </div>
+                    </div>
+                    {/* <button className="btn btn-primary w-full lg:mt-0 lg:w-auto" onClick={() => setState({ isOpen: true })}>
+                        <IconFilter />
+                    </button> */}
+                </div>
 
             <>
                 <div className="flex items-center justify-end pb-2 pr-3">
