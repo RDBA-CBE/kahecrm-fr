@@ -74,15 +74,15 @@ const Notifications = () => {
     const debouncedSearch = useDebounce(state.search, 500);
 
     useEffect(() => {
-        contactList(state.currentPage);
+        noticationList(state.currentPage);
         userData();
     }, []);
 
     useEffect(() => {
-        contactList(1);
+        noticationList(1);
     }, [debouncedSearch, state.types,state.from_date,state.end_date]);
 
-    const contactList = async (page) => {
+    const noticationList = async (page) => {
         setState({ loading: true });
         let body = bodyData();
         const res: any = await Models.notication.list(page, body);
@@ -223,19 +223,6 @@ const Notifications = () => {
         return body;
     };
 
-    const handleNextPage = () => {
-        if (state.next) {
-            const newPage = state.currentPage + 1;
-            contactList(newPage);
-        }
-    };
-
-    const handlePreviousPage = () => {
-        if (state.previous) {
-            const newPage = state.currentPage - 1;
-            contactList(newPage);
-        }
-    };
 
     const userData = async () => {
         try {
@@ -393,12 +380,12 @@ const Notifications = () => {
                                 {
                                     accessor: 'contact',
                                     title: 'Created By',
-                                    render: (row: any) => <div className="text-sm text-gray-600">{row.contact}</div>,
+                                    render: (row: any) => <div className="text-sm text-gray-600">{capitalizeFLetter(row.contact)}</div>,
                                 },
                                 {
                                     accessor: 'assigned_to',
                                     title: 'Assigned To',
-                                    render: (row: any) => <div className="text-sm">{row.assigned_to}</div>,
+                                    render: (row: any) => <div className="text-sm">{capitalizeFLetter(row.assigned_to)}</div>,
                                 },
                                 {
                                     accessor: 'status',
@@ -435,7 +422,7 @@ const Notifications = () => {
                                     title: 'Actions',
                                     render: (row: any) => (
                                         <div className="mx-auto flex w-max items-center gap-4">
-                                            {!row.is_read && (
+                                            {/* {!row.is_read && (
                                                 <button
                                                     className="text-xs text-blue-600 hover:text-blue-800"
                                                     onClick={(e) => {
@@ -445,7 +432,7 @@ const Notifications = () => {
                                                 >
                                                     Mark Read
                                                 </button>
-                                            )}
+                                            )} */}
                                             <button className="flex hover:text-primary" onClick={() => onView(row)}>
                                                 <IconEye />
                                             </button>
@@ -472,7 +459,7 @@ const Notifications = () => {
                             currentPage={state.currentPage}
                             totalRecords={state.count}
                             onPageChange={(page) => {
-                                contactList(page);
+                                noticationList(page);
                                 setState({ currentPage: page });
                             }}
                             hasNext={state.next !== null}

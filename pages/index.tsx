@@ -711,9 +711,9 @@ const Leads = () => {
                             Go
                         </button>
 
-                        <button type="button" className="btn btn-primary w-full md:w-auto" onClick={() => exportToExcel()}>
+                        {/* <button type="button" className="btn btn-primary w-full md:w-auto" onClick={() => exportToExcel()}>
                             {state.excelLoading ? <IconLoader className=" h-4 w-4 animate-spin" /> : 'Excel'}
-                        </button>
+                        </button> */}
                     </div>
                 </div>
 

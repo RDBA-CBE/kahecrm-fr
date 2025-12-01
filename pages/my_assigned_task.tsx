@@ -186,7 +186,13 @@ const Calendar = () => {
     const leadList = async (page = 1) => {
         try {
             setState({ LeadMoreloading: true });
-            const res: any = await Models.lead.list(null, page, null);
+            const userString = localStorage.getItem('crmUser');
+            const user = userString ? JSON.parse(userString) : null;
+
+            const body = {
+                userId: user?.id,
+            };
+            const res: any = await Models.lead.list(body, page, null);
             const dropdown = res?.results?.map((item) => ({
                 value: item.college_contact?.id,
                 label: `${capitalizeFLetter(item.college_contact?.student_name)} (${item.college_contact?.phone_number})`,
@@ -203,8 +209,13 @@ const Calendar = () => {
     const leadListLoadMore = async () => {
         try {
             setState({ LeadMoreloading: true });
+            const userString = localStorage.getItem('crmUser');
+            const user = userString ? JSON.parse(userString) : null;
 
-            const res: any = await Models.lead.list(null, state.currentPage + 1, null);
+            const body = {
+                userId: user?.id,
+            };
+            const res: any = await Models.lead.list(body, state.currentPage + 1, null);
             const dropdown = res?.results?.map((item) => ({
                 value: item.college_contact?.id,
                 label: `${capitalizeFLetter(item.college_contact?.student_name)} (${item.college_contact?.phone_number})`,
@@ -219,7 +230,7 @@ const Calendar = () => {
     const usersList = async (e) => {
         try {
             setState({ assignRole: e, assigned_to: null });
-            setState({ loading: true });
+            setState({ leadStatusloadMore: true });
             let body: any = {};
             if (e?.label == ROLE.ADMIN) {
                 body.show_admins_only = 'Yes';
@@ -233,9 +244,9 @@ const Calendar = () => {
                 value: item?.id,
             }));
 
-            setState({ usersList: dropdownList, loading: false, userPage: 1, userHasNext: res?.next });
+            setState({ usersList: dropdownList, leadStatusloadMore: false, userPage: 1, userHasNext: res?.next });
         } catch (error) {
-            setState({ loading: false });
+            setState({ leadStatusloadMore: false });
             console.log('error: ', error);
         }
     };
@@ -323,10 +334,17 @@ const Calendar = () => {
     };
 
     const updateTask = (row) => {
+        console.log('✌️row --->', row);
         let value = {};
+        // if (row?.assignData?.length > 0) {
+        //     value = { value: row?.assignData?.[0]?.groups, label: capitalizeFLetter(row?.assignData?.[0]?.groups) };
+        //     usersList(value);
+        // }
+
         if (row?.assignData?.length > 0) {
             value = { value: row?.assignData?.[0]?.groups, label: capitalizeFLetter(row?.assignData?.[0]?.groups) };
             usersList(value);
+            setState({ assigned_to: row?.assignData?.map((item) => ({ value: item?.id, label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}` })) });
         }
         setState({
             taskId: row.id,
@@ -341,13 +359,6 @@ const Calendar = () => {
             task_date_time: row.task_date_time ? new Date(row.task_date_time) : null,
             remark: row?.remark ? row?.remark : '',
             // assigned_to: row?.assignment_details?.length > 0 ? row?.assignment_details?.map((item) => ({ value: item?.assigned_to?.id, label: item?.assigned_to?.username })) : null,
-            assigned_to:
-                row?.assignment_details?.length > 0
-                    ? row.assignment_details.map((item) => ({
-                          value: item?.assigned_to?.id,
-                          label: `${item?.assigned_to?.first_name} ${item?.assigned_to?.last_name}`,
-                      }))
-                    : null,
         });
     };
 

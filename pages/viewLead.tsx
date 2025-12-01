@@ -389,13 +389,12 @@ export default function ViewLead() {
     const getLogList = async () => {
         try {
             const res: any = await Models.log.listByLeadId(id);
-            setState({ logList: res?.results, loading: false, logCount: res.count });
+            setState({ logList: res, loading: false, logCount: res.count });
         } catch (error) {
             console.log('error: ', error);
             setState({ loading: false });
         }
     };
-    console.log('✌️state.logtype --->', state.logtype);
 
     const getLogListFilter = async () => {
         try {
@@ -421,10 +420,16 @@ export default function ViewLead() {
         }
     };
 
-    const usersList = async (e) => {
+    const usersList = async (e, type = '') => {
+        console.log('✌️e --->', e);
         try {
-            setState({ assignRole: e, assign_to: null });
-            setState({ userLoading: true });
+            if (type == 'task') {
+                setState({ logAssignRole: e, log_assigned_to: null });
+            } else if (type == 'update') {
+            } else {
+                setState({ assignRole: e, assign_to: null });
+            }
+            setState({ userloading: true });
             let body: any = {};
             if (e?.label == ROLE.ADMIN) {
                 body.show_admins_only = 'Yes';
@@ -438,16 +443,16 @@ export default function ViewLead() {
                 value: item?.id,
             }));
 
-            setState({ usersList: dropdownList, userLoading: false, userPage: 1, userHasNext: res?.next });
+            setState({ usersList: dropdownList, userloading: false, userPage: 1, userHasNext: res?.next });
         } catch (error) {
-            setState({ userLoading: false });
+            setState({ userloading: false });
             console.log('error: ', error);
         }
     };
 
     const usersListLoadMore = async () => {
         try {
-            setState({ userloadMore: true });
+            setState({ leadStatusloadMore: true });
             let body: any = {};
             if (state.assignRole?.label == ROLE.ADMIN) {
                 body.show_admins_only = 'Yes';
@@ -464,12 +469,12 @@ export default function ViewLead() {
 
             setState({
                 usersList: [...state.usersList, ...dropdownList],
-                userloadMore: false,
+                leadStatusloadMore: false,
                 userPage: state.userPage + 1,
                 userHasNext: res.next,
             });
         } catch (error) {
-            setState({ userloadMore: false });
+            setState({ leadStatusloadMore: false });
             console.log('error: ', error);
         }
     };
@@ -642,7 +647,12 @@ export default function ViewLead() {
         try {
             const response = state.detail;
             console.log('✌️response --->', response);
-            const res = state.contact;
+            let value = {};
+
+            if (response?.assign_to?.groups?.length > 0) {
+                value = { label: response?.assign_to?.groups?.[0] == 1 ? 'Admin' : 'Staff' };
+                usersList(value, 'update');
+            }
 
             setState({
                 isEditLead1: !state.isEditLead1,
@@ -669,8 +679,6 @@ export default function ViewLead() {
             console.log('✌️error --->', error);
         }
     };
-console.log('✌️state.lead_status --->', state.lead_status);
-
 
     const updateLead = async () => {
         try {
@@ -703,6 +711,8 @@ console.log('✌️state.lead_status --->', state.lead_status);
         setState({ isOpenCourse: true, college: { value: row?.college_id, label: row?.college_name }, course: { value: row?.course_id, label: row?.course_name }, oppId: row?.id });
     };
 
+    console.log('detail', state.detail);
+
     const createAndUpdateLog = async () => {
         try {
             setState({ logLoad: true });
@@ -729,8 +739,6 @@ console.log('✌️state.lead_status --->', state.lead_status);
                     logStage: state.logStage?.value,
                     log_type: state.log_type?.value,
                     details: state.details,
-                    // focus_segment: state.focus_segment?.value,
-                    // primary_contact: state.primary_contact?.value,
                 };
                 await Validation.createLeadLog.validate(validateField, { abortEarly: false });
             }
@@ -738,43 +746,37 @@ console.log('✌️state.lead_status --->', state.lead_status);
             let body;
 
             if (state.follow_up_date_time) {
-                body = {
-                    contact: state.primary_contact?.value,
-                    lead: id,
-                    opportunity: null,
-                    // focus_segment: state.focus_segment?.value,
-                    follow_up_date_time: state.follow_up_date_time,
+                const taskbody = {
+                    contact: state.detail?.college_contact?.id,
+                    task_type: state.task_type?.value,
+                    assigned_to: state.log_assigned_to?.map((item) => item.value),
+                    task_date_time: state.task_date_time,
                     log_stage: state.logStage?.value,
                     details: state.details,
-                    log_type: state.log_type?.value,
-                    task_assignment: {
-                        // assigned_to: [state.assigned_to?.value], // Keep it as an array
-                        assigned_to: state.log_assigned_to.map((item) => item.value),
-                        // assignment_note: state.assignment_note,
-                    },
-                    remark: state.remark,
-
-                    // file:state.file,
-                    task_type: state.task_type?.value,
+                    remark: state.details,
                 };
-            } else {
-                body = {
-                    // contact: state.primary_contact?.value,
+                const logBody: any = {
                     college_lead: id,
-                    // opportunity: null,
-                    // focus_segment: state.focus_segment?.value,
-                    // follow_up_date_time: null,
-                    // log_stage: state.logStage?.value,
+
                     details: state.details,
                     log_type: state.log_type?.value,
                     // file:state.file
                 };
-            }
-
-            if (state.logId) {
-                await Models.log.update(body, id);
-                Success('Log updated successfully');
+                if (state.follow_up_date_time) {
+                    logBody.follow_up_date_time = state.follow_up_date_time;
+                }
+                const res: any = await Models.task.create(taskbody);
+                await Models.log.create(logBody);
             } else {
+                body = {
+                    college_lead: id,
+
+                    details: state.details,
+                    log_type: state.log_type?.value,
+                };
+                if (state.follow_up_date_time) {
+                    body.follow_up_date_time = state.follow_up_date_time;
+                }
                 await Models.log.create(body);
                 Success('Log created successfully');
             }
@@ -786,6 +788,7 @@ console.log('✌️state.lead_status --->', state.lead_status);
                 error.inner.forEach((err) => {
                     validationErrors[err.path] = err?.message;
                 });
+                console.log('✌️validationErrors --->', validationErrors);
 
                 setState({ errors: validationErrors });
                 setState({ logLoad: false });
@@ -1388,100 +1391,58 @@ console.log('✌️state.lead_status --->', state.lead_status);
                             error={state.errors?.log_type}
                             required
                         />
-                        {/* <CustomSelect
-                            title="Log Stage"
-                            value={state.logStage}
-                            onChange={(e) => setState({ logStage: e })}
-                            placeholder={'Log Stage'}
-                            options={state.stageList}
-                            error={state.errors?.logStage}
-                            required
-                        /> */}
-                        {/* <CustomSelect
-                            title="Focus Segment"
-                            value={state.focus_segment}
-                            onChange={(e) => setState({ focus_segment: e })}
-                            placeholder={'Focus Segment'}
-                            options={state.focusSegmentList}
-                            error={state.errors?.focus_segment}
-                            required
-                        /> */}
 
-                        {/* <CustomeDatePicker value={state.follow_up_date_time} title="Follow Up" onChange={(e) => setState({ follow_up_date_time: e })} /> */}
+                        <CustomeDatePicker value={state.follow_up_date_time} title="Follow Up" onChange={(e) => setState({ follow_up_date_time: e })} />
                         {state.follow_up_date_time && (
                             <>
+                                <CustomeDatePicker
+                                    value={state.task_date_time}
+                                    placeholder="Task Date"
+                                    title="Task Date"
+                                    onChange={(e) => setState({ task_date_time: e })}
+                                    error={state.errors?.task_date_time}
+                                    required
+                                />
                                 <CustomSelect
                                     title="Task Type"
                                     value={state.task_type}
-                                    onChange={(e) => {
-                                        setState({ task_type: e });
-                                    }}
+                                    onChange={(e) => setState({ task_type: e })}
                                     placeholder={'Task Type'}
                                     options={TASK_TYPE}
                                     error={state.errors?.task_type}
                                     required
                                 />
+
                                 <CustomSelect
                                     value={state.logAssignRole}
-                                    onChange={(e) => setState({ logAssignRole: e, log_assigned_to: '', logAssignList: [] })}
+                                    onChange={(e) => {
+                                        usersList(e, 'task');
+                                    }}
                                     placeholder={'Choose Role'}
                                     title={'Choose Role'}
                                     options={[
-                                        { value: 'owner', label: 'Owner' },
-                                        { value: 'bdm', label: 'BDM' },
-                                        { value: 'bde', label: 'BDE' },
+                                        { value: 'admin', label: 'Admin' },
+                                        { value: 'staff', label: 'Staff' },
                                     ]}
                                     error={state.errors?.logAssignRole}
                                     required
                                 />
-
                                 <CustomSelect
                                     title="Assign To"
                                     value={state.log_assigned_to}
-                                    onChange={(e) =>
-                                        //     {setState({ assigned_to: e })
-                                        //  console.log(state.assigned_to);
-                                        // }
-                                        setState({
-                                            ...state, // Spread the current state
-                                            log_assigned_to: e, // Directly update `assigned_to`
-                                        })
-                                    }
+                                    onChange={(e) => setState({ log_assigned_to: e })}
                                     placeholder={'Assign To'}
-                                    options={state.logAssignList}
-                                    error={state.errors?.assigned_to}
+                                    options={state.usersList}
+                                    error={state.errors?.log_assigned_to}
                                     required
                                     isMulti={true}
+                                    loadMore={() => state.userHasNext && usersListLoadMore()}
+                                    loading={state.loading || state.leadStatusloadMore}
                                 />
-                                {/* <TextArea height="120px" value={state.assignment_note} onChange={(e) => setState({ assignment_note: e })} placeholder={'Remark'} title={'Remark'} /> */}
                             </>
                         )}
-                        {/* <CustomSelect
-                            title="Primary Contact"
-                            value={state.primary_contact}
-                            onChange={(e) => setState({ primary_contact: e })}
-                            placeholder={'Primary Contact'}
-                            options={state.primary_contact_list}
-                            // loadMore={() => leadListLoadMore()}
-                        /> */}
-                        <TextArea height="150px" value={state.details} onChange={(e) => setState({ details: e })} placeholder={'Details'} title={'Details'} required error={state.errors?.details} />
-                        {/* <FileUpload
-                            onFileSelect={(file) => setState({ file })}
-                            buttonText="Upload Document"
-                            iconSrc="/assets/images/fileUplaod.jpg"
-                            accept=".pdf,.doc,.docx,.txt"
-                            isImageAllowed={false}
-                            value={state.file}
-                        /> */}
 
-                        {/* <div className="mt-3 flex items-center justify-end gap-3">
-                            <button type="button" className="btn btn-outline-danger border " onClick={() => setState({ isLogOpen: false })}>
-                                Cancel
-                            </button>
-                            <button type="button" className="btn btn-primary" onClick={() => createAndUpdateLog()}>
-                                {state.logLoad ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : 'Submit'}
-                            </button>
-                        </div> */}
+                        <TextArea height="150px" value={state.details} onChange={(e) => setState({ details: e })} placeholder={'Details'} title={'Details'} required error={state.errors?.details} />
                     </div>
                 )}
             />

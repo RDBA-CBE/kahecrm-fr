@@ -516,12 +516,20 @@ export default function DashboardCustomTabs() {
                                         backgroundColor: colors[index % colors.length],
                                     }}
                                 >
-                                    {item.count > 0 && <span className="text-xs">{item.count}</span>}
+                                    {item.count > 0 && <span className="text-xs">{item.stage}: {item.count}</span>}
                                 </div>
                             </div>
                         </div>
                     );
                 })}
+                <div className="mt-4 flex flex-wrap gap-4">
+                    {data.map((item, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                            <div className="h-3 w-3 rounded" style={{ backgroundColor: colors[index % colors.length] }}></div>
+                            <span className="text-xs text-gray-600 dark:text-gray-300">{item.stage}</span>
+                        </div>
+                    ))}
+                </div>
             </div>
         );
     };
@@ -539,17 +547,36 @@ export default function DashboardCustomTabs() {
         }
 
         try {
+            const labels = state.salesByCategory.options.labels?.slice(0, validSeries.length) || [];
+            const colors = state.salesByCategory.options.colors || ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444'];
+            
             return (
-                <ApexChart
-                    series={validSeries}
-                    options={{
-                        ...state.salesByCategory.options,
-                        labels: state.salesByCategory.options.labels?.slice(0, validSeries.length) || [],
-                    }}
-                    type="donut"
-                    height={460}
-                    width={'100%'}
-                />
+                <div>
+                    <ApexChart
+                        series={validSeries}
+                        options={{
+                            ...state.salesByCategory.options,
+                            labels: labels,
+                            dataLabels: {
+                                enabled: true,
+                                formatter: function (val, opts) {
+                                    return opts.w.config.series[opts.seriesIndex]
+                                }
+                            }
+                        }}
+                        type="donut"
+                        height={460}
+                        width={'100%'}
+                    />
+                    <div className="mt-4 flex flex-wrap gap-4 justify-center">
+                        {labels.map((label, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                                <div className="h-3 w-3 rounded" style={{ backgroundColor: colors[index % colors.length] }}></div>
+                                <span className="text-xs text-gray-600 dark:text-gray-300">{label}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             );
         } catch (error) {
             console.error('Error rendering chart:', error);

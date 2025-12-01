@@ -138,7 +138,7 @@ const Leads = () => {
             isInitialLoad.current = false;
         } else if (prevDeps.current !== currentDeps) {
             leadList(1);
-            // countData();
+            countData();
         }
 
         prevDeps.current = currentDeps;
@@ -263,50 +263,29 @@ const Leads = () => {
         }
     };
 
-    const countData = async () => {
-        try {
-            setState({ chartLoading: true });
-            let body = bodyData();
-
-            const state = { role: 'BDE' }; // Example role
-            const ROLE = { TM: 'TM', BDE: 'BDE', BDM: 'BDM', ADMIN: 'ADMIN' };
-
-            const user: any = await Models.auth.userDetails();
-
-            let res: any;
-
-            const count = [
-                { title: 'Leads', id: res?.Lead?.id, monthCount: res?.Lead?.total_count, todayCount: res?.Lead?.today, icon: '🔗', name1: 'Today', name2: 'Total' },
-                { title: 'Calls', id: res?.Calls?.id, monthCount: res?.Calls?.total_count, todayCount: res?.Calls?.today, icon: '🔗', name1: 'Today', name2: 'Total' },
-                { title: 'Prospect', id: res?.Prospect?.id, monthCount: res?.Prospect?.total_count, todayCount: res?.Prospect?.today, icon: '💰', name1: 'Today', name2: 'Total' },
-                { title: 'Meetings', id: res?.Meeting?.id, monthCount: res?.Meeting?.total_count, todayCount: res?.Meeting?.today, icon: '👨‍💼', name1: 'Today', name2: 'Total' },
-            ];
-
-            if (user?.designation === ROLE.TM) {
-                count.push({
-                    title: 'Follow Up',
-                    id: res?.['Follow Up']?.id,
-                    monthCount: res?.['Follow Up']?.total_count,
-                    todayCount: res?.['Follow Up']?.today,
-                    icon: '⏳',
-                    name1: 'Today',
-                    name2: 'Total',
-                });
-            }
-
-            if (user?.designation === ROLE.BDE || user?.designation === ROLE.BDM || user?.designation === ROLE.ADMIN) {
-                count.push(
-                    { title: 'Proposal', id: res?.Proposal?.id, monthCount: res?.Proposal?.total_count, todayCount: res?.Proposal?.today, icon: '⏳', name1: 'Today', name2: 'Total' },
-                    { title: 'Deal Won', id: res?.['Deal Won']?.id, monthCount: res?.['Deal Won']?.total_count, todayCount: res?.['Deal Won']?.today, icon: '💵', name1: 'Today', name2: 'Total' }
-                );
-            }
-
-            setState({ cardData: count, chartLoading: false });
-        } catch (error) {
-            setState({ chartLoading: false });
-            console.log('error: ', error);
-        }
-    };
+   const countData = async () => {
+           try {
+               // setState({ chartLoading: true });
+               let body = bodyData();
+   
+               const res: any = await Models.lead.cart_count(body);
+               console.log('countData --->', res);
+   
+               const count = [
+                   { title: 'Call', total: res?.total_call, this_month: res?.this_month_call, name1: 'This Month', name2: 'Total' },
+                   { title: 'Appointments', total: res?.total_appointments, this_month: res?.this_month_appointments, name1: 'This Month', name2: 'Total' },
+                   { title: 'Follow-Up', total: res?.['total_follow-up'], this_month: res?.['this_month_follow-up'], name1: 'This Month', name2: 'Total' },
+                   { title: 'Interested', total: res?.total_interested, this_month: res?.this_month_interested, name1: 'This Month', name2: 'Total' },
+                   { title: 'In Progress', total: res?.total_in_progress, this_month: res?.this_month_in_progress, name1: 'This Month', name2: 'Total' },
+                   { title: 'Closed', total: res?.total_closed, this_month: res?.this_month_closed, name1: 'This Month', name2: 'Total' },
+               ];
+   
+               setState({ cardData: count, chartLoading: false });
+           } catch (error) {
+               setState({ chartLoading: false });
+               console.log('error: ', error);
+           }
+       };
 
     const handleEdit = (id) => {
         dispatch(leadIndex(state.currentPage));
@@ -714,9 +693,9 @@ const Leads = () => {
                             Go
                         </button>
 
-                        <button type="button" className="btn btn-primary w-full md:w-auto" onClick={() => exportToExcel()}>
+                        {/* <button type="button" className="btn btn-primary w-full md:w-auto" onClick={() => exportToExcel()}>
                             {state.excelLoading ? <IconLoader className=" h-4 w-4 animate-spin" /> : 'Excel'}
-                        </button>
+                        </button> */}
                     </div>
                 </div>
 
@@ -848,7 +827,50 @@ const Leads = () => {
                 </div>
             </div>
 
-            {/* {state.data?.length > 0 ? ( */}
+            <div className="panel   flex items-center justify-between ">
+                <div className="  flex items-center">
+                    <div className="pb-2 ">
+                        <SimpleGrid
+                            cols={6}
+                            spacing="sm"
+                            breakpoints={[
+                                { maxWidth: 768, cols: 2 },
+                                { maxWidth: 576, cols: 1 },
+                            ]}
+                        >
+                            {state.cardData?.map((card, index) => (
+                                <div className="panel">
+                                    <div className="mb-5 flex items-center font-semibold">
+                                        <div className="grid h-10 w-10 shrink-0 place-content-center rounded-full">
+                                            <IconBitcoin />
+                                        </div>
+                                        <div className="ltr:ml-2 rtl:mr-2">
+                                            <h6 className="text-lg font-bold text-dark dark:text-white-light">{card.title}</h6>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between text-base font-bold">
+                                        <div>
+                                            <div className="text-sm font-normal ">{card.name1}</div>
+                                            <div>
+                                                <span className="text-xl font-bold  text-success">{card.this_month}</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div className="text-sm font-normal "> {card.name2}</div>
+                                            <div>
+                                                <span className="text-xl font-bold text-success">{card.total}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </SimpleGrid>
+                    </div>
+                </div>
+                {/* <button className="btn btn-primary w-full lg:mt-0 lg:w-auto" onClick={() => setState({ isOpen: true })}>
+                        <IconFilter />
+                    </button> */}
+            </div>
             <>
                 <div className="flex items-center justify-end pb-2 pr-3">
                     <div className="rounded-lg bg-gray-300 p-1 font-semibold">{pageCounts(state.currentPage, state.totalRecords)}</div>

@@ -82,9 +82,9 @@ const LoginBoxed = () => {
                     localStorage.setItem('crmUser', JSON.stringify(res.data.user));
                     setState({ loading: false, error: {}, email: '', password: '' });
                     if (res?.data?.user?.group == ROLE.ADMIN) {
-                        router.replace('/leads');
+                        router.replace('/own_dashboard');
                     } else {
-                        router.replace('/my_leads');
+                        router.replace('/dashboards');
                     }
                     Success('Login Sucessfully');
                 })

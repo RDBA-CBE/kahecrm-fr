@@ -74,7 +74,13 @@ const Sidebar = () => {
     const leadList = async (page = 1) => {
         try {
             setState({ LeadMoreloading: true });
-            const res: any = await Models.lead.list(null, page, null);
+            const userString = localStorage.getItem('crmUser');
+            const user = userString ? JSON.parse(userString) : null;
+
+            const body = {
+                userId: user?.id,
+            };
+            const res: any = await Models.lead.list(body, page, null);
             const dropdown = res?.results?.map((item) => ({
                 value: item.college_contact?.id,
                 label: `${capitalizeFLetter(item.college_contact?.student_name)} (${item.college_contact?.phone_number})`,
@@ -90,8 +96,13 @@ const Sidebar = () => {
     const leadListLoadMore = async () => {
         try {
             setState({ LeadMoreloading: true });
+            const userString = localStorage.getItem('crmUser');
+            const user = userString ? JSON.parse(userString) : null;
 
-            const res: any = await Models.lead.list(null, state.currentPage + 1, null);
+            const body = {
+                userId: user?.id,
+            };
+            const res: any = await Models.lead.list(body, state.currentPage + 1, null);
             const dropdown = res?.results?.map((item) => ({
                 value: item.college_contact?.id,
                 label: `${capitalizeFLetter(item.college_contact?.student_name)} (${item.college_contact?.phone_number})`,
@@ -105,8 +116,8 @@ const Sidebar = () => {
 
     const usersList = async (e) => {
         try {
-            setState({ assignRole: e,assigned_to:null });
-            setState({ loading: true });
+            setState({ assignRole: e, assigned_to: null });
+            setState({ leadStatusloadMore: true });
             let body: any = {};
             if (e?.label == ROLE.ADMIN) {
                 body.show_admins_only = 'Yes';
@@ -120,9 +131,9 @@ const Sidebar = () => {
                 value: item?.id,
             }));
 
-            setState({ usersList: dropdownList, loading: false, userPage: 1, userHasNext: res?.next });
+            setState({ usersList: dropdownList, leadStatusloadMore: false, userPage: 1, userHasNext: res?.next });
         } catch (error) {
-            setState({ loading: false });
+            setState({ leadStatusloadMore: false });
             console.log('error: ', error);
         }
     };
@@ -286,7 +297,7 @@ const Sidebar = () => {
                 <div className="h-full bg-white dark:bg-black">
                     <div className="flex items-center justify-between px-4 py-3">
                         <Link href="/" className="main-logo flex shrink-0 items-center">
-                            <img className="ml-[5px] w-8 flex-none" src="/assets/images/kahe-logo.png" alt="logo" height={400} width={400}  style={{height:'45px',width:"170px"}}/>
+                            <img className="ml-[5px] w-8 flex-none" src="/assets/images/kahe-logo.png" alt="logo" height={400} width={400} style={{ height: '45px', width: '170px' }} />
                         </Link>
 
                         <button
@@ -620,10 +631,9 @@ const Sidebar = () => {
                                                             <li>
                                                                 <Link href="/assigned_task">{t('Assigned Tasks')}</Link>
                                                             </li>
-                                                            
                                                         </ul>
                                                     </AnimateHeight>
-                                                </li> 
+                                                </li>
                                                 <li className="menu nav-item">
                                                     <button
                                                         type="button"
@@ -848,16 +858,6 @@ const Sidebar = () => {
                             error={state.errors?.task_type}
                             required
                         />
-                        {/* <CustomSelect
-                            title="Assign To"
-                            value={state.assigned_to}
-                            onChange={(e) => setState({ assigned_to: e })}
-                            placeholder={'Assign To'}
-                            options={state.assignList}
-                            error={state.errors?.assigned_to}
-                            required
-                            isMulti={true}
-                        /> */}
 
                         <CustomSelect
                             value={state.assignRole}

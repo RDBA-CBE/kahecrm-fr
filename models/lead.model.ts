@@ -232,6 +232,76 @@ const lead = {
         });
         return promise;
     },
+
+
+    cart_count: (body = null) => {
+        let promise = new Promise((resolve, reject) => {
+            let url = `crm/lead-counts/`;
+
+            let firstParam = true;
+
+            if (body?.userId) {
+                url += `?user_id=${encodeURIComponent(body?.userId)}`;
+                firstParam = false;
+            }
+            if (body?.my_leads == 'Yes') {
+                url += `${firstParam ? '?' : '&'}my_leads=${encodeURIComponent(true)}`;
+                firstParam = false;
+            }
+
+            if (body?.assigned_leads == 'Yes') {
+                url += `${firstParam ? '?' : '&'}assigned_leads=${encodeURIComponent(true)}`;
+                firstParam = false;
+            }
+
+            if (body?.team == 'Yes') {
+                url += `${firstParam ? '?' : '&'}teams=${encodeURIComponent(true)}`;
+                firstParam = false;
+            }
+            if (body?.search) {
+                url += `${firstParam ? '?' : '&'}search=${encodeURIComponent(body?.search)}`;
+                firstParam = false;
+            }
+            if (body?.status) {
+                url += `${firstParam ? '?' : '&'}stage=${encodeURIComponent(body?.status)}`;
+                firstParam = false;
+            }
+            if (body?.from_date) {
+                url += `${firstParam ? '?' : '&'}created_at_after=${encodeURIComponent(body?.from_date)}`;
+                firstParam = false;
+            }
+            if (body?.end_date) {
+                url += `${firstParam ? '?' : '&'}created_at_before=${encodeURIComponent(body?.end_date)}`;
+                firstParam = false;
+            }
+
+            if (body?.lead_source) {
+                url += `${firstParam ? '?' : '&'}lead_source=${encodeURIComponent(body?.lead_source)}`;
+                firstParam = false;
+            }
+
+            if (body?.lead_source_category) {
+                url += `${firstParam ? '?' : '&'}lead_source_category=${encodeURIComponent(body?.lead_source_category)}`;
+                firstParam = false;
+            }
+
+            instance()
+                .get(url)
+                .then((res) => {
+                    resolve(res.data);
+                })
+                .catch((error) => {
+                    if (error.response) {
+                        reject(error.response.message);
+                    } else {
+                        reject(error);
+                    }
+                });
+        });
+        return promise;
+    },
+
+   
 };
 
 export default lead;

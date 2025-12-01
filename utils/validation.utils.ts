@@ -276,7 +276,6 @@ export const createLeadLog = Yup.object().shape({
 });
 export const createLeadsLog = Yup.object().shape({
     task_type: Yup.string().required('Select task type'),
-    logStage: Yup.string().required('Select log stage type'),
     log_type: Yup.string().required('Select log type'),
     details: Yup.string().required('Details is required'),
     assigned_to: Yup.array()

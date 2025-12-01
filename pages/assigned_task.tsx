@@ -22,7 +22,7 @@ import IconLoader from '@/components/Icon/IconLoader';
 import IconX from '@/components/Icon/IconX';
 import Link from 'next/link';
 import IconTrash from '@/components/Icon/IconTrash';
-import { ROLE } from '@/utils/constant.utils';
+import { ROLE, TASK_TYPE } from '@/utils/constant.utils';
 import IconEye from '@/components/Icon/IconEye';
 import TaskCard from '@/components/TaskCard';
 import next from 'next';
@@ -327,6 +327,7 @@ const Calendar = () => {
         if (row?.assignData?.length > 0) {
             value = { value: row?.assignData?.[0]?.groups, label: capitalizeFLetter(row?.assignData?.[0]?.groups) };
             usersList(value);
+            setState({ assigned_to: row?.assignData?.map((item) => ({ value: item?.id, label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}` })) });
         }
         setState({
             taskId: row.id,
@@ -341,13 +342,6 @@ const Calendar = () => {
             task_date_time: row.task_date_time ? new Date(row.task_date_time) : null,
             remark: row?.remark ? row?.remark : '',
             // assigned_to: row?.assignment_details?.length > 0 ? row?.assignment_details?.map((item) => ({ value: item?.assigned_to?.id, label: item?.assigned_to?.username })) : null,
-            assigned_to:
-                row?.assignment_details?.length > 0
-                    ? row.assignment_details.map((item) => ({
-                          value: item?.assigned_to?.id,
-                          label: `${item?.assigned_to?.first_name} ${item?.assigned_to?.last_name}`,
-                      }))
-                    : null,
         });
     };
 
@@ -379,6 +373,58 @@ const Calendar = () => {
             setState({ viewLoad: false });
 
             console.log('✌️error --->', error);
+        }
+    };
+
+    const createAndUpdateTask = async () => {
+        try {
+            setState({ taskLoading: true });
+
+            const validateField = {
+                lead: state.lead?.value,
+                task_type: state.task_type?.value,
+                assigned_to: state.assigned_to,
+                task_date_time: state.task_date_time,
+                remark: state?.remark,
+                // assignRole: state.assignRole?.value,
+            };
+            await Validation.createTask.validate(validateField, {
+                abortEarly: false,
+            });
+
+            const body: any = {
+                contact: state.lead?.value,
+                task_type: state.task_type?.value,
+                assigned_to: state.assigned_to?.map((item) => item.value),
+                remark: state.remark,
+            };
+            if (state.task_date_time) {
+                body.task_date_time = moment(state.task_date_time).format('YYYY-MM-DD HH:mm:ss');
+            }
+
+            if (state.taskId) {
+                const res: any = await Models.task.update(body, state.taskId);
+            } else {
+                const res: any = await Models.task.create(body);
+            }
+            clearTaskData();
+            setState({ taskLoading: false });
+            if (state.taskId) {
+                Success('Task updated successfully');
+            } else {
+                Success('Task created successfully');
+            }
+            taskList(state.currentPage);
+        } catch (error) {
+            if (error instanceof Yup.ValidationError) {
+                const validationErrors = {};
+                error.inner.forEach((err) => {
+                    validationErrors[err.path] = err?.message; // Set the error message for each field
+                });
+                setState({ errors: validationErrors, taskLoading: false });
+            } else {
+                setState({ taskLoading: false });
+            }
         }
     };
 
@@ -647,6 +693,106 @@ const Calendar = () => {
                                 {state.isDeleteLoad ? <IconLoader className=" h-4  w-4 animate-spin" /> : 'Delete'}
                             </button>
                         </div>
+                    </div>
+                )}
+            />
+
+            <SideMenu
+                title={state.taskId ? 'Update Task' : 'Create Task'}
+                open={state.isOpenTask}
+                close={() => clearTaskData()}
+                cancelOnClick={() => clearTaskData()}
+                submitOnClick={() => createAndUpdateTask()}
+                submitLoading={state.loading}
+                canceTitle="Reset"
+                renderComponent={() => (
+                    <div className="flex flex-col gap-5">
+                        <div className="flex flex-col gap-5 ">
+                            <CustomSelect
+                                title="Lead "
+                                value={state.lead}
+                                onChange={(e) => {
+                                    setState({ lead: e, contact: '' });
+                                }}
+                                placeholder={'Lead '}
+                                options={state.leadList}
+                                error={state.errors?.lead}
+                                required
+                                loading={state.LeadMoreloading}
+                                loadMore={() => state.leadnext && leadListLoadMore()}
+                            />
+                            {/* {state.contactLoading?
+                            
+                        
+                        } */}
+                            {/* <CustomSelect
+                                title="Contact"
+                                value={state.contact}
+                                onChange={(e) => setState({ contact: e })}
+                                placeholder={'Contact '}
+                                options={state.contactList}
+                                error={state.errors?.contact}
+                                required
+                                loading={state.contactLoading}
+                            /> */}
+                        </div>
+
+                        <CustomeDatePicker
+                            value={state.task_date_time}
+                            placeholder="Task Date"
+                            title="Task Date"
+                            onChange={(e) => setState({ task_date_time: e })}
+                            error={state.errors?.task_date_time}
+                            required
+                        />
+                        <CustomSelect
+                            title="Task Type"
+                            value={state.task_type}
+                            onChange={(e) => setState({ task_type: e })}
+                            placeholder={'Task Type'}
+                            options={TASK_TYPE}
+                            error={state.errors?.task_type}
+                            required
+                        />
+                        {/* <CustomSelect
+                            title="Assign To"
+                            value={state.assigned_to}
+                            onChange={(e) => setState({ assigned_to: e })}
+                            placeholder={'Assign To'}
+                            options={state.assignList}
+                            error={state.errors?.assigned_to}
+                            required
+                            isMulti={true}
+                        /> */}
+
+                        <CustomSelect
+                            value={state.assignRole}
+                            onChange={(e) => {
+                                usersList(e);
+                            }}
+                            placeholder={'Choose Role'}
+                            title={'Choose Role'}
+                            options={[
+                                { value: 'admin', label: 'Admin' },
+                                { value: 'staff', label: 'Staff' },
+                            ]}
+                            error={state.errors?.assignRole}
+                            required
+                        />
+                        <CustomSelect
+                            title="Assign To"
+                            value={state.assigned_to}
+                            onChange={(e) => setState({ assigned_to: e })}
+                            placeholder={'Assign To'}
+                            options={state.usersList}
+                            error={state.errors?.assigned_to}
+                            required
+                            isMulti={true}
+                            loadMore={() => state.userHasNext && usersListLoadMore()}
+                            loading={state.loading || state.leadStatusloadMore}
+                        />
+
+                        <TextArea height="150px" value={state.remark} onChange={(e) => setState({ remark: e })} placeholder={'Remark'} title={'Remark'} error={state.errors?.remark} required />
                     </div>
                 )}
             />

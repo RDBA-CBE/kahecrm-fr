@@ -922,7 +922,6 @@ const CreateContact = () => {
                                         { value: 'staff', label: 'Staff' },
                                     ]}
                                     error={state.errors?.assignRole}
-                                    required
                                 />
                                 <CustomSelect
                                     title="Assign To"
@@ -931,7 +930,6 @@ const CreateContact = () => {
                                     placeholder={'Assign To'}
                                     options={state.usersList}
                                     error={state.errors?.assigned_to}
-                                    required
                                     isMulti={true}
                                     loadMore={() => state.userHasNext && usersListLoadMore()}
                                     loading={state.userloading || state.leadStatusloadMore}

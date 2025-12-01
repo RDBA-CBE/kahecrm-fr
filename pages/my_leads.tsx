@@ -86,6 +86,7 @@ const Leads = () => {
         sourceList();
         leadList();
         leadStatusList();
+        countData();
     }, []);
 
     const deps = useMemo(
@@ -134,10 +135,11 @@ const Leads = () => {
                 setState({ currentPage: redux.leadIndex });
             }
             leadList(page);
+            countData();
             isInitialLoad.current = false;
         } else if (prevDeps.current !== currentDeps) {
             leadList(1);
-            // countData();
+            countData();
         }
 
         prevDeps.current = currentDeps;
@@ -225,41 +227,20 @@ const Leads = () => {
 
     const countData = async () => {
         try {
-            setState({ chartLoading: true });
+            // setState({ chartLoading: true });
             let body = bodyData();
 
-            const state = { role: 'BDE' }; // Example role
-            const ROLE = { TM: 'TM', BDE: 'BDE', BDM: 'BDM', ADMIN: 'ADMIN' };
-
-            const user: any = await Models.auth.userDetails();
-
-            let res: any;
+            const res: any = await Models.lead.cart_count(body);
+            console.log('countData --->', res);
 
             const count = [
-                { title: 'Leads', id: res?.Lead?.id, monthCount: res?.Lead?.total_count, todayCount: res?.Lead?.today, icon: '🔗', name1: 'Today', name2: 'Total' },
-                { title: 'Calls', id: res?.Calls?.id, monthCount: res?.Calls?.total_count, todayCount: res?.Calls?.today, icon: '🔗', name1: 'Today', name2: 'Total' },
-                { title: 'Prospect', id: res?.Prospect?.id, monthCount: res?.Prospect?.total_count, todayCount: res?.Prospect?.today, icon: '💰', name1: 'Today', name2: 'Total' },
-                { title: 'Meetings', id: res?.Meeting?.id, monthCount: res?.Meeting?.total_count, todayCount: res?.Meeting?.today, icon: '👨‍💼', name1: 'Today', name2: 'Total' },
+                { title: 'Call', total: res?.total_call, this_month: res?.this_month_call, name1: 'This Month', name2: 'Total' },
+                { title: 'Appointments', total: res?.total_appointments, this_month: res?.this_month_appointments, name1: 'This Month', name2: 'Total' },
+                { title: 'Follow-Up', total: res?.['total_follow-up'], this_month: res?.['this_month_follow-up'], name1: 'This Month', name2: 'Total' },
+                { title: 'Interested', total: res?.total_interested, this_month: res?.this_month_interested, name1: 'This Month', name2: 'Total' },
+                { title: 'In Progress', total: res?.total_in_progress, this_month: res?.this_month_in_progress, name1: 'This Month', name2: 'Total' },
+                { title: 'Closed', total: res?.total_closed, this_month: res?.this_month_closed, name1: 'This Month', name2: 'Total' },
             ];
-
-            if (user?.designation === ROLE.TM) {
-                count.push({
-                    title: 'Follow Up',
-                    id: res?.['Follow Up']?.id,
-                    monthCount: res?.['Follow Up']?.total_count,
-                    todayCount: res?.['Follow Up']?.today,
-                    icon: '⏳',
-                    name1: 'Today',
-                    name2: 'Total',
-                });
-            }
-
-            if (user?.designation === ROLE.BDE || user?.designation === ROLE.BDM || user?.designation === ROLE.ADMIN) {
-                count.push(
-                    { title: 'Proposal', id: res?.Proposal?.id, monthCount: res?.Proposal?.total_count, todayCount: res?.Proposal?.today, icon: '⏳', name1: 'Today', name2: 'Total' },
-                    { title: 'Deal Won', id: res?.['Deal Won']?.id, monthCount: res?.['Deal Won']?.total_count, todayCount: res?.['Deal Won']?.today, icon: '💵', name1: 'Today', name2: 'Total' }
-                );
-            }
 
             setState({ cardData: count, chartLoading: false });
         } catch (error) {
@@ -615,19 +596,14 @@ const Leads = () => {
     return (
         <div className="p-2">
             <div className="panel mb-3 flex items-center justify-between gap-5">
-                {/* Title Section */}
                 <div className="flex items-center pl-3">
-                    <h5 className="text-lg font-semibold"> {(state.role == ROLE.ADMIN || state.role == ROLE.BDM) && 'TEAM '}LEADS</h5>
+                    <h5 className="text-lg font-semibold"> LEADS</h5>
                 </div>
-
-                {/* Button Section */}
-                {state.role !== ROLE.ADMIN && state.role !== ROLE.BDM && (
-                    <div className="flex">
-                        <button type="button" className="btn btn-primary w-auto" onClick={() => router.push('/create_contact')}>
-                            + Create
-                        </button>
-                    </div>
-                )}
+                <div className="flex">
+                    <button type="button" className="btn btn-primary w-auto" onClick={() => router.push('/create_contact')}>
+                        + Create
+                    </button>
+                </div>
             </div>
 
             <div className="panel flex flex-wrap items-center justify-between gap-2 md:gap-4">
@@ -675,9 +651,9 @@ const Leads = () => {
                             Go
                         </button>
 
-                        <button type="button" className="btn btn-primary w-full md:w-auto" onClick={() => exportToExcel()}>
+                        {/* <button type="button" className="btn btn-primary w-full md:w-auto" onClick={() => exportToExcel()}>
                             {state.excelLoading ? <IconLoader className=" h-4 w-4 animate-spin" /> : 'Excel'}
-                        </button>
+                        </button> */}
                     </div>
                 </div>
 
@@ -686,19 +662,8 @@ const Leads = () => {
                 </button>
             </div>
 
-            {/* {ROLE.DM === state.role && (
-                <div className="chart-container panel mb-2 mt-2">
-                    {!state.chartsLoading && <ReactApexChart series={state?.series} options={state?.chartData?.options} type="bar" height={400} width={'100%'} />}
-                </div>
-            )} */}
-
             <div className="panel mt-2 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-                <div
-                    // className={`relative flex items-center  rounded-full border border-gray-300 dark:border-white-dark/30 sm:w-[${
-                    //     state.role == 'ADMIN' ? '400px' : state.role == 'BDE' ? '400px' : '1000px'
-                    // }] `}
-                    className={`relative flex w-full items-center  rounded-full border border-gray-300 dark:border-white-dark/30 lg:w-1/3 `}
-                >
+                <div className={`relative flex w-full items-center  rounded-full border border-gray-300 dark:border-white-dark/30 lg:w-1/3 `}>
                     <button type="submit" className="flex items-center justify-center px-3 py-2 text-primary">
                         <IconSearch className="h-6 w-6 font-bold" />
                     </button>
@@ -712,74 +677,6 @@ const Leads = () => {
                 </div>
 
                 <div className="flex w-full flex-col gap-4 lg:w-2/3 lg:flex-row">
-                    {ROLE.ADMIN == state.role && (
-                        <>
-                            <CustomSelect
-                                options={state.bdmList}
-                                value={state.bdm}
-                                onChange={(e) => setState({ bdm: e, bde: null, roles: null, tm: null })}
-                                isMulti={false}
-                                placeholder="BDM"
-                                className="w-full "
-                                disabled={state.dm?.value}
-                            />
-                            <CustomSelect
-                                options={
-                                    state.bdm?.value
-                                        ? [
-                                              {
-                                                  value: 'BDE',
-                                                  label: 'BDE',
-                                              },
-                                              {
-                                                  value: 'TM',
-                                                  label: 'TM',
-                                              },
-                                          ]
-                                        : []
-                                }
-                                value={state.roles}
-                                onChange={(e) => setState({ roles: e, bde: null, tm: null })}
-                                isMulti={false}
-                                placeholder="Choose Role"
-                                className="w-full "
-                                disabled={state.dm?.value}
-                            />
-                            {state.roles ? (
-                                state.roles?.value == 'BDE' ? (
-                                    <CustomSelect
-                                        options={state.bdeOrTMList}
-                                        value={state.bde}
-                                        onChange={(e) => setState({ bde: e })}
-                                        isMulti={false}
-                                        placeholder="BDE"
-                                        className="w-full "
-                                        disabled={state.dm?.value}
-                                    />
-                                ) : (
-                                    <CustomSelect
-                                        options={state.bdeOrTMList}
-                                        value={state.tm}
-                                        onChange={(e) => setState({ tm: e })}
-                                        isMulti={false}
-                                        placeholder="TM"
-                                        className="w-full "
-                                        disabled={state.dm?.value}
-                                    />
-                                )
-                            ) : null}
-                            <CustomSelect
-                                options={state.dmList}
-                                value={state.dm}
-                                onChange={(e) => setState({ dm: e })}
-                                isMulti={false}
-                                placeholder="DM"
-                                className="w-full "
-                                disabled={state.bdm?.value || state.bde?.value || state.roles?.value}
-                            />
-                        </>
-                    )}
-
                     <CustomSelect
                         value={state.lead_status}
                         onChange={(e) => setState({ lead_status: e })}
@@ -810,51 +707,49 @@ const Leads = () => {
             </div>
 
             <div className="panel   flex items-center justify-between ">
-                    <div className="  flex items-center">
-                        <div className="pb-2 ">
-                            <SimpleGrid
-                                cols={7}
-                                spacing="sm"
-                                breakpoints={[
-                                    { maxWidth: 768, cols: 2 },
-                                    { maxWidth: 576, cols: 1 },
-                                ]}
-                            >
-                                {state.cardData?.map((card, index) => (
-                                    <div className="panel">
-                                        <div className="mb-5 flex items-center font-semibold">
-                                            <div className="grid h-10 w-10 shrink-0 place-content-center rounded-full">
-                                                <IconBitcoin />
-                                            </div>
-                                            <div className="ltr:ml-2 rtl:mr-2">
-                                                <h6 className="text-lg font-bold text-dark dark:text-white-light">{card.title}</h6>
-                                                {/* <p className="text-xs text-white-dark">Bitcoin</p> */}
-                                            </div>
+                <div className="  flex items-center">
+                    <div className="pb-2 ">
+                        <SimpleGrid
+                            cols={6}
+                            spacing="sm"
+                            breakpoints={[
+                                { maxWidth: 768, cols: 2 },
+                                { maxWidth: 576, cols: 1 },
+                            ]}
+                        >
+                            {state.cardData?.map((card, index) => (
+                                <div className="panel">
+                                    <div className="mb-5 flex items-center font-semibold">
+                                        <div className="grid h-10 w-10 shrink-0 place-content-center rounded-full">
+                                            <IconBitcoin />
                                         </div>
-                                        {/* <div className="mb-5">{!state.loading && <ReactApexChart series={bitcoin.series} options={bitcoin.options} type="line" height={45} width={'100%'} />}</div> */}
-                                        <div className="flex items-center justify-between text-base font-bold">
-                                            {/* <div>
-                                                <div className="text-sm font-normal ">{card.name1}</div>
-                                                <div>
-                                                    <span className="text-xl font-bold  text-success">{card.todayCount}</span>
-                                                </div>
-                                            </div> */}
-                                            {/* <div>
-                                                <div className="text-sm font-normal "> {card.name2}</div>
-                                                <div>
-                                                    <span className="text-xl font-bold text-success">{card.monthCount}</span>
-                                                </div>
-                                            </div> */}
+                                        <div className="ltr:ml-2 rtl:mr-2">
+                                            <h6 className="text-lg font-bold text-dark dark:text-white-light">{card.title}</h6>
                                         </div>
                                     </div>
-                                ))}
-                            </SimpleGrid>
-                        </div>
+                                    <div className="flex items-center justify-between text-base font-bold">
+                                        <div>
+                                            <div className="text-sm font-normal ">{card.name1}</div>
+                                            <div>
+                                                <span className="text-xl font-bold  text-success">{card.this_month}</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div className="text-sm font-normal "> {card.name2}</div>
+                                            <div>
+                                                <span className="text-xl font-bold text-success">{card.total}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </SimpleGrid>
                     </div>
-                    {/* <button className="btn btn-primary w-full lg:mt-0 lg:w-auto" onClick={() => setState({ isOpen: true })}>
+                </div>
+                {/* <button className="btn btn-primary w-full lg:mt-0 lg:w-auto" onClick={() => setState({ isOpen: true })}>
                         <IconFilter />
                     </button> */}
-                </div>
+            </div>
 
             <>
                 <div className="flex items-center justify-end pb-2 pr-3">

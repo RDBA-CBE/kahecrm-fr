@@ -22,7 +22,7 @@ import IconLoader from '@/components/Icon/IconLoader';
 import IconX from '@/components/Icon/IconX';
 import Link from 'next/link';
 import IconTrash from '@/components/Icon/IconTrash';
-import { ROLE } from '@/utils/constant.utils';
+import { ROLE, TASK_TYPE } from '@/utils/constant.utils';
 import IconEye from '@/components/Icon/IconEye';
 import TaskCard from '@/components/TaskCard';
 import next from 'next';
@@ -78,7 +78,7 @@ const Calendar = () => {
         } else {
             body.team = 'Yes';
         }
-        body.exclude_all_tasks = 'Yes';
+        // body.exclude_all_tasks = 'Yes';
         if (state.search) {
             body.search = debouncedSearch;
         }
@@ -92,41 +92,41 @@ const Calendar = () => {
         return body;
     };
 
-   const calendarList = async () => {
-          try {
-              const body = bodyData();
-              const res: any = await Models.task.calendarTask(body, true);
-              const data = res
-                  ?.map((item) => {
-                      if (!item?.task_date_time) return null;
-      
-                      const taskDate = new Date(item.task_date_time);
-                      if (isNaN(taskDate.getTime())) return null;
-      
-                      const startDate = new Date(taskDate);
-                      const endDate = new Date(taskDate);
-                      
-                      startDate?.setUTCHours(14, 30, 0, 0);
-                      endDate?.setUTCHours(16, 30, 0, 0);
-      
-                      return {
-                          id: item?.id,
-                          title: capitalizeFLetter(item.contact?.student_name),
-                          start: startDate?.toISOString(),
-                          end: endDate?.toISOString(),
-                          className: 'primary',
-                          remark: item?.remark || 'No remarks',
-                          ...item,
-                      };
-                  })
-                  .filter(Boolean);
-              console.log('✌️data --->', data);
-      
-              setState({ calenderList: data });
-          } catch (error) {
-              console.log('error: ', error);
-          }
-      };
+    const calendarList = async () => {
+        try {
+            const body = bodyData();
+            const res: any = await Models.task.calendarTask(body, true);
+            const data = res
+                ?.map((item) => {
+                    if (!item?.task_date_time) return null;
+
+                    const taskDate = new Date(item.task_date_time);
+                    if (isNaN(taskDate.getTime())) return null;
+
+                    const startDate = new Date(taskDate);
+                    const endDate = new Date(taskDate);
+
+                    startDate?.setUTCHours(14, 30, 0, 0);
+                    endDate?.setUTCHours(16, 30, 0, 0);
+
+                    return {
+                        id: item?.id,
+                        title: capitalizeFLetter(item.contact?.student_name),
+                        start: startDate?.toISOString(),
+                        end: endDate?.toISOString(),
+                        className: 'primary',
+                        remark: item?.remark || 'No remarks',
+                        ...item,
+                    };
+                })
+                .filter(Boolean);
+            console.log('✌️data --->', data);
+
+            setState({ calenderList: data });
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
 
     const initializeData = async () => {
         try {
@@ -227,7 +227,6 @@ const Calendar = () => {
     const usersList = async (e) => {
         try {
             setState({ assignRole: e, assigned_to: null });
-            setState({ loading: true });
             let body: any = {};
             if (e?.label == ROLE.ADMIN) {
                 body.show_admins_only = 'Yes';
@@ -241,9 +240,8 @@ const Calendar = () => {
                 value: item?.id,
             }));
 
-            setState({ usersList: dropdownList, loading: false, userPage: 1, userHasNext: res?.next });
+            setState({ usersList: dropdownList, userPage: 1, userHasNext: res?.next });
         } catch (error) {
-            setState({ loading: false });
             console.log('error: ', error);
         }
     };
@@ -380,6 +378,7 @@ const Calendar = () => {
         if (row?.assignData?.length > 0) {
             value = { value: row?.assignData?.[0]?.groups, label: capitalizeFLetter(row?.assignData?.[0]?.groups) };
             usersList(value);
+            setState({ assigned_to: row?.assignData?.map((item) => ({ value: item?.id, label: `${capitalizeFLetter(item?.first_name)} ${capitalizeFLetter(item?.last_name)}` })) });
         }
         setState({
             taskId: row.id,
@@ -394,13 +393,6 @@ const Calendar = () => {
             task_date_time: row.task_date_time ? new Date(row.task_date_time) : null,
             remark: row?.remark ? row?.remark : '',
             // assigned_to: row?.assignment_details?.length > 0 ? row?.assignment_details?.map((item) => ({ value: item?.assigned_to?.id, label: item?.assigned_to?.username })) : null,
-            assigned_to:
-                row?.assignment_details?.length > 0
-                    ? row.assignment_details.map((item) => ({
-                          value: item?.assigned_to?.id,
-                          label: `${item?.assigned_to?.first_name} ${item?.assigned_to?.last_name}`,
-                      }))
-                    : null,
         });
     };
 
@@ -704,6 +696,105 @@ const Calendar = () => {
                                 {state.isDeleteLoad ? <IconLoader className=" h-4  w-4 animate-spin" /> : 'Delete'}
                             </button>
                         </div>
+                    </div>
+                )}
+            />
+            <SideMenu
+                title={state.taskId ? 'Update Task' : 'Create Task'}
+                open={state.isOpenTask}
+                close={() => clearTaskData()}
+                cancelOnClick={() => clearTaskData()}
+                submitOnClick={() => createAndUpdateTask()}
+                submitLoading={state.loading}
+                canceTitle="Reset"
+                renderComponent={() => (
+                    <div className="flex flex-col gap-5">
+                        <div className="flex flex-col gap-5 ">
+                            <CustomSelect
+                                title="Lead "
+                                value={state.lead}
+                                onChange={(e) => {
+                                    setState({ lead: e, contact: '' });
+                                }}
+                                placeholder={'Lead '}
+                                options={state.leadList}
+                                error={state.errors?.lead}
+                                required
+                                loading={state.LeadMoreloading}
+                                loadMore={() => state.leadnext && leadListLoadMore()}
+                            />
+                            {/* {state.contactLoading?
+                            
+                        
+                        } */}
+                            {/* <CustomSelect
+                                title="Contact"
+                                value={state.contact}
+                                onChange={(e) => setState({ contact: e })}
+                                placeholder={'Contact '}
+                                options={state.contactList}
+                                error={state.errors?.contact}
+                                required
+                                loading={state.contactLoading}
+                            /> */}
+                        </div>
+
+                        <CustomeDatePicker
+                            value={state.task_date_time}
+                            placeholder="Task Date"
+                            title="Task Date"
+                            onChange={(e) => setState({ task_date_time: e })}
+                            error={state.errors?.task_date_time}
+                            required
+                        />
+                        <CustomSelect
+                            title="Task Type"
+                            value={state.task_type}
+                            onChange={(e) => setState({ task_type: e })}
+                            placeholder={'Task Type'}
+                            options={TASK_TYPE}
+                            error={state.errors?.task_type}
+                            required
+                        />
+                        {/* <CustomSelect
+                            title="Assign To"
+                            value={state.assigned_to}
+                            onChange={(e) => setState({ assigned_to: e })}
+                            placeholder={'Assign To'}
+                            options={state.assignList}
+                            error={state.errors?.assigned_to}
+                            required
+                            isMulti={true}
+                        /> */}
+
+                        <CustomSelect
+                            value={state.assignRole}
+                            onChange={(e) => {
+                                usersList(e);
+                            }}
+                            placeholder={'Choose Role'}
+                            title={'Choose Role'}
+                            options={[
+                                { value: 'admin', label: 'Admin' },
+                                { value: 'staff', label: 'Staff' },
+                            ]}
+                            error={state.errors?.assignRole}
+                            required
+                        />
+                        <CustomSelect
+                            title="Assign To"
+                            value={state.assigned_to}
+                            onChange={(e) => setState({ assigned_to: e })}
+                            placeholder={'Assign To'}
+                            options={state.usersList}
+                            error={state.errors?.assigned_to}
+                            required
+                            isMulti={true}
+                            loadMore={() => state.userHasNext && usersListLoadMore()}
+                            loading={state.loading || state.leadStatusloadMore}
+                        />
+
+                        <TextArea height="150px" value={state.remark} onChange={(e) => setState({ remark: e })} placeholder={'Remark'} title={'Remark'} error={state.errors?.remark} required />
                     </div>
                 )}
             />
