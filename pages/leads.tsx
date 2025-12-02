@@ -425,8 +425,6 @@ const Leads = () => {
             body.team = 'Yes';
         }
 
-        // body.display_date_source = true;
-
         if (state.search) {
             body.search = state.search;
         }
@@ -515,78 +513,29 @@ const Leads = () => {
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Sheet1');
 
-        // Define the columns you want to export
         const exportColumns = [
-            {
-                title: `${ROLE.TM == state.role ? 'Company' : 'Lead'}`,
-                accessor: (row: any) => row?.lead?.name,
-            },
-            ...(state.role === ROLE.BDE || state.role === ROLE.BDM || state.role === ROLE.DM || state.role === ROLE.ADMIN
-                ? [
-                      {
-                          title: 'Opportunity',
-                          accessor: (row: any) => row?.name?.name,
-                      },
-                  ]
-                : []),
-            {
-                title: 'Contact Person',
-                accessor: 'contact_person',
-            },
-            ...(state.role == ROLE.BDE || state.role == ROLE.TM
-                ? [
-                      {
-                          title: 'Contact Number',
-                          accessor: 'contact_number',
-                      },
-                  ]
-                : []),
-            {
-                title: 'Source',
-                accessor: 'source',
-            },
-            {
-                title: 'Date',
-                accessor: 'date',
-            },
-            {
-                title: 'Opportunity Status',
-                accessor: (row: any) => row?.opportunity_status?.name,
-            },
-            {
-                title: `${ROLE.TM == state.role ? 'Follow Up' : 'Status Date'}`,
-                accessor: 'status_date',
-            },
-            {
-                title: 'Remark',
-                accessor: 'remark',
-            },
+            { title: 'Student Name', accessor: 'contact_person' },
+            { title: 'Phone Number', accessor: 'phone_number' },
+            { title: 'Email', accessor: (row: any) => row?.college_contact?.email },
+            { title: 'Source', accessor: 'source' },
+            { title: 'Created Date', accessor: 'date' },
+            { title: 'Lead Status', accessor: 'lead_status' },
+            { title: 'Created By', accessor: 'created_by' },
+            { title: 'Assigned To', accessor: 'assigned' },
+            { title: 'Updated Date', accessor: 'updated_on' },
+            { title: 'Remark', accessor: 'remark' }
         ];
 
-        // Add header row
         worksheet.addRow(exportColumns.map((col) => col.title));
-
-        // Get user details once
-        const res: any = await Models.auth.userDetails();
-        const userId = res?.id;
 
         let page = 1;
         let hasMoreData = true;
         let allData: any[] = [];
 
-        // Loop through all pages until no more data
         while (hasMoreData) {
             try {
-                const body = bodyData(); // Get your filter body
-
-                let response: any;
-
-                // if (ROLE.ADMIN == state.role || ROLE.BDM == state.role) {
-                //     response = await Models.opportunity.filtersByOwnLead(body, page);
-                // } else {
-                //     response = await Models.opportunity.filtersByOwnLead(body, page, userId);
-                // }
-                // const response: any = await Models.opportunity.filtersByOwnLead(body, page, userId);
+                const body = bodyData();
+                const response: any = await Models.lead.list(body, page, null);
 
                 if (response?.results && response?.results.length > 0) {
                     allData = [...allData, ...response?.results];
@@ -601,30 +550,28 @@ const Leads = () => {
                 hasMoreData = false;
             }
         }
-        setState({ excelLoading: false });
 
-        const data = allData?.map((item) => {
+        const processedData = allData?.map((item) => {
             return {
                 ...item,
                 allData: item,
                 lead: item.lead,
-                opportunity: item?.name,
-                // opportunity: item?.opportunities?.length > 0 ? item.opportunities.map((detail) => detail.name).join(', ') : '-',
-                source: item.primary_contact?.lead_source?.source || '',
-                date: item.created_on ? moment(item.created_on).format('DD-MM-YYYY') : '',
-                contact_person: item.primary_contact?.name || '',
-                lead_status: item.lead_status?.name,
+                source: capitalizeFLetter(item.lead_source_category?.name) || '',
+                date: item.created_at ? moment(item.created_at).format('DD-MM-YYYY') : '',
+                contact_person: capitalizeFLetter(item.college_contact?.student_name) || '',
+                lead_status: capitalizeFLetter(item.stage?.stage),
                 status_date: item.status_date ? moment(item.status_date).format('DD-MM-YYYY') : null,
-                updated_on: item.updated_on ? moment(item.updated_on).format('DD-MM-YYYY') : null,
-                remark: item.remark,
-                assigned_to: item.assigned_to?.username,
+                remark: capitalizeFLetter(item.remark),
                 follow_up: moment(item.status_date).format('DD-MM-YYYY'),
                 contact_number: item.primary_contact?.phone_number,
+                phone_number: item?.college_contact?.phone_number,
+                updated_on: item?.updated_at ? moment(item?.updated_at).format('DD-MM-YYYY') : '',
+                created_by: item.created_by ? capitalizeFLetter(item?.created_by?.first_name) + ' ' + capitalizeFLetter(item?.created_by?.last_name) : '',
+                assigned: item.assign_to ? capitalizeFLetter(item?.assign_to?.first_name) + ' ' + capitalizeFLetter(item?.assign_to?.last_name) : '',
             };
         });
 
-        // Add all data rows to worksheet
-        data.forEach((row: any) => {
+        processedData.forEach((row: any) => {
             const rowData = exportColumns.map((col) => {
                 if (typeof col.accessor === 'function') {
                     return col.accessor(row);
@@ -634,19 +581,19 @@ const Leads = () => {
             worksheet.addRow(rowData);
         });
 
-        // Auto-fit columns
         exportColumns.forEach((_, i) => {
             const headerLength = exportColumns[i].title.length;
             worksheet.getColumn(i + 1).width = Math.max(20, headerLength + 2);
         });
 
-        // Generate and save Excel file
+        setState({ excelLoading: false });
+
         const buffer = await workbook.xlsx.writeBuffer();
         FileSaver.saveAs(
             new Blob([buffer], {
                 type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             }),
-            'Leads.xlsx'
+            `Leads (${moment().format('DD-MM-YYYY')}).xlsx`
         );
     };
 
@@ -704,9 +651,9 @@ const Leads = () => {
                             Go
                         </button>
 
-                        {/* <button type="button" className="btn btn-primary w-full md:w-auto" onClick={() => exportToExcel()}>
+                        <button type="button" className="btn btn-primary w-full md:w-auto" onClick={() => exportToExcel()}>
                             {state.excelLoading ? <IconLoader className=" h-4 w-4 animate-spin" /> : 'Excel'}
-                        </button> */}
+                        </button>
                     </div>
                 </div>
 

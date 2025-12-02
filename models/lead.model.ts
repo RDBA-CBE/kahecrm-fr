@@ -8,6 +8,12 @@ const lead = {
             if (body?.userId) {
                 url += `&user_id=${encodeURIComponent(body?.userId)}`;
             }
+
+            if (body?.exclude_all_leads == 'Yes') {
+                url += `&exclude_all_leads=${encodeURIComponent(true)}`;
+            }
+
+            
             if (body?.my_leads == 'Yes') {
                 url += `&my_leads=${encodeURIComponent(true)}`;
             }
@@ -284,6 +290,10 @@ const lead = {
                 url += `${firstParam ? '?' : '&'}lead_source_category=${encodeURIComponent(body?.lead_source_category)}`;
                 firstParam = false;
             }
+            if (body?.exclude_all_leads == 'Yes') {
+                url += `&exclude_all_leads=${encodeURIComponent(true)}`;
+            }
+
 
             instance()
                 .get(url)
