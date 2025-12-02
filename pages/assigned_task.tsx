@@ -500,7 +500,7 @@ const Calendar = () => {
                     <CustomSelect
                         value={state.assigned_to_filter}
                         onChange={(e) => setState({ assigned_to_filter: e })}
-                        placeholder={'Assign To'}
+                        placeholder={'Select User'}
                         options={state.filterUsersList}
                         error={state.errors?.assigned_to}
                         required
