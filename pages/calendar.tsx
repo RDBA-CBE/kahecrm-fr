@@ -719,7 +719,6 @@ const Calendar = () => {
                                 { value: 'tm', label: 'TM' },
                             ]}
                             error={state.errors?.assignRole}
-                            required
                         />
                         <CustomSelect
                             title="Assign To"
@@ -728,7 +727,6 @@ const Calendar = () => {
                             placeholder={'Assign To'}
                             options={state.assignList}
                             error={state.errors?.assigned_to}
-                            required
                             isMulti={true}
                         />
 
