@@ -78,7 +78,7 @@ const Calendar = () => {
         } else {
             body.team = 'Yes';
         }
-        body.exclude_all_tasks = 'Yes';
+        // body.exclude_all_tasks = 'Yes';
 
         if (state.search) {
             body.search = debouncedSearch;
