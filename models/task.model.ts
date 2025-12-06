@@ -37,7 +37,9 @@ const task = {
             if (body?.exclude_user) {
                 url += `&exclude_user=${encodeURIComponent(body?.exclude_user)}`;
             }
-            
+            if(body.ordering){
+                url += `&ordering=${encodeURIComponent(body.ordering)}`;
+            }
 
             instance()
                 .get(url)

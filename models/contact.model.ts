@@ -29,7 +29,6 @@ const contact = {
             }
             if(body.ordering){
                 url += `&ordering=${encodeURIComponent(body.ordering)}`;
-
             }
 
             instance()

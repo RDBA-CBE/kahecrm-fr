@@ -45,6 +45,9 @@ const lead = {
             if (body?.lead_source_category) {
                 url += `&lead_source_category=${encodeURIComponent(body?.lead_source_category)}`;
             }
+            if(body.ordering){
+                url += `&ordering=${encodeURIComponent(body.ordering)}`;
+            }
 
             instance()
                 .get(url)

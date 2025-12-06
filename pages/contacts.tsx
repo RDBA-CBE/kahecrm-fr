@@ -74,6 +74,8 @@ const Contacts = () => {
         isFirstLoad: true,
     });
 
+    const [sortStatus, setSortStatus] = useState<DataTableSortStatus | null>(null);
+
     const debouncedSearch = useDebounce(state.search, 1000);
 
     const debouncedPhnoSearch = useDebounce(state.phone_number_search, 1000);
@@ -95,7 +97,7 @@ const Contacts = () => {
         dispatch(contactIndex(1));
 
         contactList(1);
-    }, [debouncedSearch, debouncedPhnoSearch, state.status, state.role, state.assigned_to, state.from_date, state.to_date]);
+    }, [debouncedSearch, debouncedPhnoSearch, state.status, state.role, state.assigned_to, state.from_date, state.to_date, sortStatus]);
 
     const bodyData = () => {
         let filter: any = {};
@@ -149,15 +151,26 @@ const Contacts = () => {
             filter.to_date = moment(state.to_date).format('YYYY-MM-DD');
         }
 
+        if (sortStatus?.columnAccessor && sortStatus?.direction) {
+            const orderingPrefix = sortStatus.direction === 'desc' ? '-' : '';
+            const columnMapping = {
+                'student_name': 'created_at',
+                'phone_number': 'created_at',
+                'date': 'created_at',
+                'status': 'created_at',
+                'assigned_to': 'created_at'
+            };
+            const backendField = columnMapping[sortStatus.columnAccessor] || sortStatus.columnAccessor;
+            filter.ordering = `${orderingPrefix}${backendField}`;
+        }
+
         return filter;
     };
 
     const contactList = async (page, sortStatus = null) => {
-        console.log('✌️contactList --->');
         setState({ loading: true });
         const body = bodyData();
         const res: any = await Models.contact.list(page, body);
-        console.log('✌️res --->', res);
 
         setState({ loading: false, currentPage: page, count: res.count, next: res.next, previous: res.previous, isFirstLoad: false });
         tableData(res);
@@ -695,52 +708,56 @@ const Contacts = () => {
                             loaderColor="blue"
                             loaderBackgroundBlur={0}
                             columns={[
-                                // { accessor: 'student_name', title: 'Student Name' },
-                                { accessor: 'student_name', title: 'Student Name' },
-                               {
-                                                                   accessor: 'phone_number',
-                                                                   title: 'Contact',
-                                                                   render: (row) => {
-                                                                       return (
-                                                                           <div className="flex flex-col gap-1">
-                                                                               <div className="text-sm font-medium">{viewPhoneNumber(row?.phone_number)}</div>
-                                                                               <a href={`mailto:${row?.email}`} className="text-xs text-blue-500 hover:underline">
-                                                                                   {row?.email}
-                                                                               </a>
-                                                                           </div>
-                                                                       );
-                                                                   },
-                                                               },
-                                { accessor: 'date', title: 'Date', width: 120 },
+                                { accessor: 'student_name', title: 'Student Name', sortable: true },
+                                {
+                                    accessor: 'phone_number',
+                                    title: 'Contact',
+                                    sortable: true,
+                                    render: (row) => {
+                                        return (
+                                            <div className="flex flex-col gap-1">
+                                                <div className="text-sm font-medium">{viewPhoneNumber(row?.phone_number)}</div>
+                                                <a href={`mailto:${row?.email}`} className="text-xs text-blue-500 hover:underline">
+                                                    {row?.email}
+                                                </a>
+                                            </div>
+                                        );
+                                    },
+                                },
+                                { accessor: 'date', title: 'Date', width: 120, sortable: true },
 
                                 // { accessor: 'category', title: 'Category',  },
                                 // { accessor: 'created_by', title: 'Assign To',  },
                                 // { accessor: 'designation', title: 'Designation' },
                                 //
                                 // ...(state?.role !== ROLE.BDE ? [
-                                    { 
-                                        accessor: 'status', 
-                                        title: 'Status',
-                                        render: (row) => {
-                                            const getBadgeColor = (status) => {
-                                                switch (status?.toLowerCase()) {
-                                                    case 'contacted': return 'bg-blue-100 text-blue-800';
-                                                    case 'new': return 'bg-green-100 text-green-800';
-                                                    case 'not interested': return 'bg-red-100 text-red-800';
-                                                    case 'follow-up': return 'bg-yellow-100 text-yellow-800';
-                                                    case 'converted to lead': return 'bg-emerald-100 text-emerald-800';
-                                                    case 'no response': return 'bg-gray-100 text-gray-800';
-                                                    default: return 'bg-gray-100 text-gray-800';
-                                                }
-                                            };
-                                            return (
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getBadgeColor(row?.status)}`}>
-                                                    {row?.status}
-                                                </span>
-                                            );
-                                        }
+                                {
+                                    accessor: 'status',
+                                    title: 'Status',
+                                    sortable: true,
+                                    render: (row) => {
+                                        const getBadgeColor = (status) => {
+                                            switch (status?.toLowerCase()) {
+                                                case 'contacted':
+                                                    return 'bg-blue-100 text-blue-800';
+                                                case 'new':
+                                                    return 'bg-green-100 text-green-800';
+                                                case 'not interested':
+                                                    return 'bg-red-100 text-red-800';
+                                                case 'follow-up':
+                                                    return 'bg-yellow-100 text-yellow-800';
+                                                case 'converted to lead':
+                                                    return 'bg-emerald-100 text-emerald-800';
+                                                case 'no response':
+                                                    return 'bg-gray-100 text-gray-800';
+                                                default:
+                                                    return 'bg-gray-100 text-gray-800';
+                                            }
+                                        };
+                                        return <span className={`rounded-full px-2 py-1 text-xs font-medium ${getBadgeColor(row?.status)}`}>{row?.status}</span>;
                                     },
-                                { accessor: 'assigned_to', title: 'Assigned To' },
+                                },
+                                { accessor: 'assigned_to', title: 'Assigned To', sortable: true },
 
                                 // ] : []),
                                 {
@@ -831,8 +848,8 @@ const Contacts = () => {
                             page={null}
                             onPageChange={(p) => {}}
                             withBorder={true}
-                            // sortStatus={sortStatus}
-                            // onSortStatusChange={handleSortStatusChange}
+                            sortStatus={sortStatus}
+                            onSortStatusChange={setSortStatus}
                             paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
                         />
                     </div>

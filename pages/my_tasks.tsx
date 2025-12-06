@@ -29,10 +29,7 @@ import next from 'next';
 import Pagination from '@/components/Pagination';
 
 const Calendar = () => {
-    const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
-        columnAccessor: 'name',
-        direction: 'asc',
-    });
+    const [sortStatus, setSortStatus] = useState<DataTableSortStatus | null>(null);
 
     const [state, setState] = useSetState({
         calenderList: [],
@@ -66,7 +63,7 @@ const Calendar = () => {
     useEffect(() => {
         calendarList();
         taskList(state.currentPage);
-    }, [debouncedSearch, state.from_date, state.to_date, state.userId]);
+    }, [debouncedSearch, state.from_date, state.to_date, state.userId, sortStatus]);
 
     const bodyData = () => {
         let body: any = {};
@@ -81,6 +78,20 @@ const Calendar = () => {
         }
         if (state.to_date) {
             body.task_date_time_before = moment(state.to_date).format('YYYY-MM-DD');
+        }
+
+        if (sortStatus?.columnAccessor && sortStatus?.direction) {
+            const orderingPrefix = sortStatus.direction === 'desc' ? '-' : '';
+            const columnMapping = {
+                contact: 'created_at',
+                task: 'created_at',
+                date: 'created_at',
+                assigned_to: 'created_at',
+                created_at: 'created_at',
+                remark: 'created_at',
+            };
+            const backendField = columnMapping[sortStatus.columnAccessor] || sortStatus.columnAccessor;
+            body.ordering = `${orderingPrefix}${backendField}`;
         }
 
         return body;
@@ -534,22 +545,23 @@ const Calendar = () => {
                             loaderColor="blue"
                             loaderBackgroundBlur={0}
                             columns={[
-                                { accessor: 'contact', title: 'Contact Name' },
+                                { accessor: 'contact', title: 'Contact Name', sortable: true },
                                 {
                                     accessor: 'task',
                                     title: 'Task Type',
-                                    render: (row:any) => {
+                                    sortable: true,
+                                    render: (row: any) => {
                                         return <span className={`text-md rounded-full px-2 py-1 font-medium ${getBadgeColor(row?.task)}`}>{row?.task}</span>;
                                     },
                                 },
-                                { accessor: 'date', title: 'Task Date' },
-                                { accessor: 'assigned_to', title: 'Assign To', sortable: false },
-                                { accessor: 'created_at', title: 'Created Date' },
+                                { accessor: 'date', title: 'Task Date', sortable: true },
+                                { accessor: 'assigned_to', title: 'Assign To', sortable: true },
+                                { accessor: 'created_at', title: 'Created Date', sortable: true },
 
                                 {
                                     accessor: 'remark',
                                     title: 'Remark',
-                                    sortable: false,
+                                    // sortable: true,
                                     render: (row) => (
                                         <Tippy content={row?.remark} placement="top" className="rounded-lg bg-black p-1 text-sm text-white">
                                             <div>{row?.remark?.length > 20 ? `${row.remark.slice(0, 20)}...` : row?.remark}</div>
