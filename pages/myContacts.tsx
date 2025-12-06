@@ -74,6 +74,8 @@ const Contacts = () => {
         isFirstLoad: true,
     });
 
+    const [sortStatus, setSortStatus] = useState<DataTableSortStatus | null>(null);
+
     const debouncedSearch = useDebounce(state.search, 1000);
 
     const debouncedPhnoSearch = useDebounce(state.phone_number_search, 1000);
@@ -95,7 +97,7 @@ const Contacts = () => {
         dispatch(contactIndex(1));
 
         contactList(1);
-    }, [debouncedSearch, debouncedPhnoSearch, state.status, state.role, state.assigned_to, state.from_date, state.to_date]);
+    }, [debouncedSearch, debouncedPhnoSearch, state.status, state.role, state.assigned_to, state.from_date, state.to_date, sortStatus]);
 
     const bodyData = () => {
         const userString = localStorage.getItem('crmUser');
@@ -133,6 +135,19 @@ const Contacts = () => {
 
         if (state.to_date) {
             filter.to_date = moment(state.to_date).format('YYYY-MM-DD');
+        }
+
+        if (sortStatus?.columnAccessor && sortStatus?.direction) {
+            const orderingPrefix = sortStatus.direction === 'desc' ? '-' : '';
+            const columnMapping = {
+                'student_name': 'created_at',
+                'phone_number': 'created_at', 
+                'date': 'created_at',
+                'status': 'created_at',
+                'assigned_to': 'created_at'
+            };
+            const backendField = columnMapping[sortStatus.columnAccessor] || sortStatus.columnAccessor;
+            filter.ordering = `${orderingPrefix}${backendField}`;
         }
 
         return filter;
@@ -696,10 +711,11 @@ const Contacts = () => {
                             loaderBackgroundBlur={0}
                             columns={[
                                 // { accessor: 'student_name', title: 'Student Name' },
-                                { accessor: 'student_name', title: 'Student Name' },
+                                { accessor: 'student_name', title: 'Student Name',sortable:true },
                                 {
                                     accessor: 'phone_number',
                                     title: 'Contact',
+                                    sortable: true,
                                     render: (row) => {
                                         return (
                                             <div className="flex flex-col gap-1">
@@ -711,7 +727,7 @@ const Contacts = () => {
                                         );
                                     },
                                 },
-                                { accessor: 'date', title: 'Date', width: 120 },
+                                { accessor: 'date', title: 'Date', width: 120, sortable: true },
 
                                 // { accessor: 'category', title: 'Category',  },
                                 // { accessor: 'created_by', title: 'Assign To',  },
@@ -721,6 +737,7 @@ const Contacts = () => {
                                 { 
                                     accessor: 'status', 
                                     title: 'Status',
+                                    sortable: true,
                                     render: (row) => {
                                         const getBadgeColor = (status) => {
                                             switch (status?.toLowerCase()) {
@@ -740,7 +757,7 @@ const Contacts = () => {
                                         );
                                     }
                                 },
-                                { accessor: 'assigned_to', title: 'Assigned To' },
+                                { accessor: 'assigned_to', title: 'Assigned To', sortable: true },
 
                                 // ] : []),
                                 {
@@ -831,8 +848,8 @@ const Contacts = () => {
                             page={null}
                             onPageChange={(p) => {}}
                             withBorder={true}
-                            // sortStatus={sortStatus}
-                            // onSortStatusChange={handleSortStatusChange}
+                            sortStatus={sortStatus}
+                            onSortStatusChange={setSortStatus}
                             paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
                         />
                     </div>

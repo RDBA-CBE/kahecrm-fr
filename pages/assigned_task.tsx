@@ -71,13 +71,18 @@ const Calendar = () => {
 
     const bodyData = () => {
         let body: any = {};
-
+        const userString = localStorage.getItem('crmUser');
+        const user = userString ? JSON.parse(userString) : null;
         if (state.assigned_to_filter) {
             body.userId = state.assigned_to_filter?.value;
             body.assigned_tasks = 'Yes';
+        body.exclude_user=user?.id
+
         } else {
             body.team = 'Yes';
+            // body.userId = user.id;
         }
+
         // body.exclude_all_tasks = 'Yes';
 
         if (state.search) {
@@ -169,7 +174,7 @@ const Calendar = () => {
                 task: item?.task_type,
                 contact: capitalizeFLetter(item?.contact?.student_name),
                 created_at: item?.created_at ? moment(item?.created_at).format('DD-MM-YYYY a') : '',
-                created_by: `${item?.created_by?.first_name} ${item?.created_by?.last_name}`,
+                created_by: `${capitalizeFLetter(item?.created_by?.first_name)} ${capitalizeFLetter(item?.created_by?.last_name)}`,
                 date: item?.task_date_time ? getDate(item?.task_date_time) : '',
 
                 description: item?.task_detail ? item?.task_detail : '',
@@ -572,7 +577,7 @@ const Calendar = () => {
                                 {
                                     accessor: 'task',
                                     title: 'Task Type',
-                                    render: (row:any) => {
+                                    render: (row: any) => {
                                         return <span className={`text-md rounded-full px-2 py-1 font-medium ${getBadgeColor(row?.task)}`}>{row?.task}</span>;
                                     },
                                 },

@@ -71,13 +71,17 @@ const Calendar = () => {
 
     const bodyData = () => {
         let body: any = {};
-
+        const userString = localStorage.getItem('crmUser');
+        const user = userString ? JSON.parse(userString) : null;
         if (state.assigned_to_filter) {
             body.userId = state.assigned_to_filter?.value;
             body.my_tasks = 'Yes';
+        body.exclude_user=user?.id
+
         } else {
             body.team = 'Yes';
         }
+
         // body.exclude_all_tasks = 'Yes';
         if (state.search) {
             body.search = debouncedSearch;
@@ -576,7 +580,7 @@ const Calendar = () => {
                                 {
                                     accessor: 'task',
                                     title: 'Task Type',
-                                    render: (row:any) => {
+                                    render: (row: any) => {
                                         return <span className={`text-md rounded-full px-2 py-1 font-medium ${getBadgeColor(row?.task)}`}>{row?.task}</span>;
                                     },
                                 },

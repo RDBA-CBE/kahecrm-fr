@@ -34,6 +34,10 @@ const task = {
             if (body?.task_date_time_before) {
                 url += `&task_date_time_before=${encodeURIComponent(body.task_date_time_before)}`;
             }
+            if (body?.exclude_user) {
+                url += `&exclude_user=${encodeURIComponent(body?.exclude_user)}`;
+            }
+            
 
             instance()
                 .get(url)
@@ -83,6 +87,10 @@ const task = {
             }
             if (body?.task_date_time_before) {
                 url += `&task_date_time_before=${encodeURIComponent(body.task_date_time_before)}`;
+            }
+
+            if (body?.exclude_user) {
+                url += `&exclude_user=${encodeURIComponent(body?.exclude_user)}`;
             }
             instance()
                 .get(url)
