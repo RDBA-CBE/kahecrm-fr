@@ -115,6 +115,9 @@ const contact = {
             if (body.to_date) {
                 url += `&to_date=${encodeURIComponent(body.to_date)}`;
             }
+            if(body.ordering){
+                url += `&ordering=${encodeURIComponent(body.ordering)}`;
+            }
 
             instance()
                 .get(url)

@@ -91,6 +91,8 @@ const Leads = () => {
         // data:
     });
 
+    const [sortStatus, setSortStatus] = useState<DataTableSortStatus | null>(null);
+
     const debouncedSearch = useDebounce(state.search, 500);
 
     useEffect(() => {
@@ -119,6 +121,7 @@ const Leads = () => {
             card_lead_status: state?.card_lead_status,
             from_date: state?.from_date,
             end_date: state?.end_date,
+            sortStatus: sortStatus,
         }),
         [
             state.activeTab,
@@ -136,6 +139,7 @@ const Leads = () => {
             state?.card_lead_status,
             state.from_date,
             state.end_date,
+            sortStatus,
         ]
     );
 
@@ -437,6 +441,22 @@ const Leads = () => {
         if (state.end_date) {
             body.end_date = moment(state.end_date).format('YYYY-MM-DD');
         }
+
+        if (sortStatus?.columnAccessor && sortStatus?.direction) {
+            const orderingPrefix = sortStatus.direction === 'desc' ? '-' : '';
+            const columnMapping = {
+                'contact_person': 'created_at',
+                'phone_number': 'created_at',
+                'source': 'created_at',
+                'date': 'created_at',
+                'lead_status': 'created_at',
+                'assigned': 'created_at',
+                'updated_on': 'updated_at'
+            };
+            const backendField = columnMapping[sortStatus.columnAccessor] || sortStatus.columnAccessor;
+            body.ordering = `${orderingPrefix}${backendField}`;
+        }
+
         return body;
     };
 
@@ -729,10 +749,12 @@ const Leads = () => {
                             {
                                 accessor: 'contact_person',
                                 title: 'Student Name',
+                                sortable: true,
                             },
                             {
                                 accessor: 'phone_number',
                                 title: 'Contact',
+                                sortable: true,
                                 render: (row: any) => (
                                     <div className="flex flex-col gap-1">
                                         <div className="text-sm font-medium">{viewPhoneNumber(row?.phone_number)}</div>
@@ -746,24 +768,26 @@ const Leads = () => {
                             {
                                 accessor: 'source',
                                 title: 'Source',
+                                sortable: true,
                                 render: (row) => {
                                     return <span className={`text-md rounded-full px-2 py-1 font-medium ${leadSourceColor(row?.source)}`}>{row?.source}</span>;
                                 },
                             },
 
-                            { accessor: 'date', title: 'Created Date', width: 120 },
+                            { accessor: 'date', title: 'Created Date', width: 120, sortable: true },
                             {
                                 accessor: 'lead_status',
                                 title: 'Lead Status',
+                                sortable: true,
                                 render: (row) => {
                                     return <span className={`text-md rounded-full px-2 py-1 font-medium ${leadStatusColor(row?.lead_status)}`}>{row?.lead_status}</span>;
                                 },
                             },
-                            { accessor: 'assigned', title: 'Assigned To' },
+                            { accessor: 'assigned', title: 'Assigned To', sortable: true },
 
                             // { accessor: 'status_date', title: `${ROLE.TM == state.role ? 'Follow Up' : 'Status Date'}` },
 
-                            { accessor: 'updated_on', title: 'Updated Date' },
+                            { accessor: 'updated_on', title: 'Updated Date', sortable: true },
 
                             {
                                 accessor: 'remark',
@@ -832,8 +856,8 @@ const Leads = () => {
                         page={null}
                         onPageChange={(p) => {}}
                         withBorder={true}
-                        // sortStatus={sortStatus}
-                        // onSortStatusChange={setSortStatus}
+                        sortStatus={sortStatus}
+                        onSortStatusChange={setSortStatus}
                         paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
                         onRowClick={({ id }) => {
                             if (state.expandedRow != id) {

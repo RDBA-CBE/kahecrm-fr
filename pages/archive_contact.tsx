@@ -42,6 +42,8 @@ import IconTrash from '@/components/Icon/IconTrash';
 const Contacts = () => {
     const dispatch = useDispatch();
 
+    const [sortStatus, setSortStatus] = useState<DataTableSortStatus | null>(null);
+
     const router = useRouter();
 
     const isInitialized = useRef(false);
@@ -95,14 +97,12 @@ const Contacts = () => {
         dispatch(contactIndex(1));
 
         contactList(1);
-    }, [debouncedSearch, debouncedPhnoSearch, state.status, state.role, state.assigned_to, state.from_date, state.to_date]);
+    }, [debouncedSearch, debouncedPhnoSearch, state.status, state.role, state.assigned_to, state.from_date, state.to_date, sortStatus]);
 
     const bodyData = () => {
-      
         let filter: any = {};
 
-      
-            filter.team = 'Yes';
+        filter.team = 'Yes';
 
         if (state.search) {
             filter.search = state.search;
@@ -131,10 +131,26 @@ const Contacts = () => {
             filter.to_date = moment(state.to_date).format('YYYY-MM-DD');
         }
 
+        if (sortStatus) {
+            filter.ordering = sortStatus.direction === 'desc' ? `-${sortStatus.columnAccessor}` : sortStatus.columnAccessor;
+        }
+
+        if (sortStatus?.columnAccessor && sortStatus?.direction) {
+            const orderingPrefix = sortStatus.direction === 'desc' ? '-' : '';
+            const columnMapping = {
+                student_name: 'created_at',
+                phone_number: 'created_at',
+                date: 'created_at',
+                status: 'created_at',
+                updated_on: 'updated_at',
+            };
+            const backendField = columnMapping[sortStatus.columnAccessor] || sortStatus.columnAccessor;
+            filter.ordering = `${orderingPrefix}${backendField}`;
+        }
         return filter;
     };
 
-    const contactList = async (page, sortStatus = null) => {
+    const contactList = async (page) => {
         setState({ loading: true });
         const body = bodyData();
 
@@ -454,32 +470,6 @@ const Contacts = () => {
         }
     };
 
-    const handleRemove = (type) => {
-        if (type == 'bdm') {
-            setState({ bdm: null, roles: null, bde: null, dm: null });
-        } else if (type == 'roles') {
-            setState({ roles: null, bde: null });
-        } else if (type == 'bde') {
-            setState({ bde: null });
-        } else if (type == 'status') {
-            setState({ card_lead_status: null, today: false, month: false });
-        } else if (type == 'dm') {
-            setState({ dm: null });
-        } else if (type == 'tm') {
-            setState({ tm: null });
-        } else if (type == 'lead_source') {
-            setState({ lead_source: null });
-        } else if (type == 'lead_status') {
-            setState({ lead_status: null });
-        } else if (type == 'assigned_to') {
-            setState({ assigned_to: null });
-        } else if (type == 'assignRole') {
-            setState({ assignRole: null, assigned_to: null, assignList: [] });
-        } else {
-            // setState({ dm: null });
-        }
-    };
-
     const exportToExcel = async () => {
         setState({ excelLoading: true });
         const workbook = new ExcelJS.Workbook();
@@ -615,60 +605,8 @@ const Contacts = () => {
         <div className="p-2">
             <div className="panel  mb-3 flex items-center justify-between gap-5 ">
                 <div className="flex items-center gap-5 pl-3">
-                    <h5 className="text-lg font-semibold ">{(ROLE.ADMIN == state.role || ROLE.BDM == state.role) && 'TEAM'} ARCHIVE CONTACTS</h5>
+                    <h5 className="text-lg font-semibold ">TEAM ARCHIVE CONTACTS</h5>
                 </div>
-                {ROLE.ADMIN !== state.role && ROLE.BDM !== state.role && (
-                    // <div className="flex items-center gap-3">
-                    //     <button
-                    //         type="button"
-                    //         className="btn btn-primary"
-                    //         onClick={() => {
-                    //             router.push('create_contact');
-                    //         }}
-                    //     >
-                    //         Add
-                    //     </button>
-                    //     <button type="button" className="btn btn-primary" onClick={() => setState({ isOpenImport: true, errorContacts: [] })}>
-                    //         Import
-                    //     </button>
-                    //     <button type="button" className="btn btn-primary w-full md:w-auto" onClick={() => exportToExcel()}>
-                    //         {state.excelLoading ? <IconLoader className=" h-4 w-4 animate-spin" /> : 'Excel'}
-                    //     </button>
-                    // </div>
-
-                    <div className="flex items-center gap-3">
-                        <button
-                            type="button"
-                            className="btn btn-primary"
-                            onClick={() => {
-                                router.push('create_contact');
-                                // setState({
-                                //     name: '',
-                                //     department: '',
-                                //     designation: '',
-                                //     phone_number: '',
-                                //     email_id: '',
-                                //     lead_source: '',
-                                //     status: '',
-                                //     is_active: false,
-                                //     isOpenCreateContact: true,
-                                //     errors: '',
-                                //     remark: '',
-                                //     moveToLead: false,
-                                //     is_archive: false,
-                                //     contactId: null,
-                                // });
-                            }}
-                        >
-                            Add
-                            {/* {submitLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : submitTitle ? submitTitle : 'Submit'} */}
-                        </button>
-                        <button type="button" className="btn btn-primary" onClick={() => setState({ isOpenImport: true })}>
-                            Import
-                            {/* {submitLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : submitTitle ? submitTitle : 'Submit'} */}
-                        </button>
-                    </div>
-                )}
             </div>
 
             <div className="panel mt-2 flex flex-col gap-4 lg:flex-row lg:items-center">
@@ -727,38 +665,41 @@ const Contacts = () => {
                             loaderColor="blue"
                             loaderBackgroundBlur={0}
                             columns={[
-                                // { accessor: 'student_name', title: 'Student Name' },
-                                { accessor: 'student_name', title: 'Student Name' },
-                                { accessor: 'phone_number', title: 'Contact Number' },
-                                { accessor: 'date', title: 'Date', width: 120 },
+                                { accessor: 'student_name', title: 'Student Name', sortable: true },
+                                { accessor: 'phone_number', title: 'Contact Number', sortable: true },
+                                { accessor: 'date', title: 'Date', width: 120, sortable: true },
 
                                 // { accessor: 'category', title: 'Category',  },
                                 // { accessor: 'created_by', title: 'Assign To',  },
                                 // { accessor: 'designation', title: 'Designation' },
 
                                 // ...(state?.role !== ROLE.BDE ? [
-                                    { 
-                                        accessor: 'status', 
-                                        title: 'Status',
-                                        render: (row) => {
-                                            const getBadgeColor = (status) => {
-                                                switch (status?.toLowerCase()) {
-                                                    case 'contacted': return 'bg-blue-100 text-blue-800';
-                                                    case 'new': return 'bg-green-100 text-green-800';
-                                                    case 'not interested': return 'bg-red-100 text-red-800';
-                                                    case 'follow-up': return 'bg-yellow-100 text-yellow-800';
-                                                    case 'converted to lead': return 'bg-emerald-100 text-emerald-800';
-                                                    case 'no response': return 'bg-gray-100 text-gray-800';
-                                                    default: return 'bg-gray-100 text-gray-800';
-                                                }
-                                            };
-                                            return (
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getBadgeColor(row?.status)}`}>
-                                                    {row?.status}
-                                                </span>
-                                            );
-                                        }
+                                {
+                                    accessor: 'status',
+                                    title: 'Status',
+                                    sortable: true,
+                                    render: (row) => {
+                                        const getBadgeColor = (status) => {
+                                            switch (status?.toLowerCase()) {
+                                                case 'contacted':
+                                                    return 'bg-blue-100 text-blue-800';
+                                                case 'new':
+                                                    return 'bg-green-100 text-green-800';
+                                                case 'not interested':
+                                                    return 'bg-red-100 text-red-800';
+                                                case 'follow-up':
+                                                    return 'bg-yellow-100 text-yellow-800';
+                                                case 'converted to lead':
+                                                    return 'bg-emerald-100 text-emerald-800';
+                                                case 'no response':
+                                                    return 'bg-gray-100 text-gray-800';
+                                                default:
+                                                    return 'bg-gray-100 text-gray-800';
+                                            }
+                                        };
+                                        return <span className={`rounded-full px-2 py-1 text-xs font-medium ${getBadgeColor(row?.status)}`}>{row?.status}</span>;
                                     },
+                                },
                                 // ] : []),
                                 {
                                     accessor: 'remark',
@@ -848,8 +789,8 @@ const Contacts = () => {
                             page={null}
                             onPageChange={(p) => {}}
                             withBorder={true}
-                            // sortStatus={sortStatus}
-                            // onSortStatusChange={handleSortStatusChange}
+                            sortStatus={sortStatus}
+                            onSortStatusChange={setSortStatus}
                             paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
                         />
                     </div>
