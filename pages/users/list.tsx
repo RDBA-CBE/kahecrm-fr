@@ -60,6 +60,7 @@ const List = () => {
         isOpen: false,
         error: {},
         target_history: [],
+        sortStatus: null,
     });
 
     const debouncedSearch = useDebounce(state.search, 500);
@@ -77,7 +78,7 @@ const List = () => {
 
     useEffect(() => {
         usersList(1);
-    }, [debouncedSearch, state.role]);
+    }, [debouncedSearch, state.role, state.sortStatus]);
 
     const usersList = async (page: any) => {
         try {
@@ -200,6 +201,9 @@ const List = () => {
         }
         if (state.role) {
             body.group = state.role.value;
+        }
+        if (state.sortStatus) {
+            body.ordering = state.sortStatus.direction === 'desc' ? `-${state.sortStatus.columnAccessor}` : state.sortStatus.columnAccessor;
         }
 
         return body;
@@ -345,11 +349,13 @@ const List = () => {
                         loaderVariant="dots"
                         loaderColor="blue"
                         loaderBackgroundBlur={0}
+                        sortStatus={state.sortStatus}
+                        onSortStatusChange={(sortStatus) => setState({ sortStatus })}
                         columns={[
                             {
                                 accessor: 'name',
                                 title: 'Name',
-
+                                sortable: true,
                                 render: (row) => (
                                     <div className="flex items-center font-semibold">
                                         <div className="w-max rounded-full bg-white-dark/30 p-0.5 ltr:mr-2 rtl:ml-2">
@@ -361,15 +367,15 @@ const List = () => {
                                     </div>
                                 ),
                             },
-                            { accessor: 'email', title: 'Email' },
-                            { accessor: 'phone_number', title: 'Phone Number' },
+                            { accessor: 'email', title: 'Email', sortable: true },
+                            { accessor: 'phone_number', title: 'Phone Number', sortable: true },
 
                             {
                                 accessor: 'role',
                                 title: 'Role',
                                 render: (row: any) => <span className={`badge badge-outline-danger`}>Staff</span>,
                             },
-                            { accessor: 'date', title: 'Joined Date' },
+                            { accessor: 'date', title: 'Joined Date', sortable: true },
 
                             {
                                 accessor: 'action',

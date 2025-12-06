@@ -445,9 +445,9 @@ const Leads = () => {
         if (sortStatus?.columnAccessor && sortStatus?.direction) {
             const orderingPrefix = sortStatus.direction === 'desc' ? '-' : '';
             const columnMapping = {
-                'contact_person': 'created_at',
+                'contact_person': 'college_contact__student_name',
                 'phone_number': 'created_at',
-                'source': 'created_at',
+                'source': 'lead_source_category',
                 'date': 'created_at',
                 'lead_status': 'created_at',
                 'assigned': 'created_at',
