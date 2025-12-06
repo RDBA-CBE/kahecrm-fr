@@ -599,16 +599,17 @@ export const leadStatusColor = (status) => {
 };
 
 export const leadSourceColor = (source) => {
-    switch (source?.toLowerCase()) {
-        case 'campaign': return 'bg-violet-100 text-violet-800';
-        case 'email': return 'bg-sky-100 text-sky-800';
-        case 'call': return 'bg-lime-100 text-lime-800';
-        case 'referral': return 'bg-amber-100 text-amber-800';
-        case 'google ads': return 'bg-rose-100 text-rose-800';
-        case 'social media': return 'bg-fuchsia-100 text-fuchsia-800';
-        case 'website': return 'bg-cyan-100 text-cyan-800';
+    const lowerSource = source?.toLowerCase()?.trim();
+    switch (lowerSource) {
+        case 'campaign': return 'bg-purple-100 text-purple-800';
+        case 'email': return 'bg-blue-100 text-blue-800';
+        case 'call': return 'bg-green-100 text-green-800';
+        case 'referral': return 'bg-yellow-100 text-yellow-800';
+        case 'google ads': return 'bg-red-100 text-red-800';
+        case 'social media': return 'bg-pink-100 text-pink-800';
+        case 'website': return 'bg-indigo-100 text-indigo-800';
         case 'walk in': return 'bg-orange-100 text-orange-800';
-        case 'whatsapp': return 'bg-teal-100 text-teal-800';
-        default: return 'bg-slate-100 text-slate-800';
+        case 'whatsapp': return 'bg-emerald-100 text-emerald-800';
+        default: return 'bg-gray-100 text-gray-800';
     }
 };
