@@ -10,6 +10,7 @@ import { setPageTitle } from '../../store/themeConfigSlice';
 import IconPlus from '@/components/Icon/IconPlus';
 import IconX from '@/components/Icon/IconX';
 
+
 const Calendar = () => {
     const dispatch = useDispatch();
     useEffect(() => {
