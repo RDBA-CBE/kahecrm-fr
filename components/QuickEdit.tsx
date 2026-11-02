@@ -159,7 +159,7 @@ export default function QuickEdit(props) {
                         options={statusList}
                     /> */}
 
-                    <CustomeDatePicker value={state.follow_up} placeholder="Best Time Yo Contact" title="Best Time Yo Contact" onChange={(e) => setState({ follow_up: e })} />
+                    <CustomeDatePicker value={state.follow_up} placeholder="Best Time To Contact" title="Best Time To Contact" onChange={(e) => setState({ follow_up: e })} />
                     <CustomSelect
                         value={state.assignRole}
                         onChange={(e) => {
