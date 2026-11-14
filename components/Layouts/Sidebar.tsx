@@ -94,6 +94,10 @@ const Sidebar = () => {
             setState({ LeadMoreloading: true });
             const userString = localStorage.getItem('crmUser');
             const user = userString ? JSON.parse(userString) : null;
+            if (!user?.id) {
+                setState({ LeadMoreloading: false });
+                return;
+            }
 
             const body = {
                 userId: user?.id,
@@ -116,6 +120,10 @@ const Sidebar = () => {
             setState({ LeadMoreloading: true });
             const userString = localStorage.getItem('crmUser');
             const user = userString ? JSON.parse(userString) : null;
+            if (!user?.id) {
+                setState({ LeadMoreloading: false });
+                return;
+            }
 
             const body = {
                 userId: user?.id,
@@ -188,11 +196,12 @@ const Sidebar = () => {
     const getUserDetails = async () => {
         try {
             const userString = localStorage.getItem('crmUser');
-            const token = localStorage.getItem('kaheToken');
+            const token = localStorage.getItem('kaheToken') || localStorage.getItem('crmToken');
             const user = userString ? JSON.parse(userString) : null;
-            setRole(user?.group);
-
-            setState({ userData: user, token, userId: user.id, role: user.designation });
+            if (user) {
+                setRole(user?.group);
+                setState({ userData: user, token, userId: user?.id, role: user?.designation });
+            }
         } catch (error) {
             console.log('error: ', error);
         }

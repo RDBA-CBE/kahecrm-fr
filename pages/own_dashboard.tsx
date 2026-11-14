@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
@@ -25,57 +23,7 @@ import { Text } from '@mantine/core';
 
 const ApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
-// Add proper TypeScript interfaces
-interface ChartDataItem {
-    label: string;
-    value: number;
-}
 
-interface FunnelStage {
-    stage: string;
-    count: number;
-}
-
-interface DashboardState {
-    page: number;
-    currentPage: number;
-    isOpenTaskView: boolean;
-    loading: boolean;
-    viewLoad: boolean;
-    search: string;
-    from_date: string | null;
-    to_date: string | null;
-    userId: string | null;
-    taskList: any[];
-    count: number;
-    next: string | null;
-    previous: string | null;
-    taskDetails: any;
-    conversationList: any[];
-    popupHeight: string;
-    salesByCategory: any;
-    leadFunnelData: any;
-    leadSourceData: any;
-    monthlyLeadsTrend: any;
-    dashboardData: any;
-    counts: {
-        total_contacts: number;
-        total_leads: number;
-        total_appointments: number;
-        total_tasks: number;
-        this_month_total_contacts: number;
-        this_month_total_leads: number;
-        this_month_total_appointments: number;
-        this_month_total_tasks: number;
-    };
-    taskStats: {
-        total_tasks: number;
-        completed_tasks: number;
-        pending_tasks: number;
-        overdue_tasks: number;
-        upcoming_tasks: number;
-    };
-}
 
 export default function DashboardCustomTabs() {
     const router = useRouter();
@@ -86,7 +34,7 @@ export default function DashboardCustomTabs() {
     const isDark = useSelector((state: IRootState) => state.themeConfig.theme === 'dark' || state.themeConfig.isDarkMode);
 
     // Initialize state properly
-    const [state, setState] = useState<DashboardState>({
+    const [state, setState] = useState({
         page: 1,
         currentPage: 1,
         isOpenTaskView: false,
@@ -128,7 +76,7 @@ export default function DashboardCustomTabs() {
     });
 
     // Safe state update function
-    const updateState = (newState: Partial<DashboardState>) => {
+    const updateState = (newState) => {
         setState((prevState) => ({
             ...prevState,
             ...newState,

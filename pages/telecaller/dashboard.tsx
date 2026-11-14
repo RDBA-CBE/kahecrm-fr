@@ -377,22 +377,48 @@ const TelecallerDashboardPage = () => {
             </div>
 
             {/* ============================================================== */}
-            {/* TOP 4 STAT CARDS (Matching Image 1) */}
+            {/* TOP 4 STAT CARDS (Matching Image 1 & 4 with Dynamic Active Filter) */}
             {/* ============================================================== */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {/* 1. Due Today */}
                 <div
-                    onClick={() => setState({ activeTab: 'today', currentPage: 1 })}
-                    className="cursor-pointer rounded-2xl border border-gray-100 bg-white p-5 shadow-sm hover:shadow-md transition dark:border-gray-800 dark:bg-[#0e1726]"
+                    onClick={() =>
+                        setState({
+                            activeTab: state.activeTab === 'today' ? 'all' : 'today',
+                            currentPage: 1,
+                        })
+                    }
+                    className={`cursor-pointer rounded-2xl p-5 transition-all duration-200 select-none ${
+                        state.activeTab === 'today'
+                            ? 'border-2 border-[#39854a] bg-emerald-50/40 shadow-md ring-2 ring-[#39854a]/25 dark:border-[#39854a] dark:bg-emerald-950/20 dark:ring-[#39854a]/30'
+                            : 'border border-gray-100 bg-white shadow-sm hover:border-gray-200 hover:shadow-md dark:border-gray-800 dark:bg-[#0e1726] dark:hover:border-gray-700'
+                    }`}
                 >
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-300">
+                        <div className="flex items-center gap-2 text-xs font-bold text-gray-700 dark:text-gray-200">
                             <Calendar className="h-4 w-4 text-[#39854a]" />
                             <span>Due Today</span>
                         </div>
-                        <span className="text-[11px] font-semibold text-gray-400">2026-05-05</span>
+                        <span
+                            className={`inline-flex items-center gap-1 text-[11px] font-semibold ${
+                                state.activeTab === 'today'
+                                    ? 'text-[#39854a] font-bold'
+                                    : 'text-gray-400'
+                            }`}
+                        >
+                            {state.activeTab === 'today' && (
+                                <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#39854a]" />
+                            )}
+                            {state.activeTab === 'today' ? 'Active • 2026-05-05' : '2026-05-05'}
+                        </span>
                     </div>
-                    <div className="mt-3 text-3xl font-black text-gray-900 dark:text-white">
+                    <div
+                        className={`mt-3 text-3xl font-black ${
+                            state.activeTab === 'today'
+                                ? 'text-[#39854a]'
+                                : 'text-gray-900 dark:text-white'
+                        }`}
+                    >
                         {state.stats.due_today}
                     </div>
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -402,16 +428,31 @@ const TelecallerDashboardPage = () => {
 
                 {/* 2. Overdue (High Priority Highlight) */}
                 <div
-                    onClick={() => setState({ activeTab: 'overdue', currentPage: 1 })}
-                    className="cursor-pointer rounded-2xl border-2 border-rose-300 bg-rose-50/20 p-5 shadow-sm hover:shadow-md transition dark:border-rose-900/60 dark:bg-rose-950/10"
+                    onClick={() =>
+                        setState({
+                            activeTab: state.activeTab === 'overdue' ? 'all' : 'overdue',
+                            currentPage: 1,
+                        })
+                    }
+                    className={`cursor-pointer rounded-2xl p-5 transition-all duration-200 select-none ${
+                        state.activeTab === 'overdue'
+                            ? 'border-2 border-rose-500 bg-rose-50/40 shadow-md ring-2 ring-rose-400/25 dark:border-rose-500 dark:bg-rose-950/30 dark:ring-rose-500/30'
+                            : 'border border-rose-200/70 bg-rose-50/15 shadow-sm hover:border-rose-300 hover:shadow-md dark:border-rose-900/40 dark:bg-rose-950/10 dark:hover:border-rose-800'
+                    }`}
                 >
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-xs font-bold text-rose-600 dark:text-rose-400">
                             <AlertCircle className="h-4 w-4 text-rose-500" />
                             <span>Overdue</span>
                         </div>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
-                            High Priority
+                        <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide transition ${
+                                state.activeTab === 'overdue'
+                                    ? 'bg-rose-600 text-white shadow-xs'
+                                    : 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+                            }`}
+                        >
+                            {state.activeTab === 'overdue' ? 'Active • High Priority' : 'High Priority'}
                         </span>
                     </div>
                     <div className="mt-3 text-3xl font-black text-rose-600 dark:text-rose-400">
@@ -424,19 +465,40 @@ const TelecallerDashboardPage = () => {
 
                 {/* 3. Retry Queue */}
                 <div
-                    onClick={() => setState({ activeTab: 'retry', currentPage: 1 })}
-                    className="cursor-pointer rounded-2xl border border-gray-100 bg-white p-5 shadow-sm hover:shadow-md transition dark:border-gray-800 dark:bg-[#0e1726]"
+                    onClick={() =>
+                        setState({
+                            activeTab: state.activeTab === 'retry' ? 'all' : 'retry',
+                            currentPage: 1,
+                        })
+                    }
+                    className={`cursor-pointer rounded-2xl p-5 transition-all duration-200 select-none ${
+                        state.activeTab === 'retry'
+                            ? 'border-2 border-purple-500 bg-purple-50/40 shadow-md ring-2 ring-purple-400/25 dark:border-purple-500 dark:bg-purple-950/30 dark:ring-purple-500/30'
+                            : 'border border-gray-100 bg-white shadow-sm hover:border-gray-200 hover:shadow-md dark:border-gray-800 dark:bg-[#0e1726] dark:hover:border-gray-700'
+                    }`}
                 >
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-300">
+                        <div className="flex items-center gap-2 text-xs font-bold text-gray-700 dark:text-gray-200">
                             <RotateCcw className="h-4 w-4 text-purple-600" />
                             <span>Retry Queue</span>
                         </div>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300">
-                            Busy / No Answer
+                        <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold transition ${
+                                state.activeTab === 'retry'
+                                    ? 'bg-purple-600 text-white shadow-xs'
+                                    : 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'
+                            }`}
+                        >
+                            {state.activeTab === 'retry' ? 'Active • Busy / No Answer' : 'Busy / No Answer'}
                         </span>
                     </div>
-                    <div className="mt-3 text-3xl font-black text-gray-900 dark:text-white">
+                    <div
+                        className={`mt-3 text-3xl font-black ${
+                            state.activeTab === 'retry'
+                                ? 'text-purple-600 dark:text-purple-400'
+                                : 'text-gray-900 dark:text-white'
+                        }`}
+                    >
                         {state.stats.retry_queue}
                     </div>
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -446,19 +508,40 @@ const TelecallerDashboardPage = () => {
 
                 {/* 4. New Calls */}
                 <div
-                    onClick={() => setState({ activeTab: 'new', currentPage: 1 })}
-                    className="cursor-pointer rounded-2xl border border-gray-100 bg-white p-5 shadow-sm hover:shadow-md transition dark:border-gray-800 dark:bg-[#0e1726]"
+                    onClick={() =>
+                        setState({
+                            activeTab: state.activeTab === 'new' ? 'all' : 'new',
+                            currentPage: 1,
+                        })
+                    }
+                    className={`cursor-pointer rounded-2xl p-5 transition-all duration-200 select-none ${
+                        state.activeTab === 'new'
+                            ? 'border-2 border-blue-500 bg-blue-50/40 shadow-md ring-2 ring-blue-400/25 dark:border-blue-500 dark:bg-blue-950/30 dark:ring-blue-500/30'
+                            : 'border border-gray-100 bg-white shadow-sm hover:border-gray-200 hover:shadow-md dark:border-gray-800 dark:bg-[#0e1726] dark:hover:border-gray-700'
+                    }`}
                 >
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-300">
-                            <Sparkles className="h-4 w-4 text-emerald-600" />
+                        <div className="flex items-center gap-2 text-xs font-bold text-gray-700 dark:text-gray-200">
+                            <Sparkles className="h-4 w-4 text-blue-600" />
                             <span>New Calls</span>
                         </div>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
-                            Uncontacted
+                        <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold transition ${
+                                state.activeTab === 'new'
+                                    ? 'bg-blue-600 text-white shadow-xs'
+                                    : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                            }`}
+                        >
+                            {state.activeTab === 'new' ? 'Active • Uncontacted' : 'Uncontacted'}
                         </span>
                     </div>
-                    <div className="mt-3 text-3xl font-black text-gray-900 dark:text-white">
+                    <div
+                        className={`mt-3 text-3xl font-black ${
+                            state.activeTab === 'new'
+                                ? 'text-blue-600 dark:text-blue-400'
+                                : 'text-gray-900 dark:text-white'
+                        }`}
+                    >
                         {state.stats.new_calls}
                     </div>
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">

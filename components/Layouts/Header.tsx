@@ -109,8 +109,8 @@ const Header = () => {
     }, []);
 
     useEffect(() => {
-        const token = localStorage.getItem("kaheToken")
-        setState({ token })
+        const token = localStorage.getItem('kaheToken');
+        setState({ token });
         // taskList(state.duration);
         getUserData();
         // contactList();
@@ -132,7 +132,7 @@ const Header = () => {
     const getUserData = async () => {
         try {
             const userString = localStorage.getItem('crmUser');
-            const token = localStorage.getItem('kaheToken');
+            const token = localStorage.getItem('kaheToken') || localStorage.getItem('crmToken');
 
             const user = userString ? JSON.parse(userString) : null;
             setState({ userInfo: user, token });
@@ -251,7 +251,7 @@ const Header = () => {
 
     const onLogOut = async () => {
         try {
-            const kaheRefreshToken = localStorage.getItem('kaheRefreshToken');
+            const kaheRefreshToken = localStorage.getItem('kaheRefreshToken') || localStorage.getItem('refreshToken');
             const body = {
                 refresh: kaheRefreshToken,
             };

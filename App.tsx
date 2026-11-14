@@ -20,7 +20,9 @@ function App({ children }: PropsWithChildren) {
         // locale
         const locale = localStorage.getItem('i18nextLng') || themeConfig.locale;
         dispatch(toggleLocale(locale));
-        i18n.changeLanguage(locale);
+        if (i18n && typeof i18n.changeLanguage === 'function') {
+            i18n.changeLanguage(locale);
+        }
     }, [dispatch, themeConfig.theme, themeConfig.menu, themeConfig.layout, themeConfig.rtlClass, themeConfig.animation, themeConfig.navbar, themeConfig.locale, themeConfig.semidark]);
 
     return (
