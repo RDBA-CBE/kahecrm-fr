@@ -8,7 +8,7 @@ const PrivateRouter = (WrappedComponent: any) => {
         const [loading, setLoading] = useState(true);
 
         useEffect(() => {
-            const token = localStorage.getItem('crmToken');
+            const token = localStorage.getItem('kaheToken');
 
             if (!token) {
                 const baseUrl = `${window.location.origin}/auth/signin`;

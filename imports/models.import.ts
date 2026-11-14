@@ -6,6 +6,7 @@ import employee from '@/models/employee.model';
 import lead from '@/models/lead.model';
 import log from '@/models/log.model';
 import master from '@/models/master.model';
+import masters from '@/models/masters.model';
 import notication from '@/models/notification.model';
 import opportunity from '@/models/opportunity.model';
 import report from '@/models/report.model';
@@ -24,7 +25,8 @@ export const Models = {
     task,
     employee,
     report,
-    master,
+    master: { ...master, ...masters },
+    masters,
     notication
 
 };

@@ -109,8 +109,8 @@ const Header = () => {
     }, []);
 
     useEffect(() => {
-        const token= localStorage.getItem("crmToken")
-        setState({token})
+        const token = localStorage.getItem("kaheToken")
+        setState({ token })
         // taskList(state.duration);
         getUserData();
         // contactList();
@@ -132,7 +132,7 @@ const Header = () => {
     const getUserData = async () => {
         try {
             const userString = localStorage.getItem('crmUser');
-            const token = localStorage.getItem('crmToken');
+            const token = localStorage.getItem('kaheToken');
 
             const user = userString ? JSON.parse(userString) : null;
             setState({ userInfo: user, token });
@@ -251,9 +251,9 @@ const Header = () => {
 
     const onLogOut = async () => {
         try {
-            const reFreshToken = localStorage.getItem('refreshToken');
+            const kaheRefreshToken = localStorage.getItem('kaheRefreshToken');
             const body = {
-                refresh: reFreshToken,
+                refresh: kaheRefreshToken,
             };
             await Models.auth.logOut(body).then(() => {
                 localStorage.clear();
@@ -444,9 +444,9 @@ const Header = () => {
                 <div className="relative flex w-full items-center bg-white px-5 py-2.5 dark:bg-black ">
                     <div className="horizontal-logo flex items-center justify-between lg:hidden ltr:mr-2 rtl:ml-2">
                         <Link href="/" className="main-logo flex shrink-0 items-center">
-                            <img className="inline w-8 ltr:-ml-1 rtl:-mr-1" src="/assets/images/kahe-logo.png" alt="logo"  style={{
-                                height:"40px",width:"200px"
-                            }}/>
+                            <img className="inline w-8 ltr:-ml-1 rtl:-mr-1" src="/assets/images/kahe-logo.png" alt="logo" style={{
+                                height: "40px", width: "200px"
+                            }} />
                         </Link>
                         <button
                             type="button"

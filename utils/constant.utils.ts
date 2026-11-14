@@ -19,13 +19,11 @@ export const LEADTYPE = [
 
 export const ROLES = {
     ADMIN: 'Admin',
-    BDM: 'BDM',
-    BDE: 'BDE',
-    TM: 'TM',
-    DM: 'DM',
+    TELECALLER: 'TELECALLER',
+    COUNSELLOR: 'COUNSELLOR',
 };
 
-export const TASK_TYPE=[
+export const TASK_TYPE = [
     {
         label: 'Call',
         value: 'Call',
@@ -38,5 +36,5 @@ export const TASK_TYPE=[
         label: 'To Do',
         value: 'To Do',
     },
-    
+
 ]

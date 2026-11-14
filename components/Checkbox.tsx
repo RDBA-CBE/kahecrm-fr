@@ -22,7 +22,7 @@ const CheckboxInput: React.FC<CheckboxInputProps> = ({ checked, onChange, label,
                     name={name}
                     required={required}
                     disabled={disabled}
-                    className={`form-checkbox ${error ? 'border-red-500' : ''}`}
+                    className={`form-checkbox accent-[#39854a] text-[#39854a] ${error ? 'border-red-500' : ''}`}
                 />
                 <span className="ml-1 text-lg font-medium text-gray-700">{label}</span>
             </label>

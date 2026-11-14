@@ -10,9 +10,18 @@ import IconCaretsDown from '@/components/Icon/IconCaretsDown';
 import IconCaretDown from '@/components/Icon/IconCaretDown';
 import IconMenuCalendar from '@/components/Icon/Menu/IconMenuCalendar';
 import IconMenuUsers from '@/components/Icon/Menu/IconMenuUsers';
+import IconMenuContacts from '@/components/Icon/Menu/IconMenuContacts';
+import IconMenuCharts from '@/components/Icon/Menu/IconMenuCharts';
+import IconMenuWidgets from '@/components/Icon/Menu/IconMenuWidgets';
+import IconPhoneCall from '@/components/Icon/IconPhoneCall';
+import IconLayoutGrid from '@/components/Icon/IconLayoutGrid';
+import IconPhone from '@/components/Icon/IconPhone';
+import IconClock from '@/components/Icon/IconClock';
+import IconListCheck from '@/components/Icon/IconListCheck';
+import IconUsers from '@/components/Icon/IconUsers';
 import IconLeads from '../Icon/IconLead';
 import Models from '@/imports/models.import';
-import { ROLE, TASK_TYPE } from '@/utils/constant.utils';
+import { ROLE, ROLES, TASK_TYPE } from '@/utils/constant.utils';
 import SideMenu from '@/common_component/sideMenu';
 import { Validation } from '@/utils/imports.utils';
 import moment from 'moment';
@@ -25,6 +34,7 @@ import { capitalizeFLetter, Dropdown, Success, useSetState } from '@/utils/funct
 import { useTranslation } from 'react-i18next';
 import IconMenuChat from '../Icon/Menu/IconMenuChat';
 import IconMenuDashboard from '../Icon/Menu/IconMenuDashboard';
+import IconNotes from '@/components/Icon/IconNotes';
 const Sidebar = () => {
     const router = useRouter();
     const [currentMenu, setCurrentMenu] = useState<string>('');
@@ -32,6 +42,9 @@ const Sidebar = () => {
     const [errorSubMenu, setErrorSubMenu] = useState(false);
     const themeConfig = useSelector((state: IRootState) => state.themeConfig);
     const semidark = useSelector((state: IRootState) => state.themeConfig.semidark);
+
+    const isCounsellor = router.pathname.startsWith('/counsellor') || role?.toUpperCase() === 'COUNSELLOR' || role === 'Counsellor';
+    const isTelecaller = !isCounsellor && (router.pathname.startsWith('/telecaller') || role?.toUpperCase() === 'TELECALLER' || role === 'Telecaller' || (role !== ROLES.ADMIN && role !== 'Admin' && !router.pathname.startsWith('/own_dashboard') && !router.pathname.startsWith('/contacts') && !router.pathname.startsWith('/masters') && !router.pathname.startsWith('/crm_users')));
 
     const [state, setState] = useSetState({
         currentLeadPage: 1,
@@ -66,6 +79,11 @@ const Sidebar = () => {
         setActiveRoute();
         if (window.innerWidth < 1024 && themeConfig.sidebar) {
             dispatch(toggleSidebar());
+        }
+        if (router.pathname.startsWith('/masters')) {
+            setCurrentMenu('masters_management');
+        } else if (router.pathname.startsWith('/contacts')) {
+            setCurrentMenu('Calendars');
         }
         getUserDetails();
         leadList();
@@ -170,7 +188,7 @@ const Sidebar = () => {
     const getUserDetails = async () => {
         try {
             const userString = localStorage.getItem('crmUser');
-            const token = localStorage.getItem('crmToken');
+            const token = localStorage.getItem('kaheToken');
             const user = userString ? JSON.parse(userString) : null;
             setRole(user?.group);
 
@@ -310,138 +328,246 @@ const Sidebar = () => {
                     </div>
                     <PerfectScrollbar className="relative h-[calc(100vh-80px)]">
                         <ul className="relative space-y-0.5 p-4 py-0 font-semibold">
-                            {/* {(role == 'ADMIN' || role == 'BDM') && ( */}
-                            <>
-                                {/* <div
-                                        className="flex items-center justify-between"
-                                        onClick={() => {
-                                            toggleMenu('own');
-                                        }}
-                                    >
-                                        <div className="text-lg">Own</div>
-                                        <div className={currentMenu !== 'own' ? '-rotate-90 rtl:rotate-90' : ''}>
-                                            <IconCaretDown />
-                                        </div>
-                                    </div> */}
+                            {isCounsellor ? (
+                                // =========================================================================
+                                // COUNSELLOR ROLE SIDEBAR (Matching User Request)
+                                // 1. Dashboard
+                                // 2. Counselling Queue
+                                // 3. Student Profile
+                                // 4. Admission Analytics
+                                // =========================================================================
+                                <li className="nav-item">
+                                    <div className="px-3.5 pb-2 pt-1 text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                                        {t('Senior Counselling')}
+                                    </div>
+                                    <ul className="space-y-1.5">
+                                        {/* 1. Dashboard */}
+                                        <li className="nav-item">
+                                            <Link
+                                                href="/counsellor/dashboard"
+                                                className={`group flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-sm transition ${router.pathname === '/counsellor/dashboard'
+                                                    ? '!bg-[#39854a] !text-white shadow-sm'
+                                                    : 'text-gray-700 hover:bg-gray-100 hover:text-black dark:text-gray-300 dark:hover:bg-gray-800'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <IconLayoutGrid
+                                                        className={`w-5 h-5 shrink-0 ${router.pathname === '/counsellor/dashboard'
+                                                            ? '!text-white'
+                                                            : 'text-gray-500 group-hover:text-[#39854a]'
+                                                            }`}
+                                                    />
+                                                    <span>{t('Dashboard')}</span>
+                                                </div>
+                                            </Link>
+                                        </li>
 
-                                {/* <li className="nav-item">
-                                        <ul>
-                                            <li className="nav-item">
-                                                <Link href="/dashboards" className="group">
-                                                    <div className="flex items-center">
-                                                        <IconMenuDashboard className="shrink-0 group-hover:!text-primary" />
-                                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Dashboard')}</span>
-                                                    </div>
+                                        {/* 2. Counselling Queue */}
+                                        <li className="nav-item">
+                                            <Link
+                                                href="/counsellor/queue"
+                                                className={`group flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-sm transition ${router.pathname === '/counsellor/queue'
+                                                    ? '!bg-[#39854a] !text-white shadow-sm'
+                                                    : 'text-gray-700 hover:bg-gray-100 hover:text-black dark:text-gray-300 dark:hover:bg-gray-800'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <IconNotes
+                                                        className={`w-5 h-5 shrink-0 ${router.pathname === '/counsellor/queue'
+                                                            ? '!text-white'
+                                                            : 'text-gray-500 group-hover:text-[#39854a]'
+                                                            }`}
+                                                    />
+                                                    <span>{t('Counselling Queue')}</span>
+                                                </div>
+                                                <span
+                                                    className={`px-2 py-0.5 text-xs font-bold rounded-full ${router.pathname === '/counsellor/queue'
+                                                        ? 'bg-white/20 text-white'
+                                                        : 'bg-[#e8f5e9] text-[#2e7d32] dark:bg-emerald-950 dark:text-emerald-300'
+                                                        }`}
+                                                >
+                                                    2
+                                                </span>
+                                            </Link>
+                                        </li>
+
+                                        {/* 3. Student Profile */}
+                                        <li className="nav-item">
+                                            <Link
+                                                href="/counsellor/student_profiles"
+                                                className={`group flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-sm transition ${router.pathname === '/counsellor/student_profiles'
+                                                    ? '!bg-[#39854a] !text-white shadow-sm'
+                                                    : 'text-gray-700 hover:bg-gray-100 hover:text-black dark:text-gray-300 dark:hover:bg-gray-800'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <IconUsers
+                                                        className={`w-5 h-5 shrink-0 ${router.pathname === '/counsellor/student_profiles'
+                                                            ? '!text-white'
+                                                            : 'text-gray-500 group-hover:text-[#39854a]'
+                                                            }`}
+                                                    />
+                                                    <span>{t('Student Profile')}</span>
+                                                </div>
+                                                <span
+                                                    className={`px-2 py-0.5 text-xs font-bold rounded-full ${router.pathname === '/counsellor/student_profiles'
+                                                        ? 'bg-white/20 text-white'
+                                                        : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                                                        }`}
+                                                >
+                                                    21
+                                                </span>
+                                            </Link>
+                                        </li>
+
+                                        {/* 4. Admission Analytics */}
+                                        <li className="nav-item">
+                                            <Link
+                                                href="/counsellor/analytics"
+                                                className={`group flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-sm transition ${router.pathname === '/counsellor/analytics'
+                                                    ? '!bg-[#39854a] !text-white shadow-sm'
+                                                    : 'text-gray-700 hover:bg-gray-100 hover:text-black dark:text-gray-300 dark:hover:bg-gray-800'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <IconMenuCharts
+                                                        className={`w-5 h-5 shrink-0 ${router.pathname === '/counsellor/analytics'
+                                                            ? '!text-white'
+                                                            : 'text-gray-500 group-hover:text-[#39854a]'
+                                                            }`}
+                                                    />
+                                                    <span>{t('Admission Analytics')}</span>
+                                                </div>
+                                            </Link>
+                                        </li>
+
+                                        {/* Admin return switch */}
+                                        {(role === ROLES.ADMIN || role === 'Admin') && (
+                                            <li className="nav-item pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+                                                <Link
+                                                    href="/own_dashboard"
+                                                    className="group flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-gray-500 hover:text-[#39854a]"
+                                                >
+                                                    <IconMenuDashboard className="w-4 h-4 shrink-0" />
+                                                    <span>{t('← Switch to Admin Console')}</span>
                                                 </Link>
                                             </li>
-                                            <li className="menu nav-item">
-                                                <button
-                                                    type="button"
-                                                    className={`${currentMenu === 'Calendar' ? 'active' : ''} nav-link group w-full`}
-                                                    onClick={() => {
-                                                        router.push('calendar');
-                                                        toggleMenu('Calendar');
-                                                    }}
+                                        )}
+                                    </ul>
+                                </li>
+                            ) : isTelecaller ? (
+                                // =========================================================================
+                                // TELECALLER ROLE SIDEBAR (Matching Image 7)
+                                // =========================================================================
+                                <li className="nav-item">
+                                    <div className="px-3.5 pb-2 pt-1 text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                                        {t('Telecalling Desk')}
+                                    </div>
+                                    <ul className="space-y-1.5">
+                                        {/* 1. Telecaller Dashboard */}
+                                        <li className="nav-item">
+                                            <Link
+                                                href="/telecaller/dashboard"
+                                                className={`group flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-sm transition ${router.pathname === '/telecaller/dashboard'
+                                                    ? '!bg-[#39854a] !text-white shadow-sm'
+                                                    : 'text-gray-700 hover:bg-gray-100 hover:text-black dark:text-gray-300 dark:hover:bg-gray-800'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <IconLayoutGrid
+                                                        className={`w-5 h-5 shrink-0 ${router.pathname === '/telecaller/dashboard'
+                                                            ? '!text-white'
+                                                            : 'text-gray-500 group-hover:text-[#39854a]'
+                                                            }`}
+                                                    />
+                                                    <span>{t('Telecaller Dashboard')}</span>
+                                                </div>
+                                            </Link>
+                                        </li>
+
+                                        {/* 2. My Contacts */}
+                                        <li className="nav-item">
+                                            <Link
+                                                href="/telecaller/contacts"
+                                                className={`group flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-sm transition ${router.pathname === '/telecaller/contacts'
+                                                    ? '!bg-[#39854a] !text-white shadow-sm'
+                                                    : 'text-gray-700 hover:bg-gray-100 hover:text-black dark:text-gray-300 dark:hover:bg-gray-800'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <IconPhone
+                                                        className={`w-5 h-5 shrink-0 ${router.pathname === '/telecaller/contacts'
+                                                            ? '!text-white'
+                                                            : 'text-gray-500 group-hover:text-[#39854a]'
+                                                            }`}
+                                                    />
+                                                    <span>{t('My Contacts')}</span>
+                                                </div>
+                                                <span
+                                                    className={`px-2 py-0.5 text-xs font-bold rounded-full ${router.pathname === '/telecaller/contacts'
+                                                        ? 'bg-white/20 text-white'
+                                                        : 'bg-[#e8f5e9] text-[#2e7d32] dark:bg-emerald-950 dark:text-emerald-300'
+                                                        }`}
                                                 >
-                                                    <div className="flex items-center">
-                                                        <IconMenuCalendar className="shrink-0 group-hover:!text-primary" />
-                                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Calendar')}</span>
-                                                    </div>
+                                                    5
+                                                </span>
+                                            </Link>
+                                        </li>
 
-                                                    <div className={currentMenu !== 'Calendar' ? '-rotate-90 rtl:rotate-90' : ''}>
-                                                        <IconCaretDown />
-                                                    </div>
-                                                </button>
-
-                                                <AnimateHeight duration={300} height={currentMenu === 'Calendar' ? 'auto' : 0}>
-                                                    <ul className="sub-menu text-gray-500">
-                                                        <li>
-                                                            <Link href="/tasks">{t('Task List')}</Link>
-                                                        </li>
-                                                        <li>
-                                                            <Link
-                                                                href="/tasks"
-                                                                onClick={(e) => {
-                                                                    e.preventDefault();
-                                                                    setState({ isOpenTask: true });
-                                                                    assignList();
-                                                                    leadList();
-                                                                }}
-                                                                className="cursor-pointer"
-                                                            >
-                                                                {t('Create Task')}
-                                                            </Link>
-                                                        </li>
-                                                    </ul>
-                                                </AnimateHeight>
-                                            </li>
-                                            <li className="menu nav-item">
-                                                <button
-                                                    type="button"
-                                                    className={`${currentMenu === 'Contacts' ? 'active' : ''} nav-link group w-full`}
-                                                    onClick={() => {
-                                                        router.push('contacts');
-                                                        toggleMenu('Contacts');
-                                                    }}
+                                        {/* 3. Follow-ups & Calls */}
+                                        <li className="nav-item">
+                                            <Link
+                                                href="/telecaller/follow_ups"
+                                                className={`group flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-sm transition ${router.pathname === '/telecaller/follow_ups'
+                                                    ? '!bg-[#39854a] !text-white shadow-sm'
+                                                    : 'text-gray-700 hover:bg-gray-100 hover:text-black dark:text-gray-300 dark:hover:bg-gray-800'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <IconClock
+                                                        className={`w-5 h-5 shrink-0 ${router.pathname === '/telecaller/follow_ups'
+                                                            ? '!text-white'
+                                                            : 'text-gray-500 group-hover:text-[#39854a]'
+                                                            }`}
+                                                    />
+                                                    <span>{t('Follow-ups & Calls')}</span>
+                                                </div>
+                                                <span
+                                                    className={`px-2 py-0.5 text-xs font-bold rounded-full ${router.pathname === '/telecaller/follow_ups'
+                                                        ? 'bg-white/20 text-white'
+                                                        : 'bg-[#ffebee] text-[#c62828] dark:bg-rose-950 dark:text-rose-300'
+                                                        }`}
                                                 >
-                                                    <div className="flex items-center">
-                                                        <IconMenuUsers className="shrink-0 group-hover:!text-primary" />
-                                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Contacts')}</span>
-                                                    </div>
+                                                    4
+                                                </span>
+                                            </Link>
+                                        </li>
 
-                                                    <div className={currentMenu !== 'Contacts' ? '-rotate-90 rtl:rotate-90' : ''}>
-                                                        <IconCaretDown />
-                                                    </div>
-                                                </button>
-
-                                                <AnimateHeight duration={300} height={currentMenu === 'Contacts' ? 'auto' : 0}>
-                                                    <ul className="sub-menu text-gray-500">
-                                                        <li>
-                                                            <Link href="/create_contact">{t('Create Contact')}</Link>
-                                                        </li>
-                                                        <li>
-                                                            <Link href="/archive_contact">{t('Archive Contact')}</Link>
-                                                        </li>
-                                                    </ul>
-                                                </AnimateHeight>
-                                            </li>
-                                            <li className="menu nav-item">
-                                                <button
-                                                    type="button"
-                                                    className={`${currentMenu === 'Leads' ? 'active' : ''} nav-link group w-full`}
-                                                    onClick={() => {
-                                                        router.push('leads');
-                                                        toggleMenu('Leads');
-                                                    }}
+                                        {/* Admin return switch */}
+                                        {(role === ROLES.ADMIN || role === 'Admin') && (
+                                            <li className="nav-item pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+                                                <Link
+                                                    href="/own_dashboard"
+                                                    className="group flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-gray-500 hover:text-[#39854a]"
                                                 >
-                                                    <div className="flex items-center">
-                                                        <IconLeads className="shrink-0 group-hover:!text-primary" />
-                                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Leads')}</span>
-                                                    </div>
-
-                                                    <div className={currentMenu !== 'Leads' ? '-rotate-90 rtl:rotate-90' : ''}>
-                                                        <IconCaretDown />
-                                                    </div>
-                                                </button>
-
-                                                <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
-                                                    <ul className="sub-menu text-gray-500">
-                                                        <li>
-                                                            <Link href="/create_lead">{t('Create Lead')}</Link>
-                                                        </li>
-                                                    </ul>
-                                                </AnimateHeight>
+                                                    <IconMenuDashboard className="w-4 h-4 shrink-0" />
+                                                    <span>{t('← Switch to Admin Console')}</span>
+                                                </Link>
                                             </li>
-                                        </ul>
-                                    </li> */}
-                                {role == ROLE.ADMIN && <div className="text-lg">Own</div>}
+                                        )}
+                                    </ul>
+                                </li>
+                            ) : (
+                                // =========================================================================
+                                // ADMIN / MANAGEMENT SIDEBAR
+                                // =========================================================================
                                 <li className="nav-item">
                                     <ul>
                                         <li className="nav-item">
                                             <Link href="/own_dashboard" className="group">
                                                 <div className="flex items-center">
-                                                    <IconMenuDashboard className="shrink-0 group-hover:!text-primary" />
-                                                    <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Dashboard')}</span>
+                                                    <IconMenuDashboard className="shrink-0 group-hover:!text-[#39854a] group-[.active]:!text-white" />
+                                                    <span className="text-black group-hover:!text-[#39854a] group-[.active]:!text-white dark:text-[#506690] dark:group-hover:!text-[#39854a] ltr:pl-3 rtl:pr-3">{t('Dashboard')}</span>
                                                 </div>
                                             </Link>
                                         </li>
@@ -455,11 +581,11 @@ const Sidebar = () => {
                                                 }}
                                             >
                                                 <div className="flex items-center">
-                                                    <IconMenuCalendar className="shrink-0 group-hover:!text-primary" />
-                                                    <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Task')}</span>
+                                                    <IconMenuContacts className="shrink-0 group-hover:!text-[#39854a] group-[.active]:!text-[#39854a]" />
+                                                    <span className="text-black group-hover:!text-[#39854a] group-[.active]:!text-[#39854a] dark:text-[#506690] dark:group-hover:!text-[#39854a] ltr:pl-3 rtl:pr-3">{t('Contacts')}</span>
                                                 </div>
 
-                                                <div className={currentMenu !== 'Calendars' ? '-rotate-90 rtl:rotate-90' : ''}>
+                                                <div className={`${currentMenu !== 'Calendars' ? '-rotate-90 rtl:rotate-90' : ''} group-hover:!text-[#39854a] group-[.active]:!text-[#39854a]`}>
                                                     <IconCaretDown />
                                                 </div>
                                             </button>
@@ -467,335 +593,107 @@ const Sidebar = () => {
                                             <AnimateHeight duration={300} height={currentMenu === 'Calendars' ? 'auto' : 0}>
                                                 <ul className="sub-menu text-gray-500">
                                                     <li>
-                                                        <Link href="/my_tasks">{t('My Tasks')}</Link>
+                                                        <Link href="/contacts/all_contacts">{t('My Contacts')}</Link>
+                                                    </li>
+
+                                                    <li>
+                                                        <Link href="/contacts/assign_contact">  {t('Assign Contacts')}</Link>
                                                     </li>
                                                     <li>
-                                                        <Link href="/my_assigned_task">{t('Assigned Tasks')}</Link>
+                                                        <Link href="/contacts/bulk_import">{t('Bulk Import')}</Link>
                                                     </li>
-                                                    <li>
-                                                        <Link
-                                                            href="/tasks"
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                setState({ isOpenTask: true });
-                                                                assignList();
-                                                            }}
-                                                            className="cursor-pointer"
-                                                        >
-                                                            {t('Create Task')}
-                                                        </Link>
-                                                    </li>
+
                                                 </ul>
                                             </AnimateHeight>
+                                        </li>
+                                        <li className="nav-item">
+                                            <Link href="/crm_users" className="group">
+                                                <div className="flex items-center">
+                                                    <IconMenuUsers className="shrink-0 group-hover:!text-[#39854a] group-[.active]:!text-white" />
+                                                    <span className="text-black group-hover:!text-[#39854a] group-[.active]:!text-white dark:text-[#506690] dark:group-hover:!text-[#39854a] ltr:pl-3 rtl:pr-3">{t('CRM Users')}</span>
+                                                </div>
+                                            </Link>
+                                        </li>
+                                        <li className="nav-item">
+                                            <Link href="/own_dashboard" className="group">
+                                                <div className="flex items-center">
+                                                    <IconMenuCharts className="shrink-0 group-hover:!text-[#39854a] group-[.active]:!text-white" />
+                                                    <span className="text-black group-hover:!text-[#39854a] group-[.active]:!text-white dark:text-[#506690] dark:group-hover:!text-[#39854a] ltr:pl-3 rtl:pr-3">{t('Reports & Analytics')}</span>
+                                                </div>
+                                            </Link>
                                         </li>
                                         <li className="menu nav-item">
                                             <button
                                                 type="button"
-                                                className={`${currentMenu === 'my_contacts' ? 'active' : ''} nav-link group w-full`}
+                                                className={`${currentMenu === 'masters_management' ? 'active' : ''} nav-link group w-full`}
                                                 onClick={() => {
-                                                    // router.push('contacts');
-                                                    toggleMenu('my_contacts');
+                                                    toggleMenu('masters_management');
                                                 }}
                                             >
                                                 <div className="flex items-center">
-                                                    <IconMenuUsers className="shrink-0 group-hover:!text-primary" />
-                                                    <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Contacts')}</span>
+                                                    <IconMenuWidgets className="shrink-0 group-hover:!text-[#39854a] group-[.active]:!text-[#39854a]" />
+                                                    <span className="text-black group-hover:!text-[#39854a] group-[.active]:!text-[#39854a] dark:text-[#506690] dark:group-hover:!text-[#39854a] ltr:pl-3 rtl:pr-3">{t('Masters Management')}</span>
                                                 </div>
 
-                                                <div className={currentMenu !== 'my_contacts' ? '-rotate-90 rtl:rotate-90' : ''}>
+                                                <div className={`${currentMenu !== 'masters_management' ? '-rotate-90 rtl:rotate-90' : ''} group-hover:!text-[#39854a] group-[.active]:!text-[#39854a]`}>
                                                     <IconCaretDown />
                                                 </div>
                                             </button>
 
-                                            <AnimateHeight duration={300} height={currentMenu === 'my_contacts' ? 'auto' : 0}>
+                                            <AnimateHeight duration={300} height={currentMenu === 'masters_management' ? 'auto' : 0}>
                                                 <ul className="sub-menu text-gray-500">
                                                     <li>
-                                                        <Link href="/myContacts">{t('My Contacts')}</Link>
+                                                        <Link href="/masters/admission_stage">{t('Admission Stage')}</Link>
                                                     </li>
                                                     <li>
-                                                        <Link href="/my_archive_contact">{t('Archive Contacts')}</Link>
+                                                        <Link href="/masters/institutions">{t('Institutions / Colleges')}</Link>
                                                     </li>
                                                     <li>
-                                                        <Link href="/create_contact">{t('Create Contact')}</Link>
+                                                        <Link href="/masters/courses">{t('Courses & Degrees')}</Link>
+                                                    </li>
+                                                    <li>
+                                                        <Link href="/masters/academic_years">{t('Academic Years')}</Link>
+                                                    </li>
+                                                    <li>
+                                                        <Link href="/masters/whatsapp_templates">{t('Whatsapp Templates')}</Link>
+                                                    </li>
+                                                    <li>
+                                                        <Link href="/masters/qualifications">{t('Qualifications')}</Link>
+                                                    </li>
+                                                    <li>
+                                                        <Link href="/masters/call_outcomes">{t('Call Outcomes')}</Link>
+                                                    </li>
+                                                    <li>
+                                                        <Link href="/masters/reference_types">{t('Reference Types')}</Link>
                                                     </li>
                                                 </ul>
                                             </AnimateHeight>
                                         </li>
-                                        <li className="menu nav-item">
-                                            <button
-                                                type="button"
-                                                className={`${currentMenu === 'my_leads' ? 'active' : ''} nav-link group w-full`}
-                                                onClick={() => {
-                                                    // router.push('leads');
-                                                    toggleMenu('my_leads');
-                                                }}
-                                            >
+
+                                        {/* Telecaller Desk Quick Access for Admin */}
+                                        <li className="nav-item">
+                                            <Link href="/telecaller/dashboard" className="group">
                                                 <div className="flex items-center">
-                                                    <IconLeads className="shrink-0 group-hover:!text-primary" />
-                                                    <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Leads')}</span>
+                                                    <IconPhoneCall className="shrink-0 group-hover:!text-[#39854a] group-[.active]:!text-white" />
+                                                    <span className="text-black group-hover:!text-[#39854a] group-[.active]:!text-white dark:text-[#506690] dark:group-hover:!text-[#39854a] ltr:pl-3 rtl:pr-3">{t('Telecaller Desk')}</span>
                                                 </div>
-
-                                                <div className={currentMenu !== 'my_leads' ? '-rotate-90 rtl:rotate-90' : ''}>
-                                                    <IconCaretDown />
-                                                </div>
-                                            </button>
-
-                                            <AnimateHeight duration={300} height={currentMenu === 'my_leads' ? 'auto' : 0}>
-                                                <ul className="sub-menu text-gray-500">
-                                                    <li>
-                                                        <Link href="/my_leads">{t('My Leads')}</Link>
-                                                    </li>
-                                                    <li>
-                                                        <Link href="/my_assign_lead">{t('Assigned Leads')}</Link>
-                                                    </li>
-                                                    <li>
-                                                        <Link href="/create_contact">{t('Create Lead')}</Link>
-                                                    </li>
-                                                </ul>
-                                            </AnimateHeight>
-
-                                            {/* <>
-                                                    <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
-                                                        <ul className="sub-menu text-gray-500">
-                                                            <li>
-                                                                <Link href="/leads">{t('All Leads')}</Link>
-                                                            </li>
-                                                        </ul>
-                                                    </AnimateHeight>
-                                                    <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
-                                                        <ul className="sub-menu text-gray-500">
-                                                            <li>
-                                                                <Link href="/assign-lead">{t('Assigned Leads')}</Link>
-                                                            </li>
-                                                        </ul>
-                                                    </AnimateHeight>
-                                                </> */}
-                                            {/* <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
-                                                    <ul className="sub-menu text-gray-500">
-                                                        <li>
-                                                            <Link href="/create_contact">{t('Create Lead')}</Link>
-                                                        </li>
-                                                    </ul>
-                                                </AnimateHeight> */}
+                                            </Link>
                                         </li>
-                                        {/* {(role == 'ADMIN' || role == 'BDM') && (
-                                                <li className="nav-item">
-                                                    <Link href="/users/list" className="group">
-                                                        <div className="flex items-center">
-                                                            <IconMenuUsers className="shrink-0 group-hover:!text-primary" />
-                                                            <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Users')}</span>
-                                                        </div>
-                                                    </Link>
-                                                </li>
-                                            )} */}
+
+                                        {/* Counsellor Desk Quick Access for Admin */}
+                                        <li className="nav-item">
+                                            <Link href="/counsellor/dashboard" className="group">
+                                                <div className="flex items-center">
+                                                    <IconNotes className="shrink-0 group-hover:!text-[#39854a] group-[.active]:!text-white" />
+                                                    <span className="text-black group-hover:!text-[#39854a] group-[.active]:!text-white dark:text-[#506690] dark:group-hover:!text-[#39854a] ltr:pl-3 rtl:pr-3">{t('Counsellor Desk')}</span>
+                                                </div>
+                                            </Link>
+                                        </li>
                                     </ul>
                                 </li>
-                                {role == ROLE.ADMIN && (
-                                    <>
-                                        <div className="text-lg">Team</div>
+                            )}
 
-                                        <li className="nav-item">
-                                            <ul>
-                                                <li className="nav-item">
-                                                    <Link href="/dashboards" className="group">
-                                                        <div className="flex items-center">
-                                                            <IconMenuDashboard className="shrink-0 group-hover:!text-primary" />
-                                                            <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Dashboard')}</span>
-                                                        </div>
-                                                    </Link>
-                                                </li>
 
-                                                <li className="menu nav-item">
-                                                    <button
-                                                        type="button"
-                                                        className={`${currentMenu === 'Calendar' ? 'active' : ''} nav-link group w-full`}
-                                                        onClick={() => {
-                                                            toggleMenu('Calendar');
-                                                        }}
-                                                    >
-                                                        <div className="flex items-center">
-                                                            <IconMenuCalendar className="shrink-0 group-hover:!text-primary" />
-                                                            <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Task')}</span>
-                                                        </div>
-
-                                                        <div className={currentMenu !== 'Calendar' ? '-rotate-90 rtl:rotate-90' : ''}>
-                                                            <IconCaretDown />
-                                                        </div>
-                                                    </button>
-
-                                                    <AnimateHeight duration={300} height={currentMenu === 'Calendar' ? 'auto' : 0}>
-                                                        <ul className="sub-menu text-gray-500">
-                                                            <li>
-                                                                <Link href="/tasks">{t('Tasks')}</Link>
-                                                            </li>
-                                                            <li>
-                                                                <Link href="/assigned_task">{t('Assigned Tasks')}</Link>
-                                                            </li>
-                                                        </ul>
-                                                    </AnimateHeight>
-                                                </li>
-                                                <li className="menu nav-item">
-                                                    <button
-                                                        type="button"
-                                                        className={`${currentMenu === 'Contacts' ? 'active' : ''} nav-link group w-full`}
-                                                        onClick={() => {
-                                                            // router.push('contacts');
-                                                            toggleMenu('Contacts');
-                                                        }}
-                                                    >
-                                                        <div className="flex items-center">
-                                                            <IconMenuUsers className="shrink-0 group-hover:!text-primary" />
-                                                            <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Contacts')}</span>
-                                                        </div>
-
-                                                        <div className={currentMenu !== 'Contacts' ? '-rotate-90 rtl:rotate-90' : ''}>
-                                                            <IconCaretDown />
-                                                        </div>
-                                                    </button>
-
-                                                    <AnimateHeight duration={300} height={currentMenu === 'Contacts' ? 'auto' : 0}>
-                                                        <ul className="sub-menu text-gray-500">
-                                                            <li>
-                                                                <Link href="/contacts">{t('Contacts')}</Link>
-                                                            </li>
-                                                            <li>
-                                                                <Link href="/archive_contact">{t('Archive Contacts')}</Link>
-                                                            </li>
-                                                            {/* <li>
-                                                            <Link href="/create_contact">{t('Create Contact')}</Link>
-                                                        </li> */}
-                                                        </ul>
-                                                    </AnimateHeight>
-                                                </li>
-                                                <li className="menu nav-item">
-                                                    <button
-                                                        type="button"
-                                                        className={`${currentMenu === 'Leads' ? 'active' : ''} nav-link group w-full`}
-                                                        onClick={() => {
-                                                            // router.push('leads');
-                                                            toggleMenu('Leads');
-                                                        }}
-                                                    >
-                                                        <div className="flex items-center">
-                                                            <IconLeads className="shrink-0 group-hover:!text-primary" />
-                                                            <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Leads')}</span>
-                                                        </div>
-
-                                                        <div className={currentMenu !== 'Leads' ? '-rotate-90 rtl:rotate-90' : ''}>
-                                                            <IconCaretDown />
-                                                        </div>
-                                                    </button>
-
-                                                    <>
-                                                        <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
-                                                            <ul className="sub-menu text-gray-500">
-                                                                <li>
-                                                                    <Link href="/leads">{t('All Leads')}</Link>
-                                                                </li>
-                                                            </ul>
-                                                        </AnimateHeight>
-                                                        <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
-                                                            <ul className="sub-menu text-gray-500">
-                                                                <li>
-                                                                    <Link href="/assign-lead">{t('Assigned Leads')}</Link>
-                                                                </li>
-                                                            </ul>
-                                                        </AnimateHeight>
-                                                    </>
-                                                    {/* <AnimateHeight duration={300} height={currentMenu === 'Leads' ? 'auto' : 0}>
-                                                    <ul className="sub-menu text-gray-500">
-                                                        <li>
-                                                            <Link href="/create_contact">{t('Create Leads')}</Link>
-                                                        </li>
-                                                    </ul>
-                                                </AnimateHeight> */}
-                                                </li>
-                                                <li className="nav-item">
-                                                    <Link href="/users/list" className="group">
-                                                        <div className="flex items-center">
-                                                            <IconUser className="shrink-0 group-hover:!text-primary" />
-                                                            <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Users')}</span>
-                                                        </div>
-                                                    </Link>
-                                                </li>
-                                            </ul>
-                                        </li>
-                                    </>
-                                )}
-                            </>
-                            {/* )} */}
-
-                            <li className="menu nav-item">
-                                <button
-                                    type="button"
-                                    className={`${currentMenu === 'Masters' ? 'active' : ''} nav-link group w-full`}
-                                    onClick={() => {
-                                        // router.push('calendar');
-                                        toggleMenu('Masters');
-                                    }}
-                                >
-                                    <div className="flex items-center">
-                                        <IconMenuCalendar className="shrink-0 group-hover:!text-primary" />
-                                        <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Masters')}</span>
-                                    </div>
-
-                                    <div className={currentMenu !== 'Masters' ? '-rotate-90 rtl:rotate-90' : ''}>
-                                        <IconCaretDown />
-                                    </div>
-                                </button>
-                                {/* notifications */}
-                                <AnimateHeight duration={300} height={currentMenu === 'Masters' ? 'auto' : 0}>
-                                    <ul className="sub-menu text-gray-500">
-                                        {/* {role == 'ADMIN' && (
-                                                <li>
-                                                    <Link href="/monthly-target">{t('Monthly Target')}</Link>
-                                                </li>
-                                            )} */}
-
-                                        <li>
-                                            <Link href="/programme">{t('Programme')}</Link>
-                                        </li>
-
-                                        <li>
-                                            <Link href="/college">{t('College')}</Link>
-                                        </li>
-
-                                        <li>
-                                            <Link href="/education_qualification">{t('Education Qualification')}</Link>
-                                        </li>
-                                        <li>
-                                            <Link href="/lead_source_category">{t('Lead Source Category')}</Link>
-                                        </li>
-                                        <li>
-                                            <Link href="/lead-status">{t('Lead Status')}</Link>
-                                        </li>
-                                        <li>
-                                            <Link href="/contact-status">{t('Contact Status')}</Link>
-                                        </li>
-
-                                        <li>
-                                            <Link href="/countries">{t('Country')}</Link>
-                                        </li>
-
-                                        <li>
-                                            <Link href="/state">{t('States')}</Link>
-                                        </li>
-
-                                        <li>
-                                            <Link href="/city">{t('Cities')}</Link>
-                                        </li>
-                                    </ul>
-                                </AnimateHeight>
-                            </li>
-                            {/* )} */}
-                            <li className="nav-item">
-                                <Link href="/notifications" className="group">
-                                    <div className="flex items-center">
-                                        <IconMenuChat className="shrink-0 group-hover:!text-primary" />
-                                        <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Notifications')}</span>
-                                    </div>
-                                </Link>
-                            </li>
                         </ul>
                     </PerfectScrollbar>
                 </div>

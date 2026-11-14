@@ -101,7 +101,7 @@ const Contacts = () => {
 
     const bodyData = () => {
         const userString = localStorage.getItem('crmUser');
-        const token = localStorage.getItem('crmToken');
+        const token = localStorage.getItem('kaheToken');
         const user = userString ? JSON.parse(userString) : null;
         console.log('✌️user --->', user);
         let filter: any = {};
@@ -141,7 +141,7 @@ const Contacts = () => {
             const orderingPrefix = sortStatus.direction === 'desc' ? '-' : '';
             const columnMapping = {
                 'student_name': 'created_at',
-                'phone_number': 'created_at', 
+                'phone_number': 'created_at',
                 'date': 'created_at',
                 'status': 'created_at',
                 'assigned_to': 'created_at'
@@ -711,7 +711,7 @@ const Contacts = () => {
                             loaderBackgroundBlur={0}
                             columns={[
                                 // { accessor: 'student_name', title: 'Student Name' },
-                                { accessor: 'student_name', title: 'Student Name',sortable:true },
+                                { accessor: 'student_name', title: 'Student Name', sortable: true },
                                 {
                                     accessor: 'phone_number',
                                     title: 'Contact',
@@ -734,8 +734,8 @@ const Contacts = () => {
                                 // { accessor: 'designation', title: 'Designation' },
 
                                 // ...(state?.role !== ROLE.BDE ? [
-                                { 
-                                    accessor: 'status', 
+                                {
+                                    accessor: 'status',
                                     title: 'Status',
                                     sortable: true,
                                     render: (row) => {
@@ -846,7 +846,7 @@ const Contacts = () => {
                             recordsPerPage={state.pageSize}
                             minHeight={200}
                             page={null}
-                            onPageChange={(p) => {}}
+                            onPageChange={(p) => { }}
                             withBorder={true}
                             sortStatus={sortStatus}
                             onSortStatusChange={setSortStatus}

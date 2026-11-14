@@ -139,7 +139,7 @@ const Calendar = () => {
 
             const userDetails: any = userResponse;
             console.log('✌️userDetails --->', userDetails);
-            const token = localStorage.getItem('crmToken');
+            const token = localStorage.getItem('kaheToken');
             setState({
                 userData: userDetails,
                 token,
@@ -597,7 +597,7 @@ const Calendar = () => {
                             recordsPerPage={null}
                             minHeight={200}
                             page={null}
-                            onPageChange={(p) => {}}
+                            onPageChange={(p) => { }}
                             withBorder={true}
                             sortStatus={sortStatus}
                             onSortStatusChange={setSortStatus}

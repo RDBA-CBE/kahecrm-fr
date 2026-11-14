@@ -74,8 +74,8 @@ const Contacts = () => {
         isFirstLoad: true,
     });
 
-      const [sortStatus, setSortStatus] = useState<DataTableSortStatus | null>(null);
-  
+    const [sortStatus, setSortStatus] = useState<DataTableSortStatus | null>(null);
+
 
     const debouncedSearch = useDebounce(state.search, 1000);
 
@@ -98,11 +98,11 @@ const Contacts = () => {
         dispatch(contactIndex(1));
 
         contactList(1);
-    }, [debouncedSearch, debouncedPhnoSearch, state.status, state.role, state.assigned_to, state.from_date, state.to_date,sortStatus]);
+    }, [debouncedSearch, debouncedPhnoSearch, state.status, state.role, state.assigned_to, state.from_date, state.to_date, sortStatus]);
 
     const bodyData = () => {
         const userString = localStorage.getItem('crmUser');
-        const token = localStorage.getItem('crmToken');
+        const token = localStorage.getItem('kaheToken');
         const user = userString ? JSON.parse(userString) : null;
         console.log('✌️user --->', user);
         let filter: any = {};
@@ -717,8 +717,8 @@ const Contacts = () => {
                                 // { accessor: 'created_by', title: 'Assign To',  },
                                 // { accessor: 'designation', title: 'Designation' },
 
-                                { 
-                                    accessor: 'status', 
+                                {
+                                    accessor: 'status',
                                     title: 'Status',
                                     sortable: true,
                                     render: (row) => {
@@ -826,7 +826,7 @@ const Contacts = () => {
                             recordsPerPage={state.pageSize}
                             minHeight={200}
                             page={null}
-                            onPageChange={(p) => {}}
+                            onPageChange={(p) => { }}
                             withBorder={true}
                             sortStatus={sortStatus}
                             onSortStatusChange={setSortStatus}

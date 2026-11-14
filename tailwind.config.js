@@ -16,6 +16,13 @@ module.exports = {
         },
         extend: {
             colors: {
+                brand: {
+                    DEFAULT: '#39854a',
+                    hover: '#2f6f3e',
+                    active: '#275b33',
+                    light: '#ecfdf5',
+                    'dark-light': 'rgba(57,133,74,.15)',
+                },
                 primary: {
                     DEFAULT: '#4361ee',
                     light: '#eaf1ff',

@@ -1,6 +1,11 @@
 import country from '@/pages/countries';
 import * as Yup from 'yup';
 
+export const loginValidation = Yup.object().shape({
+    email: Yup.string().required('Email is required').email('Enter a valid email address'),
+    password: Yup.string().required('Password is required'),
+});
+
 export const createLeadValidation = Yup.object().shape({
     name: Yup.string().required('Lead Name is required'),
     // lead_owner: Yup.string().required('Lead Manager is required'),

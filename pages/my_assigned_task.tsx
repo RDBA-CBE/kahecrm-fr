@@ -137,7 +137,7 @@ const Calendar = () => {
 
             const userDetails: any = userResponse;
             console.log('✌️userDetails --->', userDetails);
-            const token = localStorage.getItem('crmToken');
+            const token = localStorage.getItem('kaheToken');
             setState({
                 userData: userDetails,
                 token,
@@ -551,7 +551,7 @@ const Calendar = () => {
                                     accessor: 'task',
                                     title: 'Task Type',
                                     sortable: true,
-                                    render: (row:any) => {
+                                    render: (row: any) => {
                                         return <span className={`text-md rounded-full px-2 py-1 font-medium ${getBadgeColor(row?.task)}`}>{row?.task}</span>;
                                     },
                                 },
@@ -598,7 +598,7 @@ const Calendar = () => {
                             recordsPerPage={null}
                             minHeight={200}
                             page={null}
-                            onPageChange={(p) => {}}
+                            onPageChange={(p) => { }}
                             withBorder={true}
                             sortStatus={sortStatus}
                             onSortStatusChange={setSortStatus}
@@ -625,7 +625,7 @@ const Calendar = () => {
             <Modal
                 open={state.isOpenTaskView}
                 addHeader={'Task Details'}
-                
+
                 close={() => setState({ isOpenTaskView: false, taskDetails: {} })}
                 renderComponent={() => <TaskCard task={state.taskDetails} conversationList={state.conversationList} btn={false} />}
             />
