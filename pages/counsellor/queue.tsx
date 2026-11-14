@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -18,9 +18,15 @@ import {
     Building2,
     CalendarClock,
     FileText,
+    Eye,
 } from 'lucide-react';
 import Modal from '@/common_component/modal';
 import Pagination from '@/components/Pagination';
+import TextInput from '@/components/TextInput';
+import TextArea from '@/components/TextArea';
+import CustomSelect from '@/components/Select';
+import StudentDetailsModal from '@/components/KAHE/StudentDetailsModal';
+import { AdmissionContact } from '@/components/KAHE/AdmissionsContactsTable';
 import useDebounce from '@/common_component/useDebounce';
 import Models from '@/imports/models.import';
 import { useSetState } from '@/utils/functions.utils';
@@ -78,6 +84,10 @@ export default function CounsellorQueue() {
         consultationNotes: '',
         reviewSubmitting: false,
         reviewErrors: {} as Record<string, string>,
+
+        // Full Student Profile Drawer State
+        isProfileDrawerOpen: false,
+        profileDrawerContact: null as AdmissionContact | null,
 
         // Modal 2: Request Assignment to Telecaller (Image 5)
         isTransferModalOpen: false,
@@ -166,6 +176,31 @@ export default function CounsellorQueue() {
             admissionStage: item.current_stage || 'Applied',
             consultationNotes: item.notes || '',
             reviewErrors: {},
+        });
+    };
+
+    // Open Full Student Profile Drawer using existing StudentDetailsModal component
+    const handleOpenFullProfile = (item: QueueItem | null) => {
+        if (!item) return;
+        const mappedContact: AdmissionContact = {
+            id: item.enquiry_id || item.id,
+            enquiry_id: item.enquiry_id || item.id,
+            student_name: item.student_name,
+            phone_number: item.mobile || '+91 98421 98210',
+            parent_phone: '+91 98420 11990',
+            city: item.city || 'Coimbatore',
+            area: 'Eachanari',
+            qualification: item.qualification || '12th Standard',
+            target_course: item.target_programme || 'Computer Science & Engineering',
+            institution: item.institution || 'KAHE',
+            assigned_to: 'Dr. K. Swaminathan',
+            assigned_role: 'Senior Counsellor',
+            status: item.current_stage || item.status || 'Counselling',
+        };
+
+        setState({
+            profileDrawerContact: mappedContact,
+            isProfileDrawerOpen: true,
         });
     };
 
@@ -352,6 +387,37 @@ export default function CounsellorQueue() {
         }
     };
 
+    const sessionOutcomeOptions = [
+        { value: 'Campus Visit Scheduled', label: 'Campus Visit Scheduled' },
+        { value: 'Spot Provisional Admission Offered', label: 'Spot Provisional Admission Offered' },
+        { value: 'Document Verification Pending', label: 'Document Verification Pending' },
+        { value: 'Transferred to Telecaller for Routine Follow-up', label: 'Transferred to Telecaller for Routine Follow-up' },
+        { value: 'Student Seeking Other Courses', label: 'Student Seeking Other Courses' },
+        { value: 'Declined / Enrolled Elsewhere', label: 'Declined / Enrolled Elsewhere' },
+    ];
+
+    const telecallerOptions = [
+        { value: 'P. Malathi', label: 'P. Malathi (Senior Telecaller)' },
+        { value: 'K. Kavitha', label: 'K. Kavitha (Admissions Counsellor)' },
+        { value: 'R. Suresh', label: 'R. Suresh (Outreach Caller)' },
+        { value: 'Any Available', label: 'Central Admin Pool (Auto Assign)' },
+    ];
+
+    const targetProgrammeOptions = [
+        { value: 'Computer Science & Engineering', label: 'Computer Science & Engineering (KAHE)' },
+        { value: 'B.Sc Nursing', label: 'B.Sc Nursing (KAHE)' },
+        { value: 'Bachelor of Pharmacy', label: 'Bachelor of Pharmacy (KAHE)' },
+        { value: 'Artificial Intelligence & Data Science', label: 'Artificial Intelligence & Data Science (KAHE)' },
+        { value: 'Information Technology', label: 'Information Technology (KAHE)' },
+        { value: 'MCA / MBA', label: 'MCA / MBA (KAHE)' },
+    ];
+
+    const priorityOptions = [
+        { value: 'High', label: 'High' },
+        { value: 'Urgent', label: 'Urgent' },
+        { value: 'Normal', label: 'Normal' },
+    ];
+
     return (
         <div className="min-h-screen bg-[#f8fafc] dark:bg-[#060818] p-4 lg:p-6 space-y-5">
             <Head>
@@ -375,13 +441,13 @@ export default function CounsellorQueue() {
                 </div>
             )}
 
-            {/* Header Section (Matching Images 2, 3, 7) */}
+            {/* Header Section (Using Common CSS: page-title, page-subtitle, btn-action-solid, btn-action-outline) */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl lg:text-3xl font-extrabold text-[#111827] dark:text-white tracking-tight">
+                    <h1 className="page-title text-2xl lg:text-3xl font-extrabold text-[#111827] dark:text-white tracking-tight">
                         Senior Academic Counselling Queue
                     </h1>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="page-subtitle mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                         Conduct high-level academic consultations, verify eligibility cut-offs, and authorize spot provisional admissions.
                     </p>
                 </div>
@@ -390,16 +456,16 @@ export default function CounsellorQueue() {
                 <div className="flex items-center gap-3">
                     <Link
                         href="/counsellor/bulk_import"
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/60 shadow-sm transition active:scale-[0.98]"
+                        className="btn-action-outline"
                     >
-                        <UploadCloud className="w-4 h-4 text-gray-500" />
+                        <UploadCloud className="w-4 h-4 text-[#39854a]" />
                         <span>Import Contacts</span>
                     </Link>
 
                     <button
                         type="button"
                         onClick={() => setState({ isAddModalOpen: true })}
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm bg-[#39854a] text-white hover:bg-[#2e6d3c] shadow-sm transition active:scale-[0.98]"
+                        className="btn-action-solid"
                     >
                         <UserPlus className="w-4 h-4" />
                         <span>+ Add Contact</span>
@@ -407,8 +473,8 @@ export default function CounsellorQueue() {
                 </div>
             </div>
 
-            {/* Filter Tabs Bar (Matching Images 2, 3, 7) */}
-            <div className="bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-2 shadow-sm flex items-center gap-2 overflow-x-auto">
+            {/* Filter Tabs Bar (Using overview-panel) */}
+            <div className="overview-panel p-2 shadow-sm flex items-center gap-2 overflow-x-auto">
                 {[
                     { id: 'pending', label: 'Pending Enquiries', count: state.counts.pending },
                     { id: 'in_progress', label: 'In Progress Enquiries', count: state.counts.in_progress },
@@ -449,7 +515,7 @@ export default function CounsellorQueue() {
                         placeholder="Search student name, programme, city, enquiry ID..."
                         value={state.searchQuery}
                         onChange={(e) => setState({ searchQuery: e.target.value, page: 1 })}
-                        className="w-full text-xs pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#39854a]"
+                        className="form-input !pl-9"
                     />
                 </div>
 
@@ -458,7 +524,7 @@ export default function CounsellorQueue() {
                     <select
                         value={state.priorityFilter}
                         onChange={(e) => setState({ priorityFilter: e.target.value, page: 1 })}
-                        className="text-xs font-semibold px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#39854a]"
+                        className="form-select !w-auto text-xs font-semibold"
                     >
                         <option value="all">All Priorities</option>
                         <option value="High">High Priority</option>
@@ -468,31 +534,31 @@ export default function CounsellorQueue() {
                 </div>
             </div>
 
-            {/* Table Card (Matching Images 2, 3, 7) */}
-            <div className="bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden">
+            {/* Table Card (Using Common CSS: overview-panel, table-heading, badge-soft-*) */}
+            <div className="overview-panel p-0 overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs text-gray-600 dark:text-gray-400">
                         <thead className="bg-gray-50/75 dark:bg-gray-800/60 text-gray-700 dark:text-gray-300 uppercase text-[11px] font-extrabold tracking-wider border-b border-gray-200/80 dark:border-gray-800">
                             <tr>
-                                <th scope="col" className="px-5 py-3.5">
+                                <th scope="col" className="table-heading px-5 py-3.5">
                                     Student Name
                                 </th>
-                                <th scope="col" className="px-5 py-3.5">
+                                <th scope="col" className="table-heading px-5 py-3.5">
                                     Target Programme
                                 </th>
-                                <th scope="col" className="px-5 py-3.5">
+                                <th scope="col" className="table-heading px-5 py-3.5">
                                     {state.activeTab === 'direct' ? 'Enquiry Source' : 'Referred By'}
                                 </th>
-                                <th scope="col" className="px-5 py-3.5">
+                                <th scope="col" className="table-heading px-5 py-3.5">
                                     {state.activeTab === 'direct' ? 'Current Stage' : 'Referral Reason'}
                                 </th>
-                                <th scope="col" className="px-5 py-3.5">
+                                <th scope="col" className="table-heading px-5 py-3.5">
                                     Priority
                                 </th>
-                                <th scope="col" className="px-5 py-3.5">
+                                <th scope="col" className="table-heading px-5 py-3.5">
                                     Status
                                 </th>
-                                <th scope="col" className="px-5 py-3.5 text-right">
+                                <th scope="col" className="table-heading px-5 py-3.5 text-right">
                                     Actions
                                 </th>
                             </tr>
@@ -564,15 +630,15 @@ export default function CounsellorQueue() {
                                             </p>
                                         </td>
 
-                                        {/* Priority */}
+                                        {/* Priority (Using Common CSS badge-soft-*) */}
                                         <td className="px-5 py-4">
                                             {item.priority === 'High' && (
-                                                <span className="px-2.5 py-1 text-xs font-bold rounded-md bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900">
+                                                <span className="badge-soft-warning font-bold">
                                                     High
                                                 </span>
                                             )}
                                             {item.priority === 'Urgent' && (
-                                                <span className="px-2.5 py-1 text-xs font-bold rounded-md bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900">
+                                                <span className="badge-soft-danger font-bold">
                                                     Urgent
                                                 </span>
                                             )}
@@ -586,7 +652,7 @@ export default function CounsellorQueue() {
                                         {/* Status */}
                                         <td className="px-5 py-4">
                                             {item.status === 'Pending' && (
-                                                <span className="px-2.5 py-1 text-xs font-bold rounded-md bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900">
+                                                <span className="badge-soft-warning font-bold">
                                                     Pending
                                                 </span>
                                             )}
@@ -596,7 +662,7 @@ export default function CounsellorQueue() {
                                                 </span>
                                             )}
                                             {item.status === 'Completed' && (
-                                                <span className="px-2.5 py-1 text-xs font-bold rounded-md bg-emerald-50 text-[#39854a] border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900">
+                                                <span className="badge-soft-success font-bold">
                                                     Completed
                                                 </span>
                                             )}
@@ -639,7 +705,7 @@ export default function CounsellorQueue() {
                                                 <button
                                                     type="button"
                                                     onClick={() => openReviewModal(item)}
-                                                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#39854a] hover:bg-[#2e6d3c] text-white shadow-sm flex items-center gap-1 transition active:scale-95"
+                                                    className="btn-action-solid !py-1.5 !px-3 !text-xs flex items-center gap-1 active:scale-95"
                                                 >
                                                     <span>Counselling</span>
                                                     <ArrowRight className="w-3.5 h-3.5" />
@@ -671,7 +737,7 @@ export default function CounsellorQueue() {
             </div>
 
             {/* ========================================================================= */}
-            {/* MODAL 1: COUNSELLING REVIEW MODAL (Matching Image 4) */}
+            {/* MODAL 1: COUNSELLING REVIEW MODAL (Matching Image 4, using CustomSelect, TextArea) */}
             {/* ========================================================================= */}
             <Modal
                 show={state.isReviewModalOpen}
@@ -737,7 +803,7 @@ export default function CounsellorQueue() {
                             <span>
                                 Referral from Telecaller {state.selectedCandidate?.referred_by || 'P. Malathi'}
                             </span>
-                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-200/70 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                            <span className="badge-soft-warning text-[10px]">
                                 Priority: {state.selectedCandidate?.priority || 'High'}
                             </span>
                         </div>
@@ -746,31 +812,25 @@ export default function CounsellorQueue() {
                         </p>
                     </div>
 
-                    {/* Form Field 1: Session Outcome Decision */}
+                    {/* Form Field 1: Session Outcome Decision using CustomSelect component */}
                     <div>
-                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                            Session Outcome Decision <span className="text-rose-500">*</span>
-                        </label>
-                        <select
-                            value={state.reviewOutcome}
-                            onChange={(e) => setState({ reviewOutcome: e.target.value })}
-                            className="w-full text-xs font-semibold px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#39854a]"
-                        >
-                            <option value="Campus Visit Scheduled">Campus Visit Scheduled</option>
-                            <option value="Spot Provisional Admission Offered">Spot Provisional Admission Offered</option>
-                            <option value="Document Verification Pending">Document Verification Pending</option>
-                            <option value="Transferred to Telecaller for Routine Follow-up">Transferred to Telecaller for Routine Follow-up</option>
-                            <option value="Student Seeking Other Courses">Student Seeking Other Courses</option>
-                            <option value="Declined / Enrolled Elsewhere">Declined / Enrolled Elsewhere</option>
-                        </select>
-                        {state.reviewErrors.reviewOutcome && (
-                            <p className="text-xs text-rose-500 mt-1 font-semibold">{state.reviewErrors.reviewOutcome}</p>
-                        )}
+                        <CustomSelect
+                            title="Session Outcome Decision"
+                            required
+                            options={sessionOutcomeOptions}
+                            value={
+                                state.reviewOutcome
+                                    ? { value: state.reviewOutcome, label: state.reviewOutcome }
+                                    : null
+                            }
+                            onChange={(opt: any) => setState({ reviewOutcome: opt?.value || '' })}
+                            error={state.reviewErrors.reviewOutcome}
+                        />
                     </div>
 
                     {/* Form Field 2: Update Candidate Admission Stage Pills */}
                     <div>
-                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                             Update Candidate Admission Stage
                         </label>
                         <div className="flex flex-wrap gap-2">
@@ -793,37 +853,35 @@ export default function CounsellorQueue() {
                         </div>
                     </div>
 
-                    {/* Form Field 3: Senior Counsellor Consultation Notes */}
+                    {/* Form Field 3: Senior Counsellor Consultation Notes using TextArea */}
                     <div>
-                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                            Senior Counsellor Consultation Notes <span className="text-rose-500">*</span>
-                        </label>
-                        <textarea
+                        <TextArea
+                            title="Senior Counsellor Consultation Notes"
+                            required
                             rows={3}
                             value={state.consultationNotes}
-                            onChange={(e) => setState({ consultationNotes: e.target.value })}
+                            onChange={(val: string) => setState({ consultationNotes: val })}
                             placeholder="Enter detailed remarks on eligibility evaluation, fee concession agreed, parent interaction, next steps..."
-                            className="w-full text-xs px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#39854a]"
+                            error={state.reviewErrors.consultationNotes}
                         />
-                        {state.reviewErrors.consultationNotes && (
-                            <p className="text-xs text-rose-500 mt-1 font-semibold">{state.reviewErrors.consultationNotes}</p>
-                        )}
                     </div>
 
                     {/* Modal Footer Actions */}
                     <div className="pt-3 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between">
-                        <Link
-                            href="/counsellor/student_profiles"
-                            className="text-xs font-bold text-[#39854a] hover:underline flex items-center gap-1"
+                        <button
+                            type="button"
+                            onClick={() => handleOpenFullProfile(state.selectedCandidate)}
+                            className="text-xs font-bold text-[#39854a] hover:underline flex items-center gap-1.5"
                         >
+                            <Eye className="w-3.5 h-3.5" />
                             <span>View Full Student Profile →</span>
-                        </Link>
+                        </button>
 
                         <div className="flex items-center gap-2">
                             <button
                                 type="button"
                                 onClick={() => setState({ isReviewModalOpen: false })}
-                                className="px-4 py-2 text-xs font-bold rounded-xl border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                                className="btn-action-outline !py-2 !px-4 !text-xs"
                             >
                                 Cancel
                             </button>
@@ -831,7 +889,7 @@ export default function CounsellorQueue() {
                                 type="button"
                                 disabled={state.reviewSubmitting}
                                 onClick={handleFinalizeReview}
-                                className="px-4 py-2 text-xs font-bold rounded-xl bg-[#39854a] hover:bg-[#2e6d3c] text-white shadow-sm flex items-center gap-1.5 transition active:scale-[0.98] disabled:opacity-50"
+                                className="btn-action-solid !py-2 !px-4 !text-xs disabled:opacity-50"
                             >
                                 <Send className="w-3.5 h-3.5" />
                                 <span>{state.reviewSubmitting ? 'Finalizing...' : 'Finalize Counselling Session'}</span>
@@ -842,7 +900,7 @@ export default function CounsellorQueue() {
             </Modal>
 
             {/* ========================================================================= */}
-            {/* MODAL 2: REQUEST ASSIGNMENT TO TELECALLER (Matching Image 5) */}
+            {/* MODAL 2: REQUEST ASSIGNMENT TO TELECALLER (Matching Image 5, using CustomSelect, TextArea) */}
             {/* ========================================================================= */}
             <Modal
                 show={state.isTransferModalOpen}
@@ -866,38 +924,30 @@ export default function CounsellorQueue() {
                         </div>
                     </div>
 
-                    {/* Dropdown: Preferred Telecaller */}
+                    {/* Dropdown: Preferred Telecaller using CustomSelect */}
                     <div>
-                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                            Preferred Telecaller (Optional)
-                        </label>
-                        <select
-                            value={state.selectedTelecaller}
-                            onChange={(e) => setState({ selectedTelecaller: e.target.value })}
-                            className="w-full text-xs font-semibold px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600"
-                        >
-                            <option value="P. Malathi">P. Malathi (Senior Telecaller)</option>
-                            <option value="K. Kavitha">K. Kavitha (Admissions Counsellor)</option>
-                            <option value="R. Suresh">R. Suresh (Outreach Caller)</option>
-                            <option value="Any Available">Central Admin Pool (Auto Assign)</option>
-                        </select>
+                        <CustomSelect
+                            title="Preferred Telecaller (Optional)"
+                            options={telecallerOptions}
+                            value={{
+                                value: state.selectedTelecaller,
+                                label: state.selectedTelecaller,
+                            }}
+                            onChange={(opt: any) => setState({ selectedTelecaller: opt?.value || 'P. Malathi' })}
+                        />
                     </div>
 
-                    {/* Reason Textarea */}
+                    {/* Reason Textarea using TextArea */}
                     <div>
-                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                            Reason for Assignment Request <span className="text-rose-500">*</span>
-                        </label>
-                        <textarea
+                        <TextArea
+                            title="Reason for Assignment Request"
+                            required
                             rows={3}
                             value={state.transferReason}
-                            onChange={(e) => setState({ transferReason: e.target.value })}
+                            onChange={(val: string) => setState({ transferReason: val })}
                             placeholder="Specify reasons for assigning back (e.g., student requires document collection assistance, routine payment follow-up, out of state documentation)..."
-                            className="w-full text-xs px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                            error={state.transferErrors.transferReason}
                         />
-                        {state.transferErrors.transferReason && (
-                            <p className="text-xs text-rose-500 mt-1 font-semibold">{state.transferErrors.transferReason}</p>
-                        )}
                     </div>
 
                     {/* Actions */}
@@ -905,7 +955,7 @@ export default function CounsellorQueue() {
                         <button
                             type="button"
                             onClick={() => setState({ isTransferModalOpen: false })}
-                            className="px-4 py-2 text-xs font-bold rounded-xl border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 transition"
+                            className="btn-action-outline !py-2 !px-4 !text-xs"
                         >
                             Cancel
                         </button>
@@ -913,7 +963,7 @@ export default function CounsellorQueue() {
                             type="button"
                             disabled={state.transferSubmitting}
                             onClick={handleSubmitTransfer}
-                            className="px-4 py-2 text-xs font-bold rounded-xl bg-purple-700 hover:bg-purple-800 text-white shadow-sm transition disabled:opacity-50"
+                            className="rounded-xl bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 text-xs font-bold shadow-sm transition disabled:opacity-50"
                         >
                             {state.transferSubmitting ? 'Submitting...' : 'Submit Request to Admin'}
                         </button>
@@ -922,7 +972,7 @@ export default function CounsellorQueue() {
             </Modal>
 
             {/* ========================================================================= */}
-            {/* MODAL 3: SCHEDULE CONSULTATION FOLLOW-UP (Matching Image 6) */}
+            {/* MODAL 3: SCHEDULE CONSULTATION FOLLOW-UP (Matching Image 6, using TextInput, TextArea) */}
             {/* ========================================================================= */}
             <Modal
                 show={state.isScheduleModalOpen}
@@ -931,59 +981,42 @@ export default function CounsellorQueue() {
             >
                 <div className="space-y-4 pt-2">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                                Follow-up Date <span className="text-rose-500">*</span>
-                            </label>
-                            <input
-                                type="date"
-                                value={state.scheduleDate}
-                                onChange={(e) => setState({ scheduleDate: e.target.value })}
-                                className="w-full text-xs px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#39854a]"
-                            />
-                            {state.scheduleErrors.scheduleDate && (
-                                <p className="text-xs text-rose-500 mt-1">{state.scheduleErrors.scheduleDate}</p>
-                            )}
-                        </div>
+                        <TextInput
+                            title="Follow-up Date"
+                            required
+                            type="date"
+                            value={state.scheduleDate}
+                            onChange={(val: string) => setState({ scheduleDate: val })}
+                            error={state.scheduleErrors.scheduleDate}
+                        />
 
-                        <div>
-                            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                                Scheduled Time <span className="text-rose-500">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="11:00 AM"
-                                value={state.scheduleTime}
-                                onChange={(e) => setState({ scheduleTime: e.target.value })}
-                                className="w-full text-xs px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#39854a]"
-                            />
-                            {state.scheduleErrors.scheduleTime && (
-                                <p className="text-xs text-rose-500 mt-1">{state.scheduleErrors.scheduleTime}</p>
-                            )}
-                        </div>
+                        <TextInput
+                            title="Scheduled Time"
+                            required
+                            placeholder="11:00 AM"
+                            value={state.scheduleTime}
+                            onChange={(val: string) => setState({ scheduleTime: val })}
+                            error={state.scheduleErrors.scheduleTime}
+                        />
                     </div>
 
                     <div>
-                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                            Agenda / Consultation Notes <span className="text-rose-500">*</span>
-                        </label>
-                        <textarea
+                        <TextArea
+                            title="Agenda / Consultation Notes"
+                            required
                             rows={3}
                             value={state.scheduleAgenda}
-                            onChange={(e) => setState({ scheduleAgenda: e.target.value })}
+                            onChange={(val: string) => setState({ scheduleAgenda: val })}
                             placeholder="e.g., Campus visit scheduled with parents at Eachanari admissions cell to verify original certificates..."
-                            className="w-full text-xs px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#39854a]"
+                            error={state.scheduleErrors.scheduleAgenda}
                         />
-                        {state.scheduleErrors.scheduleAgenda && (
-                            <p className="text-xs text-rose-500 mt-1 font-semibold">{state.scheduleErrors.scheduleAgenda}</p>
-                        )}
                     </div>
 
                     <div className="pt-3 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-2">
                         <button
                             type="button"
                             onClick={() => setState({ isScheduleModalOpen: false })}
-                            className="px-4 py-2 text-xs font-bold rounded-xl border border-gray-300 text-gray-700 dark:text-gray-300 hover:bg-gray-100 transition"
+                            className="btn-action-outline !py-2 !px-4 !text-xs"
                         >
                             Cancel
                         </button>
@@ -991,7 +1024,7 @@ export default function CounsellorQueue() {
                             type="button"
                             disabled={state.scheduleSubmitting}
                             onClick={handleSubmitSchedule}
-                            className="px-4 py-2 text-xs font-bold rounded-xl bg-[#39854a] hover:bg-[#2e6d3c] text-white shadow-sm transition disabled:opacity-50 flex items-center gap-1.5"
+                            className="btn-action-solid !py-2 !px-4 !text-xs flex items-center gap-1.5 disabled:opacity-50"
                         >
                             <Check className="w-3.5 h-3.5" />
                             <span>{state.scheduleSubmitting ? 'Confirming...' : 'Confirm Follow-up'}</span>
@@ -1001,7 +1034,7 @@ export default function CounsellorQueue() {
             </Modal>
 
             {/* ========================================================================= */}
-            {/* MODAL 4: ADD CONTACT MODAL */}
+            {/* MODAL 4: ADD CONTACT MODAL (Using TextInput, TextArea, CustomSelect) */}
             {/* ========================================================================= */}
             <Modal
                 show={state.isAddModalOpen}
@@ -1009,118 +1042,84 @@ export default function CounsellorQueue() {
                 title="Add New Enquiry to Counselling Desk"
             >
                 <div className="space-y-4 pt-2">
-                    <div>
-                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                            Student Full Name <span className="text-rose-500">*</span>
-                        </label>
-                        <input
-                            type="text"
-                            placeholder="e.g. S. Gokul"
-                            value={state.addForm.student_name}
-                            onChange={(e) =>
-                                setState({ addForm: { ...state.addForm, student_name: e.target.value } })
+                    <TextInput
+                        title="Student Full Name"
+                        required
+                        placeholder="e.g. S. Gokul"
+                        value={state.addForm.student_name}
+                        onChange={(val: string) =>
+                            setState({ addForm: { ...state.addForm, student_name: val } })
+                        }
+                        error={state.addErrors.student_name}
+                    />
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <TextInput
+                            title="Student Mobile"
+                            required
+                            placeholder="+91 98421 XXXXX"
+                            value={state.addForm.mobile}
+                            onChange={(val: string) =>
+                                setState({ addForm: { ...state.addForm, mobile: val } })
                             }
-                            className="w-full text-xs px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#39854a]"
+                            error={state.addErrors.mobile}
                         />
-                        {state.addErrors.student_name && (
-                            <p className="text-xs text-rose-500 mt-1">{state.addErrors.student_name}</p>
-                        )}
+
+                        <TextInput
+                            title="City / Location"
+                            placeholder="Coimbatore"
+                            value={state.addForm.city}
+                            onChange={(val: string) =>
+                                setState({ addForm: { ...state.addForm, city: val } })
+                            }
+                        />
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                                Student Mobile <span className="text-rose-500">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="+91 98421 XXXXX"
-                                value={state.addForm.mobile}
-                                onChange={(e) =>
-                                    setState({ addForm: { ...state.addForm, mobile: e.target.value } })
-                                }
-                                className="w-full text-xs px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#39854a]"
-                            />
-                            {state.addErrors.mobile && (
-                                <p className="text-xs text-rose-500 mt-1">{state.addErrors.mobile}</p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                                City / Location
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="Coimbatore"
-                                value={state.addForm.city}
-                                onChange={(e) =>
-                                    setState({ addForm: { ...state.addForm, city: e.target.value } })
-                                }
-                                className="w-full text-xs px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                                Target Programme
-                            </label>
-                            <select
-                                value={state.addForm.target_programme}
-                                onChange={(e) =>
-                                    setState({ addForm: { ...state.addForm, target_programme: e.target.value } })
-                                }
-                                className="w-full text-xs px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200"
-                            >
-                                <option value="Computer Science & Engineering">Computer Science & Engineering</option>
-                                <option value="B.Sc Nursing">B.Sc Nursing</option>
-                                <option value="Bachelor of Pharmacy">Bachelor of Pharmacy</option>
-                                <option value="Artificial Intelligence & Data Science">Artificial Intelligence & Data Science</option>
-                                <option value="Information Technology">Information Technology</option>
-                                <option value="MCA / MBA">MCA / MBA</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                                Priority Level
-                            </label>
-                            <select
-                                value={state.addForm.priority}
-                                onChange={(e) =>
-                                    setState({ addForm: { ...state.addForm, priority: e.target.value } })
-                                }
-                                className="w-full text-xs px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200"
-                            >
-                                <option value="High">High</option>
-                                <option value="Urgent">Urgent</option>
-                                <option value="Normal">Normal</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                            Consultation Remarks
-                        </label>
-                        <textarea
-                            rows={2}
-                            placeholder="Direct student interest, cutoff marks, concession requests..."
-                            value={state.addForm.notes}
-                            onChange={(e) =>
-                                setState({ addForm: { ...state.addForm, notes: e.target.value } })
+                        <CustomSelect
+                            title="Target Programme"
+                            options={targetProgrammeOptions}
+                            value={{
+                                value: state.addForm.target_programme,
+                                label: state.addForm.target_programme,
+                            }}
+                            onChange={(opt: any) =>
+                                setState({
+                                    addForm: { ...state.addForm, target_programme: opt?.value },
+                                })
                             }
-                            className="w-full text-xs px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200"
+                        />
+
+                        <CustomSelect
+                            title="Priority Level"
+                            options={priorityOptions}
+                            value={{
+                                value: state.addForm.priority,
+                                label: state.addForm.priority,
+                            }}
+                            onChange={(opt: any) =>
+                                setState({
+                                    addForm: { ...state.addForm, priority: opt?.value },
+                                })
+                            }
                         />
                     </div>
+
+                    <TextArea
+                        title="Consultation Remarks"
+                        rows={2}
+                        placeholder="Direct student interest, cutoff marks, concession requests..."
+                        value={state.addForm.notes}
+                        onChange={(val: string) =>
+                            setState({ addForm: { ...state.addForm, notes: val } })
+                        }
+                    />
 
                     <div className="pt-3 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-2">
                         <button
                             type="button"
                             onClick={() => setState({ isAddModalOpen: false })}
-                            className="px-4 py-2 text-xs font-bold rounded-xl border border-gray-300 text-gray-700 dark:text-gray-300 hover:bg-gray-100 transition"
+                            className="btn-action-outline !py-2 !px-4 !text-xs"
                         >
                             Cancel
                         </button>
@@ -1128,13 +1127,26 @@ export default function CounsellorQueue() {
                             type="button"
                             disabled={state.addSubmitting}
                             onClick={handleAddContactSubmit}
-                            className="px-4 py-2 text-xs font-bold rounded-xl bg-[#39854a] text-white hover:bg-[#2e6d3c] transition disabled:opacity-50"
+                            className="btn-action-solid !py-2 !px-4 !text-xs disabled:opacity-50"
                         >
                             {state.addSubmitting ? 'Saving...' : 'Add to Counselling Queue'}
                         </button>
                     </div>
                 </div>
             </Modal>
+
+            {/* ========================================================================= */}
+            {/* FULL STUDENT PROFILE DRAWER (Reusing existing StudentDetailsModal component) */}
+            {/* ========================================================================= */}
+            {state.isProfileDrawerOpen && state.profileDrawerContact && (
+                <StudentDetailsModal
+                    isOpen={state.isProfileDrawerOpen}
+                    contact={state.profileDrawerContact}
+                    onClose={() => setState({ isProfileDrawerOpen: false, profileDrawerContact: null })}
+                    onLogCall={() => { }}
+                    onWhatsApp={() => { }}
+                />
+            )}
         </div>
     );
 }
