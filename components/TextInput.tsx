@@ -6,7 +6,7 @@ const TextInput = (props: any) => {
     return (
         <div className="w-full">
             {title && (
-                <label className="block text-sm font-bold text-gray-700">
+                <label className="mb-1 block font-bold text-gray-700 dark:text-gray-300">
                     {title} {required && <span className="text-red-500">*</span>}
                 </label>
             )}
@@ -16,12 +16,16 @@ const TextInput = (props: any) => {
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
                 name={name}
-                className={`form-input ${className} ${error ? 'border-red-500' : ''}`} 
                 required={required}
+                className={`w-full rounded-xl border p-2.5 text-xs font-semibold text-gray-800 focus:outline-none dark:text-white ${
+                    error
+                        ? 'border-red-500 bg-white focus:border-red-500 dark:bg-gray-800'
+                        : 'border-gray-200 bg-white focus:border-[#39854a] dark:border-gray-700 dark:bg-gray-800'
+                } ${className ?? ''}`}
                 {...rest}
             />
             {error && (
-                <p className="mt-2 text-sm text-red-600" id={`${name}-error`}>
+                <p className="mt-1.5 text-xs text-red-600" id={`${name}-error`}>
                     {error}
                 </p>
             )}

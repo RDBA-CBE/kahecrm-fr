@@ -73,7 +73,7 @@ const Calendar = () => {
         if (state.assigned_to_filter) {
             body.userId = state.assigned_to_filter?.value;
             body.my_tasks = 'Yes';
-        body.exclude_user=user?.id
+            body.exclude_user = user?.id
 
         } else {
             body.team = 'Yes';
@@ -149,7 +149,7 @@ const Calendar = () => {
 
             const userDetails: any = userResponse;
             console.log('✌️userDetails --->', userDetails);
-            const token = localStorage.getItem('crmToken');
+            const token = localStorage.getItem('kaheToken');
             setState({
                 userData: userDetails,
                 token,
@@ -640,7 +640,7 @@ const Calendar = () => {
                             recordsPerPage={null}
                             minHeight={200}
                             page={null}
-                            onPageChange={(p) => {}}
+                            onPageChange={(p) => { }}
                             withBorder={true}
                             sortStatus={sortStatus}
                             onSortStatusChange={setSortStatus}

@@ -39,8 +39,6 @@
 /* form element*/
 @import './form-elements.css';
 
-@import "./common.css";
-
 /* Select2*/
 @import './select2.css';
 @tailwind base;
@@ -89,26 +87,54 @@
 
     .sidebar .nav-item > button,
     .sidebar .nav-item > a {
-        @apply mb-1 flex w-full items-center justify-between overflow-hidden whitespace-nowrap rounded-md p-2.5 text-[#506690] hover:bg-[#000]/[0.08] hover:text-black dark:hover:bg-[#181f32] dark:hover:text-white-dark;
+        @apply mb-1 flex w-full items-center justify-between overflow-hidden whitespace-nowrap rounded-md p-2.5 text-[#506690] hover:bg-[#39854a]/10 hover:text-[#39854a] dark:hover:bg-[#181f32] dark:hover:text-[#39854a];
     }
-    .sidebar .nav-item > button.active,
+    .sidebar .nav-item > button:hover:not(.active),
+    .sidebar .nav-item > a:hover:not(.active) {
+        @apply !text-[#39854a] bg-[#39854a]/10;
+    }
+    .sidebar .nav-item > button:hover:not(.active) span,
+    .sidebar .nav-item > a:hover:not(.active) span,
+    .sidebar .nav-item > button:hover:not(.active) svg,
+    .sidebar .nav-item > a:hover:not(.active) svg {
+        @apply !text-[#39854a];
+    }
+    /* Only leaf page links (a.active) get solid green background with white text & shadow */
     .sidebar .nav-item > a.active {
-        @apply bg-[#000]/[0.08] text-black dark:bg-[#181f32] dark:text-white-dark;
+        @apply !bg-[#39854a] !text-white shadow-[0_4px_12px_rgba(57,133,74,0.35)];
     }
 
-    .sidebar .nav-item > button.active > div > span,
-    .sidebar .nav-item > a.active > div > span {
-        @apply dark:!text-white-dark;
+    .sidebar .nav-item > a.active > div > span,
+    .sidebar .nav-item > a.active span {
+        @apply !text-white;
+    }
+
+    .sidebar .nav-item a.active div:first-child svg,
+    .sidebar .nav-item a.active svg {
+        @apply !text-white;
+    }
+
+    /* Dropdown toggle button (button.active) when open: transparent bg, green text and icon, NO green solid bg */
+    .sidebar .nav-item > button.active {
+        @apply !bg-transparent text-[#39854a] shadow-none hover:!bg-[#39854a]/10;
+    }
+    .sidebar .nav-item > button.active span,
+    .sidebar .nav-item > button.active div span {
+        @apply !text-[#39854a] font-semibold;
+    }
+    .sidebar .nav-item > button.active svg,
+    .sidebar .nav-item > button.active div svg {
+        @apply !text-[#39854a];
     }
 
     .sidebar ul.sub-menu li button,
     .sidebar ul.sub-menu li a {
         @apply flex w-full items-center px-9 py-2.5 before:h-0.5 before:w-2 before:rounded before:bg-gray-300 hover:bg-gray-100
-hover:text-primary hover:before:!bg-primary ltr:before:mr-2 rtl:before:ml-2 dark:before:bg-gray-500 dark:hover:bg-gray-900 dark:hover:text-primary;
+hover:text-[#39854a] hover:before:!bg-[#39854a] ltr:before:mr-2 rtl:before:ml-2 dark:before:bg-gray-500 dark:hover:bg-gray-900 dark:hover:text-[#39854a];
     }
     .sidebar ul.sub-menu li button.active,
     .sidebar ul.sub-menu li a.active {
-        @apply text-primary before:bg-primary;
+        @apply !text-[#39854a] font-bold before:!bg-[#39854a];
     }
 
     .sidebar .nav-item a div:first-child svg,
@@ -285,6 +311,19 @@ hover:text-primary hover:before:!bg-primary ltr:before:mr-2 rtl:before:ml-2 dark
         @apply border-primary text-primary shadow-none hover:bg-primary hover:text-white;
     }
 
+    .btn-brand {
+        @apply border-[#39854a] bg-[#39854a] text-white shadow-[#39854a]/40 hover:bg-[#2f6f3e] hover:border-[#2f6f3e];
+    }
+    .btn-outline-brand {
+        @apply border-[#39854a] text-[#39854a] shadow-none hover:bg-[#39854a] hover:text-white;
+    }
+    .btn-action-outline {
+        @apply inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs !font-bold text-gray-800 shadow-sm transition hover:bg-gray-50 sm:text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700/60;
+    }
+    .btn-action-solid {
+        @apply inline-flex items-center gap-2 rounded-xl bg-[#39854a] px-4 py-2.5 text-xs !font-bold text-white shadow-sm transition hover:bg-[#2f6f3e] sm:text-sm;
+    }
+
     .btn-secondary {
         @apply border-secondary bg-secondary text-white shadow-secondary/60;
     }
@@ -429,7 +468,7 @@ hover:text-primary hover:before:!bg-primary ltr:before:mr-2 rtl:before:ml-2 dark
     /* checkbox & radio */
     .form-radio,
     .form-checkbox {
-        @apply h-5 w-5 cursor-pointer rounded border-2 border-white-light bg-transparent text-primary !shadow-none !outline-none !ring-0 !ring-offset-0 checked:bg-[length:90%_90%] disabled:cursor-not-allowed disabled:bg-[#eee] ltr:mr-1.5 rtl:ml-1.5
+        @apply h-5 w-5 cursor-pointer rounded border-2 border-white-light bg-transparent text-[#39854a] !shadow-none !outline-none !ring-0 !ring-offset-0 checked:bg-[length:90%_90%] disabled:cursor-not-allowed disabled:bg-[#eee] ltr:mr-1.5 rtl:ml-1.5
       dark:border-[#253b5c] dark:checked:border-transparent dark:disabled:bg-[#1b2e4b];
     }
 
@@ -681,13 +720,13 @@ pre.hljs {
     @apply text-white hover:text-dark-light focus:shadow-none;
 }
 
-.swal2-container .swal2-popup.swal2-toast {
-    @apply bg-dark px-5 py-2.5;
+.swal2-container .swal2-popup.swal2-toast:not([class*='color-']) {
+    @apply bg-white text-gray-800 dark:bg-[#0e1726] dark:text-gray-100 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 px-4 py-3;
 }
 
-.swal2-popup.swal2-toast .swal2-title,
-.swal2-container .swal2-popup.swal2-toast .swal2-html-container {
-    @apply text-white;
+.swal2-popup.swal2-toast:not([class*='color-']) .swal2-title,
+.swal2-container .swal2-popup.swal2-toast:not([class*='color-']) .swal2-html-container {
+    @apply text-gray-900 dark:text-white text-xs sm:text-sm font-semibold m-0 p-0;
 }
 .swal2-container .swal2-popup.swal2-toast.color-primary {
     @apply bg-primary;

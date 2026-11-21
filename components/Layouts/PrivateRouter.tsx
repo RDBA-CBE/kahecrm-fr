@@ -3,22 +3,25 @@ import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 
 const PrivateRouter = (WrappedComponent: any) => {
-    return (props: any) => {
+    const Component = (props: any) => {
         const router = useRouter();
-        const [loading, setLoading] = useState(true);
+        const [isAuthenticated, setIsAuthenticated] = useState(false);
+        const [isLoading, setIsLoading] = useState(true);
 
         useEffect(() => {
-            const token = localStorage.getItem('crmToken');
+            const token =
+                localStorage.getItem('kaheToken')
+
 
             if (!token) {
-                const baseUrl = `${window.location.origin}/auth/signin`;
-                router.replace(baseUrl);
+                router.replace('/auth/signin');
             } else {
-                setLoading(false);
+                setIsAuthenticated(true);
+                setIsLoading(false);
             }
         }, [router]);
 
-        if (loading) {
+        if (isLoading && !isAuthenticated) {
             return (
                 <div>
                     <CommonLoader />
@@ -28,6 +31,12 @@ const PrivateRouter = (WrappedComponent: any) => {
 
         return <WrappedComponent {...props} />;
     };
+
+    if (WrappedComponent?.getLayout) {
+        Component.getLayout = WrappedComponent.getLayout;
+    }
+
+    return Component;
 };
 
 export default PrivateRouter;

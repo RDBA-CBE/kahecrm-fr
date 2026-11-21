@@ -113,13 +113,25 @@ export const Success = (message: string) => {
         toast: true,
         position: 'top',
         showConfirmButton: false,
-        timer: 3000,
+        timer: 3500,
+        timerProgressBar: true,
+        showCloseButton: true,
+        customClass: {
+            container: 'kahe-swal-toast-container',
+            popup: 'kahe-toast-popup kahe-toast-success',
+            title: 'kahe-toast-title',
+            closeButton: 'kahe-toast-close',
+            timerProgressBar: 'kahe-toast-progress-success',
+        },
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer);
+            toast.addEventListener('mouseleave', Swal.resumeTimer);
+        },
     });
 
     toast.fire({
         icon: 'success',
         title: message,
-        padding: '10px 20px',
     });
 };
 
@@ -128,13 +140,25 @@ export const Failure = (message: string) => {
         toast: true,
         position: 'top',
         showConfirmButton: false,
-        timer: 3000,
+        timer: 4000,
+        timerProgressBar: true,
+        showCloseButton: true,
+        customClass: {
+            container: 'kahe-swal-toast-container',
+            popup: 'kahe-toast-popup kahe-toast-error',
+            title: 'kahe-toast-title',
+            closeButton: 'kahe-toast-close',
+            timerProgressBar: 'kahe-toast-progress-error',
+        },
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer);
+            toast.addEventListener('mouseleave', Swal.resumeTimer);
+        },
     });
 
     toast.fire({
         icon: 'error',
         title: message,
-        padding: '10px 20px',
     });
 };
 

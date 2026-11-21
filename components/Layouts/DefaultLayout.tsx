@@ -12,7 +12,7 @@ import { useRouter } from 'next/router';
 
 const DefaultLayout = ({ children }: PropsWithChildren) => {
     const router = useRouter();
-    const [showLoader, setShowLoader] = useState(true);
+    const [showLoader, setShowLoader] = useState(false);
     const [showTopButton, setShowTopButton] = useState(false);
     const themeConfig = useSelector((state: IRootState) => state.themeConfig);
     const [animation, setAnimation] = useState(themeConfig.animation);
@@ -34,29 +34,26 @@ const DefaultLayout = ({ children }: PropsWithChildren) => {
     useEffect(() => {
         window.addEventListener('scroll', onScrollHandler);
 
-        const screenLoader = document.getElementsByClassName('screen_loader');
-        if (screenLoader?.length) {
-            setTimeout(() => {
-                setShowLoader(false);
-            }, 200);
-        }
-
-        router.events.on('beforeHistoryChange', () => {
+        const handleHistoryChange = () => {
             setAnimation(themeConfig.animation);
-        });
-        return () => {
-            window.removeEventListener('onscroll', onScrollHandler);
         };
-    });
+        router.events.on('beforeHistoryChange', handleHistoryChange);
+
+        return () => {
+            window.removeEventListener('scroll', onScrollHandler);
+            router.events.off('beforeHistoryChange', handleHistoryChange);
+        };
+    }, []);
 
     useEffect(() => {
         setAnimation(themeConfig.animation);
     }, [themeConfig.animation]);
 
     useEffect(() => {
-        setTimeout(() => {
+        const timer = setTimeout(() => {
             setAnimation('');
         }, 1100);
+        return () => clearTimeout(timer);
     }, [router.asPath]);
 
     return (
@@ -64,7 +61,7 @@ const DefaultLayout = ({ children }: PropsWithChildren) => {
             {/* BEGIN MAIN CONTAINER */}
             <div className="relative">
                 {/* screen loader  */}
-               
+
                 {showLoader && (
                     <div className="screen_loader animate__animated fixed inset-0 z-[60] grid place-content-center bg-[#fafafa] dark:bg-[#060818]">
                         <svg width="64" height="64" viewBox="0 0 135 135" xmlns="http://www.w3.org/2000/svg" fill="#4361ee">
@@ -99,7 +96,7 @@ const DefaultLayout = ({ children }: PropsWithChildren) => {
                     )}
                 </div>
                 {/* BEGIN APP SETTING LAUNCHER */}
-                <Setting />
+                {/* <Setting /> */}
                 {/* END APP SETTING LAUNCHER */}
                 <div className={`${themeConfig.navbar} main-container min-h-screen text-black dark:text-white-dark`}>
                     {/* BEGIN SIDEBAR */}

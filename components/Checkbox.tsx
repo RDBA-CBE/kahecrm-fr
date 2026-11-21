@@ -3,7 +3,7 @@ import React from 'react';
 interface CheckboxInputProps {
     checked: boolean;
     onChange: (checked: boolean) => void;
-    label: string;
+    label?: string;
     name?: string;
     className?: string;
     error?: string;
@@ -22,9 +22,9 @@ const CheckboxInput: React.FC<CheckboxInputProps> = ({ checked, onChange, label,
                     name={name}
                     required={required}
                     disabled={disabled}
-                    className={`form-checkbox ${error ? 'border-red-500' : ''}`}
+                    className={`form-checkbox accent-[#39854a] text-[#39854a] ${error ? 'border-red-500' : ''}`}
                 />
-                <span className="ml-1 text-lg font-medium text-gray-700">{label}</span>
+                {label ? <span className="ml-1.5 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">{label}</span> : null}
             </label>
             {error && (
                 <p className="mt-2 text-sm text-red-600" id={`${name}-error`}>

@@ -12,6 +12,7 @@ import { ni18nConfig } from 'ni18n.config.ts';
 import 'react-perfect-scrollbar/dist/css/styles.css';
 
 import '../styles/tailwind.css';
+import '../styles/common.css';
 import { NextPage } from 'next';
 
 export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {

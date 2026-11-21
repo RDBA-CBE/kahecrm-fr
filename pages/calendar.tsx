@@ -189,7 +189,7 @@ const Calendar = () => {
     const getUserData = async () => {
         try {
             const userString = localStorage.getItem('crmUser');
-            const token = localStorage.getItem('crmToken');
+            const token = localStorage.getItem('kaheToken');
             const user = userString ? JSON.parse(userString) : null;
             setState({ userData: user, token });
         } catch (error) {
@@ -393,9 +393,9 @@ const Calendar = () => {
             assigned_to:
                 row?.assignment_details?.length > 0
                     ? row.assignment_details.map((item) => ({
-                          value: item?.assigned_to?.id,
-                          label: `${item?.assigned_to?.first_name} ${item?.assigned_to?.last_name}`,
-                      }))
+                        value: item?.assigned_to?.id,
+                        label: `${item?.assigned_to?.first_name} ${item?.assigned_to?.last_name}`,
+                    }))
                     : null,
         });
     };
@@ -632,7 +632,7 @@ const Calendar = () => {
                                     recordsPerPage={null}
                                     minHeight={200}
                                     page={null}
-                                    onPageChange={(p) => {}}
+                                    onPageChange={(p) => { }}
                                     withBorder={true}
                                     sortStatus={sortStatus}
                                     onSortStatusChange={setSortStatus}
@@ -676,7 +676,7 @@ const Calendar = () => {
                                 options={state.leadList}
                                 error={state.errors?.lead}
                                 required
-                                // loadMore={() => leadListLoadMore()}
+                            // loadMore={() => leadListLoadMore()}
                             />
                             <CustomSelect
                                 title="Contact"

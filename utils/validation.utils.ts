@@ -1,6 +1,11 @@
 import country from '@/pages/countries';
 import * as Yup from 'yup';
 
+export const loginValidation = Yup.object().shape({
+    email: Yup.string().required('Email is required').email('Enter a valid email address'),
+    password: Yup.string().required('Password is required'),
+});
+
 export const createLeadValidation = Yup.object().shape({
     name: Yup.string().required('Lead Name is required'),
     // lead_owner: Yup.string().required('Lead Manager is required'),
@@ -420,3 +425,115 @@ export const CreateProgramme = Yup.object().shape({
         .positive('Fees must be greater than 0')
         .nullable(),
 });
+
+// =============================================================================
+// KAHE MASTERS VALIDATIONS
+// =============================================================================
+
+// 1. Admission Stage Validation
+export const admissionStageValidation = Yup.object().shape({
+    name: Yup.string().trim().required('Please enter admission stage name'),
+    code: Yup.string().trim().required('Please enter stage code (e.g. DOC_VERIF)'),
+    category: Yup.string().required('Please select a desk / phase'),
+    sequence: Yup.number()
+        .transform((value, originalValue) => (originalValue === '' ? null : value))
+        .typeError('Sequence must be a positive number')
+        .min(1, 'Sequence must be a positive number')
+        .required('Sequence must be a positive number'),
+});
+export const admission_stage = admissionStageValidation;
+
+// 2. Institution Validation
+export const institutionValidation = Yup.object().shape({
+    name: Yup.string().trim().required('Please enter institution full name'),
+    short_code: Yup.string().trim().required('Please enter institution acronym (e.g. KAHE)'),
+    type: Yup.string().required('Please select institution type'),
+    campus: Yup.string().trim().required('Please enter campus location / locality'),
+    total_programs: Yup.number()
+        .transform((value, originalValue) => (originalValue === '' ? null : value))
+        .typeError('Total programs must be a number')
+        .min(1, 'Total programs must be at least 1')
+        .required('Total programs must be at least 1'),
+});
+export const institutions = institutionValidation;
+
+// 3. Course Validation
+export const courseValidation = Yup.object().shape({
+    name: Yup.string().trim().required('Please enter degree or course full name'),
+    code: Yup.string().trim().required('Please enter course code (e.g. BE-CSE)'),
+    degree_level: Yup.string().required('Please select degree level'),
+    institution: Yup.string().required('Please select constituent college'),
+    duration: Yup.string().trim().required('Please specify study duration'),
+    total_intake: Yup.number()
+        .transform((value, originalValue) => (originalValue === '' ? null : value))
+        .typeError('Total intake must be a number')
+        .min(1, 'Total intake seats must be at least 1')
+        .required('Total intake seats must be at least 1'),
+});
+export const courses = courseValidation;
+
+// 4. Academic Year Validation
+export const academicYearValidation = Yup.object().shape({
+    year_name: Yup.string().trim().required('Please enter tenure label (e.g. 2026-2027)'),
+    code: Yup.string().trim().required('Please enter session code (e.g. AY2026)'),
+    cycle_status: Yup.string().required('Please select admission lifecycle status'),
+    start_date: Yup.string().required('Please select academic year start date'),
+    end_date: Yup.string().required('Please select academic year end date'),
+});
+export const academic_years = academicYearValidation;
+
+// 5. WhatsApp Template Validation
+export const whatsappTemplateValidation = Yup.object().shape({
+    title: Yup.string().trim().required('Please enter template name'),
+    code: Yup.string().trim().required('Please enter Meta template code (e.g. kahe_enq_ack)'),
+    category: Yup.string().required('Please select messaging category'),
+    trigger_stage: Yup.string().required('Please select trigger pipeline stage'),
+    language: Yup.string().required('Please select message language'),
+});
+export const whatsapp_templates = whatsappTemplateValidation;
+
+// 6. Qualification Validation
+export const qualificationValidation = Yup.object().shape({
+    name: Yup.string().trim().required('Please enter qualification title (e.g. 12th / HSC)'),
+    stream_type: Yup.string().trim().required('Please enter stream / subject group (e.g. Science PCM)'),
+    target_level: Yup.string().required('Please select qualification level'),
+    min_eligibility: Yup.string().trim().required('Please enter minimum eligibility criteria'),
+});
+export const qualifications = qualificationValidation;
+
+// 7. Call Outcome Validation
+export const callOutcomeValidation = Yup.object().shape({
+    outcome_name: Yup.string().trim().required('Please enter outcome label (e.g. Interested in Campus Visit)'),
+    sentiment: Yup.string().required('Please select response sentiment'),
+    suggested_next_action: Yup.string().trim().required('Please describe the mandatory next action'),
+});
+export const call_outcomes = callOutcomeValidation;
+
+// 8. Reference Type Validation
+export const referenceTypeValidation = Yup.object().shape({
+    source_name: Yup.string().trim().required('Please enter lead source name'),
+    channel: Yup.string().required('Please select acquisition channel'),
+    tracking_tag: Yup.string().trim().required('Please enter UTM or tracking tag (e.g. meta_fb_2026)'),
+});
+export const reference_types = referenceTypeValidation;
+
+// 9. CRM Staff & User Roles Validation
+export const crmUserValidation = Yup.object().shape({
+    fullName: Yup.string().trim().required('Please enter staff full name'),
+    assignedRole: Yup.string().required('Please select assigned role'),
+    mobileNumber: Yup.string()
+        .trim()
+        .required('Please enter mobile number')
+        .test('valid-mobile', 'Please enter a valid 10-digit mobile number', (val) => {
+            if (!val) return false;
+            const clean = val.replace(/[^0-9]/g, '');
+            return clean.length >= 10;
+        }),
+    institutionalEmail: Yup.string()
+        .trim()
+        .required('Please enter institutional email')
+        .email('Please enter a valid email format'),
+});
+export const crm_users = crmUserValidation;
+
+

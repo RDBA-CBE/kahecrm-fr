@@ -10,27 +10,39 @@ export const createApiInstance = () => {
 
     let refreshPromise = null;
 
-    const getAccessToken = () => localStorage.getItem('crmToken');
-    const getRefreshToken = () => localStorage.getItem('refreshToken');
-    const setAccessToken = (token) => localStorage.setItem('crmToken', token);
-    const setRefreshToken = (token) => localStorage.setItem('refreshToken', token);
+    const getAccessToken = () => localStorage.getItem('kaheToken');
+    const getkaheRefreshToken = () => localStorage.getItem('kaheRefreshToken');
+    const setAccessToken = (token) => localStorage.setItem('kaheToken', token);
+    const setkaheRefreshToken = (token) => localStorage.setItem('kaheRefreshToken', token);
     const clearTokens = () => {
-        localStorage.removeItem('crmToken');
-        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('kaheToken');
+        localStorage.removeItem('kaheRefreshToken');
     };
 
     const redirectToLogin = () => {
+        const role = (typeof window !== 'undefined' ? (localStorage.getItem('role') || localStorage.getItem('crmRole') || '') : '').toLowerCase();
+        if (role === 'counsellor' || role === 'telecaller') {
+            console.warn('Suppressing redirect to login for role:', role);
+            return;
+        }
         clearTokens();
-        window.location.href = '/auth/signin';
+        if (typeof window !== 'undefined' && window.location.pathname !== '/auth/signin') {
+            window.location.href = '/auth/signin';
+        }
     };
-    const refreshToken = () => {
+    const kaheRefreshToken = () => {
         if (!refreshPromise) {
             refreshPromise = new Promise((resolve, reject) => {
-                const refreshToken = getRefreshToken();
-                console.log('Stored refreshToken:', refreshToken);
+                const kaheRefreshToken = getkaheRefreshToken();
+                console.log('Stored kaheRefreshToken:', kaheRefreshToken);
 
-                if (!refreshToken) {
+                if (!kaheRefreshToken) {
                     console.log('No refresh token found. Redirecting to login...');
+                    const role = (typeof window !== 'undefined' ? (localStorage.getItem('role') || localStorage.getItem('crmRole') || '') : '').toLowerCase();
+                    if (role === 'counsellor' || role === 'telecaller') {
+                        reject('No refresh token for role ' + role);
+                        return;
+                    }
                     clearAuthData();
                     redirectToLogin();
                     reject('No refresh token');
@@ -38,16 +50,21 @@ export const createApiInstance = () => {
                 }
 
                 axios
-                    .post(`${baseURL}token/refresh/`, { refresh: refreshToken })
+                    .post(`${baseURL}token/refresh/`, { refresh: kaheRefreshToken })
                     .then((response) => {
                         console.log('Refresh token response:', response.data);
 
                         setAccessToken(response.data.access);
-                        setRefreshToken(response.data.refresh);
+                        setkaheRefreshToken(response.data.refresh);
 
                         resolve(response.data.access);
                     })
                     .catch((error) => {
+                        const role = (typeof window !== 'undefined' ? (localStorage.getItem('role') || localStorage.getItem('crmRole') || '') : '').toLowerCase();
+                        if (role === 'counsellor' || role === 'telecaller') {
+                            reject(error);
+                            return;
+                        }
                         if (error.response) {
                             console.error('Refresh token failed:', error.response.data);
 
@@ -75,7 +92,7 @@ export const createApiInstance = () => {
 
     const clearAuthData = () => {
         localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('kaheRefreshToken');
     };
 
     api.interceptors.request.use(
@@ -93,11 +110,18 @@ export const createApiInstance = () => {
         (response) => response,
         (error) => {
             const originalRequest = error.config;
+            const isAuthEndpoint = originalRequest?.url?.includes('login') || originalRequest?.url?.includes('token/refresh');
 
-            if (error.response?.status === 401 && !originalRequest._retry) {
+            if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
                 originalRequest._retry = true;
 
-                return refreshToken()
+                const role = (typeof window !== 'undefined' ? (localStorage.getItem('role') || localStorage.getItem('crmRole') || '') : '').toLowerCase();
+                if (role === 'counsellor' || role === 'telecaller') {
+                    console.warn('API returned 401 for role:', role, '- suppressing refresh/logout');
+                    return Promise.reject(error);
+                }
+
+                return kaheRefreshToken()
                     .then((newAccessToken) => {
                         if (!newAccessToken) {
                             redirectToLogin();
@@ -107,6 +131,9 @@ export const createApiInstance = () => {
                         return api(originalRequest);
                     })
                     .catch((err) => {
+                        if (role === 'counsellor' || role === 'telecaller') {
+                            return Promise.reject(err);
+                        }
                         redirectToLogin();
                         return Promise.reject(err);
                     });
@@ -130,7 +157,7 @@ export default createApiInstance;
 //   });
 
 //   data.interceptors.request.use(async function (config) {
-//     const accessToken = localStorage.getItem('crmToken');
+//     const accessToken = localStorage.getItem('kaheToken');
 //     if (accessToken) {
 //       config.headers['authorization'] = `Bearer ${accessToken}`;
 //     }
