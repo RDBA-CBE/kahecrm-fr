@@ -695,7 +695,7 @@ const CRMUsersPage = () => {
                         className="btn-action-solid flex items-center gap-2 cursor-pointer"
                     >
                         <UserPlus className="h-4 w-4 text-white" />
-                        <span>+ Add Staff Member</span>
+                        <span>Add Staff Member</span>
                     </button>
                 </div>
             </div>
@@ -748,7 +748,7 @@ const CRMUsersPage = () => {
                             }}
                             placeholder="All Roles"
                             isSearchable={false}
-                            isClearable={false}
+                            // isClearable={false}
                         />
                     </div>
 
@@ -769,7 +769,7 @@ const CRMUsersPage = () => {
                             }}
                             placeholder="All Status"
                             isSearchable={false}
-                            isClearable={false}
+                            // isClearable={false}
                         />
                     </div>
                 </div>

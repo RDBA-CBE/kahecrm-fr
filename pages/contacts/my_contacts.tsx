@@ -948,7 +948,7 @@ const AllContactsPage = () => {
                         className="btn-action-solid flex items-center gap-2 cursor-pointer"
                     >
                         <UserPlus className="h-4 w-4 text-white" />
-                        <span>+ Add Contact</span>
+                        <span> Add Contact</span>
                     </button>
                     <button
                         type="button"

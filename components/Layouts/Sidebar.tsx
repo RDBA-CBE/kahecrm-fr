@@ -395,6 +395,27 @@ const Sidebar = () => {
                                                 </div>
                                             </Link>
                                         </li>
+                                        
+                                         {/* 3. Student Profile */}
+                                        <li className="nav-item">
+                                            <Link
+                                                href="/contacts/my_contacts"
+                                                className={`group flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-sm transition ${router.pathname === '/counsellor/student_profiles'
+                                                    ? '!bg-[#39854a] !text-white shadow-sm'
+                                                    : 'text-gray-700 hover:bg-gray-100 hover:text-black dark:text-gray-300 dark:hover:bg-gray-800'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <IconUsers
+                                                        className={`w-5 h-5 shrink-0 ${router.pathname === '/contacts/my_contacts'
+                                                            ? '!text-white'
+                                                            : 'text-gray-500 group-hover:text-[#39854a]'
+                                                            }`}
+                                                    />
+                                                    <span>{t('My Contacts')}</span>
+                                                </div>
+                                            </Link>
+                                        </li>
 
                                         {/* 2. Counselling Queue */}
                                         <li className="nav-item">
@@ -417,23 +438,24 @@ const Sidebar = () => {
                                             </Link>
                                         </li>
 
-                                        {/* 3. Student Profile */}
+                                       
+
                                         <li className="nav-item">
                                             <Link
-                                                href="/contacts/my_contacts"
-                                                className={`group flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-sm transition ${router.pathname === '/counsellor/student_profiles'
+                                                href="/counsellor/follow_ups"
+                                                className={`group flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-sm transition ${router.pathname === '/telecaller/follow_ups'
                                                     ? '!bg-[#39854a] !text-white shadow-sm'
                                                     : 'text-gray-700 hover:bg-gray-100 hover:text-black dark:text-gray-300 dark:hover:bg-gray-800'
                                                     }`}
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <IconUsers
-                                                        className={`w-5 h-5 shrink-0 ${router.pathname === '/contacts/my_contacts'
+                                                    <IconClock
+                                                        className={`w-5 h-5 shrink-0 ${router.pathname === '/counsellor/follow_ups'
                                                             ? '!text-white'
                                                             : 'text-gray-500 group-hover:text-[#39854a]'
                                                             }`}
                                                     />
-                                                    <span>{t('My Contacts')}</span>
+                                                    <span>{t('Follow-ups & Calls')}</span>
                                                 </div>
                                             </Link>
                                         </li>
