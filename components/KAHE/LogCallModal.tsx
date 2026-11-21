@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { Phone, X, Calendar, Clock, Send, GraduationCap, Check } from 'lucide-react';
+import React, { useEffect } from 'react';
+import ReactDOM from 'react-dom';
+import { Phone, X, Calendar, Clock, Send, GraduationCap } from 'lucide-react';
+import { useSetState } from '@/utils/functions.utils';
 import { AdmissionContact } from './AdmissionsContactsTable';
 
 export interface LogCallModalProps {
@@ -19,36 +21,37 @@ const outcomeActions: Record<string, string> = {
     'Counselling Needed': 'Escalate to Senior Academic Counsellor',
 };
 
-const LogCallModal: React.FC<LogCallModalProps> = ({
-    contact,
-    isOpen,
-    onClose,
-    onSaveCall,
-}) => {
+const LogCallModal: React.FC<LogCallModalProps> = ({ contact, isOpen, onClose, onSaveCall }) => {
+    const [state, setState] = useSetState({
+        outcome: 'Interested',
+        notes: 'Student enquired about B.Tech CSE fee concessions and AI lab facilities. Parents willing to visit campus this Saturday.',
+        scheduleFollowUp: true,
+        callbackDate: '2026-05-08',
+        callbackTime: '11:00 AM',
+        referCounsellor: true,
+        priority: 'High' as 'Medium' | 'High' | 'Urgent',
+        referralReason: 'Student waiting for 12th PCM results. Father enquired about 50% merit scholarship cutoff.',
+    });
+
+    const {
+        outcome,
+        notes,
+        scheduleFollowUp,
+        callbackDate,
+        callbackTime,
+        referCounsellor,
+        priority,
+        referralReason,
+    } = state;
+
+    useEffect(() => {
+        document.body.style.overflow = isOpen ? 'hidden' : '';
+        return () => { document.body.style.overflow = ''; };
+    }, [isOpen]);
+
     if (!isOpen || !contact) return null;
 
-    const [outcome, setOutcome] = useState('Interested');
-    const [notes, setNotes] = useState(
-        'Student enquired about B.Tech CSE fee concessions and AI lab facilities. Parents willing to visit campus this Saturday.'
-    );
-    const [scheduleFollowUp, setScheduleFollowUp] = useState(true);
-    const [callbackDate, setCallbackDate] = useState('2026-05-08');
-    const [callbackTime, setCallbackTime] = useState('11:00 AM');
-    const [referCounsellor, setReferCounsellor] = useState(true);
-    const [priority, setPriority] = useState<'Medium' | 'High' | 'Urgent'>('High');
-    const [referralReason, setReferralReason] = useState(
-        'Student waiting for 12th PCM results. Father enquired about 50% merit scholarship cutoff.'
-    );
-
-    const outcomes = [
-        'Interested',
-        'Call Later',
-        'No Answer',
-        'Busy',
-        'Not Interested',
-        'Wrong Number',
-        'Counselling Needed',
-    ];
+    const outcomes = ['Interested', 'Call Later', 'No Answer', 'Busy', 'Not Interested', 'Wrong Number', 'Counselling Needed'];
 
     const handleSave = () => {
         const payload = {
@@ -62,14 +65,12 @@ const LogCallModal: React.FC<LogCallModalProps> = ({
             priority: referCounsellor ? priority : null,
             referralReason: referCounsellor ? referralReason : null,
         };
-        if (onSaveCall) {
-            onSaveCall(payload);
-        }
+        if (onSaveCall) onSaveCall(payload);
         onClose();
     };
 
-    return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm overflow-y-auto">
+    const modal = (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm overflow-y-auto">
             <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl dark:bg-[#0e1726] border border-gray-100 dark:border-gray-800 my-8">
                 {/* Header */}
                 <div className="flex items-start justify-between p-5 border-b border-gray-100 dark:border-gray-800">
@@ -95,7 +96,7 @@ const LogCallModal: React.FC<LogCallModalProps> = ({
                     </button>
                 </div>
 
-                {/* Body Content */}
+                {/* Body */}
                 <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto custom-scroll">
                     {/* Call Outcome */}
                     <div>
@@ -109,7 +110,7 @@ const LogCallModal: React.FC<LogCallModalProps> = ({
                                     <button
                                         key={item}
                                         type="button"
-                                        onClick={() => setOutcome(item)}
+                                        onClick={() => setState({ outcome: item })}
                                         className={`rounded-xl border py-2 px-3 text-xs font-semibold transition text-center ${
                                             isSelected
                                                 ? 'border-[#39854a] bg-[#39854a] text-white shadow-sm font-bold'
@@ -139,8 +140,8 @@ const LogCallModal: React.FC<LogCallModalProps> = ({
                         <textarea
                             rows={3}
                             value={notes}
-                            onChange={(e) => setNotes(e.target.value)}
-                            placeholder="e.g. Student enquired about B.Tech CSE fee concessions and hostel facilities. Parents willing to visit campus this Saturday."
+                            onChange={(e) => setState({ notes: e.target.value })}
+                            placeholder="e.g. Student enquired about B.Tech CSE fee concessions and hostel facilities."
                             className="w-full rounded-xl border border-gray-200 p-3 text-xs sm:text-sm text-gray-800 placeholder-gray-400 focus:border-[#39854a] focus:outline-none focus:ring-1 focus:ring-[#39854a] dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                         />
                     </div>
@@ -152,7 +153,7 @@ const LogCallModal: React.FC<LogCallModalProps> = ({
                                 <input
                                     type="checkbox"
                                     checked={scheduleFollowUp}
-                                    onChange={(e) => setScheduleFollowUp(e.target.checked)}
+                                    onChange={(e) => setState({ scheduleFollowUp: e.target.checked })}
                                     className="h-4 w-4 rounded border-gray-300 accent-[#39854a] text-[#39854a] focus:ring-[#39854a] cursor-pointer"
                                 />
                                 <span>Schedule Next Follow-up Callback</span>
@@ -163,7 +164,6 @@ const LogCallModal: React.FC<LogCallModalProps> = ({
                                 </span>
                             )}
                         </div>
-
                         {scheduleFollowUp && (
                             <div className="grid grid-cols-2 gap-3 pt-1">
                                 <div>
@@ -174,7 +174,7 @@ const LogCallModal: React.FC<LogCallModalProps> = ({
                                         <input
                                             type="text"
                                             value={callbackDate}
-                                            onChange={(e) => setCallbackDate(e.target.value)}
+                                            onChange={(e) => setState({ callbackDate: e.target.value })}
                                             placeholder="DD/MM/YYYY"
                                             className="w-full rounded-xl border border-gray-200 py-1.5 pl-3 pr-8 text-xs font-semibold text-gray-800 focus:border-[#39854a] focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                                         />
@@ -189,7 +189,7 @@ const LogCallModal: React.FC<LogCallModalProps> = ({
                                         <input
                                             type="text"
                                             value={callbackTime}
-                                            onChange={(e) => setCallbackTime(e.target.value)}
+                                            onChange={(e) => setState({ callbackTime: e.target.value })}
                                             placeholder="HH:MM AM/PM"
                                             className="w-full rounded-xl border border-gray-200 py-1.5 pl-3 pr-8 text-xs font-semibold text-gray-800 focus:border-[#39854a] focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                                         />
@@ -207,7 +207,7 @@ const LogCallModal: React.FC<LogCallModalProps> = ({
                                 <input
                                     type="checkbox"
                                     checked={referCounsellor}
-                                    onChange={(e) => setReferCounsellor(e.target.checked)}
+                                    onChange={(e) => setState({ referCounsellor: e.target.checked })}
                                     className="h-4 w-4 rounded border-gray-300 accent-[#39854a] text-[#39854a] focus:ring-[#39854a] cursor-pointer"
                                 />
                                 <span className="flex items-center gap-1.5">
@@ -221,7 +221,6 @@ const LogCallModal: React.FC<LogCallModalProps> = ({
                                 </span>
                             )}
                         </div>
-
                         {referCounsellor && (
                             <div className="space-y-3 pt-1">
                                 <div>
@@ -235,7 +234,7 @@ const LogCallModal: React.FC<LogCallModalProps> = ({
                                                 <button
                                                     key={p}
                                                     type="button"
-                                                    onClick={() => setPriority(p)}
+                                                    onClick={() => setState({ priority: p })}
                                                     className={`rounded-lg px-3 py-1 text-xs font-semibold border transition ${
                                                         isSelected
                                                             ? 'border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-gray-900 font-bold'
@@ -255,7 +254,7 @@ const LogCallModal: React.FC<LogCallModalProps> = ({
                                     <input
                                         type="text"
                                         value={referralReason}
-                                        onChange={(e) => setReferralReason(e.target.value)}
+                                        onChange={(e) => setState({ referralReason: e.target.value })}
                                         placeholder="e.g. Student enquired about 50% merit scholarship cutoff..."
                                         className="w-full rounded-xl border border-gray-200 py-1.5 px-3 text-xs font-semibold text-gray-800 focus:border-[#39854a] focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                                     />
@@ -286,7 +285,10 @@ const LogCallModal: React.FC<LogCallModalProps> = ({
             </div>
         </div>
     );
+
+    return typeof window !== 'undefined'
+        ? ReactDOM.createPortal(modal, document.getElementById('modal-portal')!)
+        : null;
 };
 
 export default LogCallModal;
-

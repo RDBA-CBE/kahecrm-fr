@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { RotateCcw, X, UserPlus, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
+import { RotateCcw, X, UserPlus } from 'lucide-react';
 
 export interface ReassignContactsModalProps {
     isOpen: boolean;
     onClose: () => void;
-    contactsSummary: string; // e.g. "K. Vignesh, S. Priya, A. Karthikeyan and 2 others"
+    contactsSummary: string;
     totalCount: number;
-    currentOwner: string; // e.g. "P. Malathi"
+    currentOwner: string;
     availableTelecallers?: string[];
     onConfirmReassign: (newTelecaller: string, reason: string) => void;
 }
@@ -20,10 +21,17 @@ const ReassignContactsModal: React.FC<ReassignContactsModalProps> = ({
     availableTelecallers = ['S. Ramesh Kumar', 'K. Kavitha', 'P. Malathi'],
     onConfirmReassign,
 }) => {
-    if (!isOpen) return null;
-
     const [selectedTelecaller, setSelectedTelecaller] = useState('');
     const [reason, setReason] = useState('Workload rebalancing and priority callback');
+
+    useEffect(() => {
+        document.body.style.overflow = isOpen ? 'hidden' : '';
+        return () => { document.body.style.overflow = ''; };
+    }, [isOpen]);
+
+    if (!isOpen) return null;
+
+    const targetTelecallers = availableTelecallers.filter((t) => t !== currentOwner);
 
     const handleConfirm = (e: React.FormEvent) => {
         e.preventDefault();
@@ -35,10 +43,8 @@ const ReassignContactsModal: React.FC<ReassignContactsModalProps> = ({
         onClose();
     };
 
-    const targetTelecallers = availableTelecallers.filter((t) => t !== currentOwner);
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm overflow-y-auto">
+    const modal = (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm overflow-y-auto">
             <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-[#0e1726] border border-gray-100 dark:border-gray-800 my-8">
                 {/* Header */}
                 <div className="flex items-start justify-between pb-4 border-b border-gray-100 dark:border-gray-800">
@@ -64,24 +70,19 @@ const ReassignContactsModal: React.FC<ReassignContactsModalProps> = ({
                     </button>
                 </div>
 
-                {/* Form */}
                 <form onSubmit={handleConfirm} className="space-y-4 pt-4 text-xs">
-                    {/* Contacts to Reassign */}
                     <div>
                         <div className="flex items-center justify-between mb-1">
                             <label className="font-bold text-gray-700 dark:text-gray-300">
                                 Contacts to Reassign:
                             </label>
-                            <span className="font-bold text-[#39854a]">
-                                {totalCount} contacts
-                            </span>
+                            <span className="font-bold text-[#39854a]">{totalCount} contacts</span>
                         </div>
                         <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-3 font-semibold text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
                             {contactsSummary || `${totalCount} contacts selected`}
                         </div>
                     </div>
 
-                    {/* Current Assigned Owner */}
                     <div>
                         <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">
                             Current Assigned Owner
@@ -94,7 +95,6 @@ const ReassignContactsModal: React.FC<ReassignContactsModalProps> = ({
                         />
                     </div>
 
-                    {/* Select New Telecaller */}
                     <div>
                         <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">
                             Select New Telecaller <span className="text-red-500">*</span>
@@ -107,14 +107,11 @@ const ReassignContactsModal: React.FC<ReassignContactsModalProps> = ({
                         >
                             <option value="">-- Choose active Telecaller --</option>
                             {targetTelecallers.map((t) => (
-                                <option key={t} value={t}>
-                                    {t}
-                                </option>
+                                <option key={t} value={t}>{t}</option>
                             ))}
                         </select>
                     </div>
 
-                    {/* Reassignment Reason */}
                     <div>
                         <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">
                             Reassignment Reason <span className="text-red-500">*</span>
@@ -128,12 +125,10 @@ const ReassignContactsModal: React.FC<ReassignContactsModalProps> = ({
                         />
                     </div>
 
-                    {/* Preservation Policy Banner */}
                     <div className="rounded-xl border border-green-200 bg-green-50/70 p-3 text-xs leading-relaxed text-[#1e612f] dark:border-green-900/60 dark:bg-green-950/30 dark:text-green-300">
                         <span className="font-bold">Preservation Policy:</span> Prior calling history, notes, and scheduled follow-up dates are fully preserved for the new telecaller.
                     </div>
 
-                    {/* Footer */}
                     <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
                         <button
                             type="button"
@@ -142,10 +137,7 @@ const ReassignContactsModal: React.FC<ReassignContactsModalProps> = ({
                         >
                             Cancel
                         </button>
-                        <button
-                            type="submit"
-                            className="btn-action-solid flex items-center gap-1.5 px-4 py-2 font-bold"
-                        >
+                        <button type="submit" className="btn-action-solid flex items-center gap-1.5 px-4 py-2 font-bold">
                             <UserPlus className="h-4 w-4" />
                             <span>Confirm Reassignment</span>
                         </button>
@@ -154,7 +146,10 @@ const ReassignContactsModal: React.FC<ReassignContactsModalProps> = ({
             </div>
         </div>
     );
+
+    return typeof window !== 'undefined'
+        ? ReactDOM.createPortal(modal, document.getElementById('modal-portal')!)
+        : null;
 };
 
 export default ReassignContactsModal;
-

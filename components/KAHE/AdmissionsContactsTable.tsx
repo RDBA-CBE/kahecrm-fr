@@ -1,11 +1,18 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Phone, Eye, Check, ChevronDown, Filter, X } from 'lucide-react';
+import React, { useMemo, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { Search, Phone, Eye, X, Pencil } from 'lucide-react';
 import Pagination from '@/components/Pagination';
 import admissionsData from '@/data/admissionsSampleData.json';
 import crmStaffData from '@/data/crmStaffSampleData.json';
 import StudentDetailsModal from './StudentDetailsModal';
 import LogCallModal from './LogCallModal';
+import CustomSelect from '@/components/Select';
+import { useSetState } from '@/utils/functions.utils';
+import { DataTable, type DataTableSortStatus } from 'mantine-datatable';
 
+const toOpt = (v: string) => ({ value: v, label: v });
+
+// ── types ─────────────────────────────────────────────────────────────────────
 export interface AdmissionContact {
     id: string;
     student_name: string;
@@ -25,15 +32,30 @@ export interface AdmissionContact {
 }
 
 export interface AdmissionsContactsTableProps {
-    activeCategory?: string; // 'total_contacts' | 'assigned' | 'follow_ups' | 'interested' | 'all'
+    activeCategory?: string;
     categoryTitle?: string;
     onResetCategory?: () => void;
     onClose?: () => void;
     showCardFilterTag?: boolean;
     className?: string;
     showRoleFilter?: boolean;
+    onViewContact?: (contact: AdmissionContact) => void;
+    // ── dropdown options injected from parent (falls back to static data) ─────
+    cityOptions?: { value: string; label: string }[];
+    institutionOptions?: { value: string; label: string }[];
+    qualificationOptions?: { value: string; label: string }[];
+    telecallerOptions?: { value: string; label: string }[];
+    roleOptions?: { value: string; label: string }[];
+    stageOptions?: { value: string; label: string }[];
+    // loadMore callbacks for paginated dropdowns
+    onCityLoadMore?: () => void;
+    onInstitutionLoadMore?: () => void;
+    onQualificationLoadMore?: () => void;
+    onTelecallerLoadMore?: () => void;
+    onStageLoadMore?: () => void;
 }
 
+// ── status badge colours ──────────────────────────────────────────────────────
 const statusBadgeClasses: Record<string, string> = {
     contacted: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
     interested: 'bg-[#dcfce7] text-[#16a34a] dark:bg-green-950/40 dark:text-green-400',
@@ -43,6 +65,7 @@ const statusBadgeClasses: Record<string, string> = {
     'not interested': 'bg-[#fee2e2] text-[#dc2626] dark:bg-red-950/40 dark:text-red-400',
 };
 
+// ── component ─────────────────────────────────────────────────────────────────
 const AdmissionsContactsTable: React.FC<AdmissionsContactsTableProps> = ({
     activeCategory = 'total_contacts',
     categoryTitle = 'Total Contacts',
@@ -51,418 +74,444 @@ const AdmissionsContactsTable: React.FC<AdmissionsContactsTableProps> = ({
     showCardFilterTag,
     className = '',
     showRoleFilter = false,
+    onViewContact,
+    // injected dropdown options (fall back to static data when absent)
+    cityOptions,
+    institutionOptions,
+    qualificationOptions,
+    telecallerOptions,
+    roleOptions,
+    stageOptions,
+    onCityLoadMore,
+    onInstitutionLoadMore,
+    onQualificationLoadMore,
+    onTelecallerLoadMore,
+    onStageLoadMore,
 }) => {
-    // Search and filter states
-    const [search, setSearch] = useState('');
-    const [cityFilter, setCityFilter] = useState('All Cities');
-    const [institutionFilter, setInstitutionFilter] = useState('All Institutions');
-    const [qualificationFilter, setQualificationFilter] = useState('All Qualifications');
-    const [telecallerFilter, setTelecallerFilter] = useState('All Telecallers');
-    const [roleFilter, setRoleFilter] = useState('All Roles'); // 'All Roles' | 'Telecaller' | 'Counsellor'
-    const [userFilter, setUserFilter] = useState('All Users');
-    const [stageFilter, setStageFilter] = useState('All Stages');
+    const router = useRouter();
+    const [state, setState] = useSetState({
+        search: '',
+        cityFilter: 'All Cities',
+        institutionFilter: 'All Institutions',
+        qualificationFilter: 'All Qualifications',
+        telecallerFilter: 'All Telecallers',
+        roleFilter: 'All Roles',
+        userFilter: 'All Users',
+        stageFilter: 'All Stages',
+        currentPage: 1,
+        sortStatus: null as DataTableSortStatus | null,
+        viewingContact: null as AdmissionContact | null,
+        callingContact: null as AdmissionContact | null,
+    });
 
-    // Selection state
-    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const PAGE_SIZE = 10;
 
-    // Pagination state
-    const [currentPage, setCurrentPage] = useState(1);
-    const recordsPerPage = 10;
+    useEffect(() => { setState({ currentPage: 1 }); }, [activeCategory]);
 
-    // View Modal & Call Modal states
-    const [viewingContact, setViewingContact] = useState<AdmissionContact | null>(null);
-    const [callingContact, setCallingContact] = useState<AdmissionContact | null>(null);
+    const resetPage = () => setState({ currentPage: 1 });
 
-    // Reset pagination on category change
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [activeCategory]);
-
-    // Extract dynamic dropdown options from the dataset
-    const cities = useMemo(() => ['All Cities', ...Array.from(new Set(admissionsData.map((item) => item.city)))], []);
-    const institutions = useMemo(() => ['All Institutions', ...Array.from(new Set(admissionsData.map((item) => item.institution)))], []);
-    const qualifications = useMemo(() => ['All Qualifications', ...Array.from(new Set(admissionsData.map((item) => item.qualification)))], []);
-    const telecallers = useMemo(() => ['All Telecallers', ...Array.from(new Set(admissionsData.map((item) => item.assigned_to)))], []);
+    // ── dropdown option lists (injected props take priority over static data) ──
+    const staticCities = useMemo(() => ['All Cities', ...Array.from(new Set(admissionsData.map((i) => i.city)))], []);
+    const staticInstitutions = useMemo(() => ['All Institutions', ...Array.from(new Set(admissionsData.map((i) => i.institution)))], []);
+    const staticQualifications = useMemo(() => ['All Qualifications', ...Array.from(new Set(admissionsData.map((i) => i.qualification)))], []);
+    const staticTelecallers = useMemo(() => ['All Telecallers', ...Array.from(new Set(admissionsData.map((i) => i.assigned_to)))], []);
     const stages = useMemo(() => ['All Stages', 'Contacted', 'Interested', 'Applied', 'Admitted', 'New'], []);
 
-    // Staff role lists for extra 2 dropdowns (Role & Dependent User List)
+    const cities = staticCities.map(toOpt) ?? cityOptions;
+    const institutions = staticInstitutions.map(toOpt) ?? institutionOptions;
+    const qualifications = staticQualifications.map(toOpt) ?? qualificationOptions;
+    const telecallers = staticTelecallers.map(toOpt) ?? telecallerOptions;
+    const stagesOpts = stages.map(toOpt) ?? stageOptions;
+    const rolesOpts = ['All Roles', 'Telecaller', 'Counsellor'].map(toOpt) ?? roleOptions;
+
     const telecallerList = useMemo(() => {
-        const staffTC = crmStaffData
-            .filter((s) => s.role === 'TELECALLER')
-            .map((s) => s.name);
-        const fromData = (admissionsData as any[])
-            .filter((d) => d.assigned_role === 'Telecaller')
-            .map((d) => d.assigned_to);
-        return Array.from(new Set([...staffTC, ...fromData])).filter(Boolean);
+        const a = crmStaffData.filter((s) => s.role === 'TELECALLER').map((s) => s.name);
+        const b = (admissionsData as any[]).filter((d) => d.assigned_role === 'Telecaller').map((d) => d.assigned_to);
+        return Array.from(new Set([...a, ...b])).filter(Boolean);
     }, []);
 
     const counsellorList = useMemo(() => {
-        const staffCns = crmStaffData
-            .filter((s) => s.role === 'COUNSELLOR')
-            .map((s) => s.name);
-        const fromData = (admissionsData as any[])
-            .filter((d) => d.assigned_role === 'Counsellor')
-            .map((d) => d.assigned_to);
-        return Array.from(new Set([...staffCns, ...fromData])).filter(Boolean);
+        const a = crmStaffData.filter((s) => s.role === 'COUNSELLOR').map((s) => s.name);
+        const b = (admissionsData as any[]).filter((d) => d.assigned_role === 'Counsellor').map((d) => d.assigned_to);
+        return Array.from(new Set([...a, ...b])).filter(Boolean);
     }, []);
 
-    const allTeamUsers = useMemo(() => {
-        return Array.from(new Set([...telecallerList, ...counsellorList]));
-    }, [telecallerList, counsellorList]);
+    const allTeamUsers = useMemo(() => Array.from(new Set([...telecallerList, ...counsellorList])), [telecallerList, counsellorList]);
 
-    // Dependent user list based on selected roleFilter
     const userOptions = useMemo(() => {
-        if (roleFilter === 'Telecaller') {
-            return ['All Telecallers', ...telecallerList];
-        }
-        if (roleFilter === 'Counsellor') {
-            return ['All Counsellors', ...counsellorList];
-        }
+        if (state.roleFilter === 'Telecaller') return ['All Telecallers', ...telecallerList];
+        if (state.roleFilter === 'Counsellor') return ['All Counsellors', ...counsellorList];
         return ['All Users', ...allTeamUsers];
-    }, [roleFilter, telecallerList, counsellorList, allTeamUsers]);
+    }, [state.roleFilter, telecallerList, counsellorList, allTeamUsers]);
 
-    // Filter data based on activeCategory, search, and dropdown filters
+    const userDropdownTitle =
+        state.roleFilter === 'Telecaller' ? 'TELECALLER'
+            : state.roleFilter === 'Counsellor' ? 'COUNSELLOR'
+                : 'USER LIST';
+
+    // ── filter logic ──────────────────────────────────────────────────────────
     const filteredData = useMemo(() => {
         return (admissionsData as AdmissionContact[]).filter((item) => {
-            // Category filter from OverviewStatCards
+            // category
             if (activeCategory && activeCategory !== 'all') {
-                if (activeCategory === 'total_contacts') {
-                    // All contacts
-                } else if (activeCategory === 'assigned') {
-                    if (item.assigned_to === 'Unassigned') return false;
-                } else if (activeCategory === 'follow_ups') {
-                    if (!item.categories?.includes('follow_ups')) return false;
-                } else if (activeCategory === 'interested') {
-                    if (!item.categories?.includes('interested')) return false;
-                }
+                if (activeCategory === 'assigned' && item.assigned_to === 'Unassigned') return false;
+                if (activeCategory === 'follow_ups' && !item.categories?.includes('follow_ups')) return false;
+                if (activeCategory === 'interested' && !item.categories?.includes('interested')) return false;
             }
-
-            // Text search
-            if (search.trim()) {
-                const q = search.toLowerCase().trim();
-                const match =
-                    item.student_name.toLowerCase().includes(q) ||
-                    item.enquiry_id.toLowerCase().includes(q) ||
-                    item.phone_number.includes(q) ||
-                    item.parent_phone.includes(q) ||
-                    item.city.toLowerCase().includes(q) ||
-                    item.area.toLowerCase().includes(q) ||
-                    item.target_course.toLowerCase().includes(q) ||
-                    item.institution.toLowerCase().includes(q) ||
-                    item.assigned_to.toLowerCase().includes(q);
-                if (!match) return false;
+            // text search
+            if (state.search.trim()) {
+                const q = state.search.toLowerCase();
+                const hit = [item.student_name, item.enquiry_id, item.phone_number, item.parent_phone,
+                item.city, item.area, item.target_course, item.institution, item.assigned_to]
+                    .some((v) => v?.toLowerCase().includes(q));
+                if (!hit) return false;
             }
+            // dropdown filters
+            if (state.cityFilter !== 'All Cities' && item.city !== state.cityFilter) return false;
+            if (state.institutionFilter !== 'All Institutions' && item.institution !== state.institutionFilter) return false;
+            if (state.qualificationFilter !== 'All Qualifications' && item.qualification !== state.qualificationFilter) return false;
+            if (state.stageFilter !== 'All Stages' && String(item.status ?? '').toLowerCase() !== state.stageFilter.toLowerCase()) return false;
 
-            // Standard Dropdown filters
-            if (cityFilter !== 'All Cities' && item.city !== cityFilter) return false;
-            if (institutionFilter !== 'All Institutions' && item.institution !== institutionFilter) return false;
-            if (qualificationFilter !== 'All Qualifications' && item.qualification !== qualificationFilter) return false;
-
-            // Extra 2 Dropdowns (Role and dependent User list) when showRoleFilter is true
             if (showRoleFilter) {
-                // 1. Role Filter
-                if (roleFilter !== 'All Roles') {
-                    const isTelecaller =
-                        item.assigned_role === 'Telecaller' || telecallerList.includes(item.assigned_to);
-                    const isCounsellor =
-                        item.assigned_role === 'Counsellor' || counsellorList.includes(item.assigned_to);
-
-                    if (roleFilter === 'Telecaller' && !isTelecaller) return false;
-                    if (roleFilter === 'Counsellor' && !isCounsellor) return false;
+                if (state.roleFilter !== 'All Roles') {
+                    const isTC = item.assigned_role === 'Telecaller' || telecallerList.includes(item.assigned_to);
+                    const isCns = item.assigned_role === 'Counsellor' || counsellorList.includes(item.assigned_to);
+                    if (state.roleFilter === 'Telecaller' && !isTC) return false;
+                    if (state.roleFilter === 'Counsellor' && !isCns) return false;
                 }
-
-                // 2. User List Filter (Dependent on Role)
-                if (
-                    userFilter !== 'All Users' &&
-                    userFilter !== 'All Telecallers' &&
-                    userFilter !== 'All Counsellors'
-                ) {
-                    if (item.assigned_to !== userFilter) return false;
-                }
+                if (!['All Users', 'All Telecallers', 'All Counsellors'].includes(state.userFilter) && item.assigned_to !== state.userFilter) return false;
             } else {
-                // Legacy Single Telecaller filter
-                if (telecallerFilter !== 'All Telecallers' && item.assigned_to !== telecallerFilter) return false;
+                if (state.telecallerFilter !== 'All Telecallers' && item.assigned_to !== state.telecallerFilter) return false;
             }
-
-            if (stageFilter !== 'All Stages' && item.status.toLowerCase() !== stageFilter.toLowerCase()) return false;
-
             return true;
         });
-    }, [
-        activeCategory,
-        search,
-        cityFilter,
-        institutionFilter,
-        qualificationFilter,
-        telecallerFilter,
-        roleFilter,
-        userFilter,
-        stageFilter,
-        showRoleFilter,
-        telecallerList,
-        counsellorList,
-    ]);
+    }, [activeCategory, state.search, state.cityFilter, state.institutionFilter, state.qualificationFilter,
+        state.telecallerFilter, state.roleFilter, state.userFilter, state.stageFilter,
+        showRoleFilter, telecallerList, counsellorList]);
 
-    // Paginated slice
     const totalRecords = filteredData.length;
-    const startIndex = (currentPage - 1) * recordsPerPage;
-    const paginatedRecords = filteredData.slice(startIndex, startIndex + recordsPerPage);
+    const startIndex = (state.currentPage - 1) * PAGE_SIZE;
+    const paginatedRecords = filteredData.slice(startIndex, startIndex + PAGE_SIZE);
 
-    // Selection handlers
-    const isAllSelected = paginatedRecords.length > 0 && paginatedRecords.every((r) => selectedIds.includes(r.id));
-    const handleSelectAll = () => {
-        if (isAllSelected) {
-            setSelectedIds((prev) => prev.filter((id) => !paginatedRecords.some((r) => r.id === id)));
-        } else {
-            const pageIds = paginatedRecords.map((r) => r.id);
-            setSelectedIds((prev) => Array.from(new Set([...prev, ...pageIds])));
-        }
-    };
+    // ── DataTable column definitions ──────────────────────────────────────────
+    const columns: any[] = [
+        {
+            accessor: 'student_name',
+            title: 'Student Name',
+            sortable: true,
+            render: (row: any) => (
+                <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5">
+                        <span className="font-semibold text-gray-900 dark:text-white">{row.student_name}</span>
+                        {row.badge && (
+                            <span className="rounded-full bg-[#dcfce7] px-2 py-0.5 text-[10px] font-bold text-[#16a34a]">
+                                {row.badge}
+                            </span>
+                        )}
+                    </div>
+                    <span className="mt-0.5 text-xs text-gray-400">{row.enquiry_id} · {row.qualification}</span>
+                </div>
+            ),
+        },
+        {
+            accessor: 'phone_number',
+            title: 'Mobile & Parent',
+            render: (row: any) => (
+                <div className="flex flex-col">
+                    <span className="font-semibold text-gray-900 dark:text-white">{row.phone_number}</span>
+                    <span className="mt-0.5 text-xs text-gray-400">P: {row.parent_phone}</span>
+                </div>
+            ),
+        },
+        {
+            accessor: 'city',
+            title: 'City / Area',
+            sortable: true,
+            render: (row: any) => (
+                <div className="flex flex-col">
+                    <span className="font-semibold text-gray-900 dark:text-white">{row.city}</span>
+                    <span className="mt-0.5 text-xs text-gray-400">{row.area}</span>
+                </div>
+            ),
+        },
+        {
+            accessor: 'target_course',
+            title: 'Target Course',
+            sortable: true,
+            render: (row: any) => (
+                <div className="flex max-w-[220px] flex-col">
+                    <span className="truncate font-semibold text-gray-900 dark:text-white">{row.target_course}</span>
+                    <span className="mt-0.5 truncate text-xs text-gray-400">{row.institution}</span>
+                </div>
+            ),
+        },
+        {
+            accessor: 'assigned_to',
+            title: 'Assigned To',
+            sortable: true,
+            render: (row: any) => (
+                <div className="flex flex-col">
+                    <span className="font-semibold text-gray-900 dark:text-gray-200">{row.assigned_to}</span>
+                    {row.assigned_role && (
+                        <span className={`mt-0.5 inline-block w-fit rounded-full px-2 py-0.5 text-[10px] font-bold ${row.assigned_role === 'Counsellor'
+                                ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300'
+                                : 'bg-emerald-100 text-[#39854a] dark:bg-emerald-950/50 dark:text-emerald-300'
+                            }`}>
+                            {row.assigned_role}
+                        </span>
+                    )}
+                </div>
+            ),
+        },
+        {
+            accessor: 'status',
+            title: 'Status',
+            sortable: true,
+            titleClassName: '!text-center',
+            render: (row: any) => {
+                const cls = statusBadgeClasses[String(row?.status ?? '').toLowerCase()] ?? 'bg-gray-100 text-gray-700';
+                return (
+                    <div className="flex justify-center">
+                        <span className={`inline-block rounded-full px-3 py-0.5 text-xs font-semibold ${cls}`}>
+                            {row.status}
+                        </span>
+                    </div>
+                );
+            },
+        },
+        {
+            accessor: 'actions',
+            title: 'Actions',
+            titleClassName: '!text-center',
+            render: (row: any) => (
+                <div className="flex items-center justify-end gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setState({ callingContact: row })}
+                        title="Call Student"
+                        className="rounded-lg border border-gray-200 p-1.5 text-[#39854a] transition hover:bg-green-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                    >
+                        <Phone className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (onViewContact) {
+                                onViewContact(row);
+                            } else {
+                                setState({ viewingContact: row });
+                            }
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                    >
+                        <Eye className="h-3.5 w-3.5" />
+                        <span>View</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => router.push(`/contacts/edit_contact/${row.id || row.enquiry_id}`)}
+                        title="Edit Contact"
+                        className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-700 transition hover:bg-green-50 hover:text-[#39854a] dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                    >
+                        <Pencil className="h-3.5 w-3.5" />
+                        <span>Edit</span>
+                    </button>
+                </div>
+            ),
+        },
+    ];
 
-    const handleSelectRow = (id: string) => {
-        setSelectedIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
-    };
-
+    // ── render ────────────────────────────────────────────────────────────────
     return (
         <div className={`space-y-4 ${className}`}>
-            {/* Top Search Bar & Filters Container */}
+
+            {/* ── Search & Filters ─────────────────────────────────────────── */}
             <div className="overview-panel space-y-4">
-                {/* Search Bar */}
+                {/* Search bar */}
                 <div className="relative flex items-center">
                     <Search className="absolute left-4 h-4 w-4 text-gray-400" />
                     <input
                         type="text"
-                        value={search}
-                        onChange={(e) => {
-                            setSearch(e.target.value);
-                            setCurrentPage(1);
-                        }}
+                        value={state.search}
+                        onChange={(e) => { setState({ search: e.target.value }); resetPage(); }}
                         placeholder="Search student name, phone number, enquiry ID, city, or course..."
-                        className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-11 pr-4 text-xs sm:text-sm text-gray-800 placeholder-gray-400 shadow-sm transition focus:border-[#39854a] focus:outline-none focus:ring-1 focus:ring-[#39854a] dark:border-gray-800 dark:bg-[#121e32] dark:text-white dark:placeholder-gray-500"
+                        className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-11 pr-4 text-xs text-gray-800 placeholder-gray-400 shadow-sm transition focus:border-[#39854a] focus:outline-none focus:ring-1 focus:ring-[#39854a] dark:border-gray-800 dark:bg-[#121e32] dark:text-white dark:placeholder-gray-500 sm:text-sm"
                     />
-                    {search && (
-                        <button
-                            type="button"
-                            onClick={() => setSearch('')}
-                            className="absolute right-3 text-gray-400 hover:text-gray-600"
-                        >
+                    {state.search && (
+                        <button type="button" onClick={() => setState({ search: '' })} className="absolute right-3 text-gray-400 hover:text-gray-600">
                             <X className="h-4 w-4" />
                         </button>
                     )}
                 </div>
 
-                {/* Filter Dropdowns Row */}
+                {/* Filter dropdowns */}
                 <div className={`grid grid-cols-2 gap-3 sm:grid-cols-3 ${showRoleFilter ? 'lg:grid-cols-6' : 'lg:grid-cols-5'}`}>
-                    {/* City / Area */}
                     <div>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
-                            CITY / AREA
-                        </label>
-                        <div className="relative">
-                            <select
-                                value={cityFilter}
-                                onChange={(e) => {
-                                    setCityFilter(e.target.value);
-                                    setCurrentPage(1);
-                                }}
-                                className="w-full appearance-none rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition focus:border-[#39854a] focus:outline-none dark:border-gray-800 dark:bg-[#121e32] dark:text-gray-200"
-                            >
-                                {cities.map((city) => (
-                                    <option key={city} value={city}>
-                                        {city}
-                                    </option>
-                                ))}
-                            </select>
-                            <ChevronDown className="pointer-events-none absolute right-2.5 top-2.5 h-3.5 w-3.5 text-gray-400" />
-                        </div>
+                        <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">CITY / AREA</label>
+                        <CustomSelect
+                            options={cities.filter((o) => o.value !== 'All Cities')}
+                            value={state.cityFilter !== 'All Cities' ? (cities.find((o) => o.value === state.cityFilter) ?? null) : null}
+                            placeholder="All Cities"
+                            isClearable={true}
+                            isSearchable
+                            loadMore={onCityLoadMore}
+                            onChange={(opt) => { setState({ cityFilter: opt ? String(opt.value) : 'All Cities' }); resetPage(); }} />
+                    </div>
+                    <div>
+                        <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">INSTITUTION / COLLEGE</label>
+                        <CustomSelect
+                            options={institutions.filter((o) => o.value !== 'All Institutions')}
+                            value={state.institutionFilter !== 'All Institutions' ? (institutions.find((o) => o.value === state.institutionFilter) ?? null) : null}
+                            placeholder="All Institutions"
+                            isClearable={true}
+                            isSearchable
+                            loadMore={onInstitutionLoadMore}
+                            onChange={(opt) => { setState({ institutionFilter: opt ? String(opt.value) : 'All Institutions' }); resetPage(); }} />
+                    </div>
+                    <div>
+                        <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">QUALIFICATION</label>
+                        <CustomSelect
+                            options={qualifications.filter((o) => o.value !== 'All Qualifications')}
+                            value={state.qualificationFilter !== 'All Qualifications' ? (qualifications.find((o) => o.value === state.qualificationFilter) ?? null) : null}
+                            placeholder="All Qualifications"
+                            isClearable={true}
+                            isSearchable
+                            loadMore={onQualificationLoadMore}
+                            onChange={(opt) => { setState({ qualificationFilter: opt ? String(opt.value) : 'All Qualifications' }); resetPage(); }} />
                     </div>
 
-                    {/* Institution / College */}
-                    <div>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
-                            INSTITUTION / COLLEGE
-                        </label>
-                        <div className="relative">
-                            <select
-                                value={institutionFilter}
-                                onChange={(e) => {
-                                    setInstitutionFilter(e.target.value);
-                                    setCurrentPage(1);
-                                }}
-                                className="w-full appearance-none rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition focus:border-[#39854a] focus:outline-none dark:border-gray-800 dark:bg-[#121e32] dark:text-gray-200"
-                            >
-                                {institutions.map((inst) => (
-                                    <option key={inst} value={inst}>
-                                        {inst}
-                                    </option>
-                                ))}
-                            </select>
-                            <ChevronDown className="pointer-events-none absolute right-2.5 top-2.5 h-3.5 w-3.5 text-gray-400" />
-                        </div>
-                    </div>
-
-                    {/* Qualification */}
-                    <div>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
-                            QUALIFICATION
-                        </label>
-                        <div className="relative">
-                            <select
-                                value={qualificationFilter}
-                                onChange={(e) => {
-                                    setQualificationFilter(e.target.value);
-                                    setCurrentPage(1);
-                                }}
-                                className="w-full appearance-none rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition focus:border-[#39854a] focus:outline-none dark:border-gray-800 dark:bg-[#121e32] dark:text-gray-200"
-                            >
-                                {qualifications.map((q) => (
-                                    <option key={q} value={q}>
-                                        {q}
-                                    </option>
-                                ))}
-                            </select>
-                            <ChevronDown className="pointer-events-none absolute right-2.5 top-2.5 h-3.5 w-3.5 text-gray-400" />
-                        </div>
-                    </div>
-
-                    {/* Standard Telecaller Dropdown (When showRoleFilter is false) */}
                     {!showRoleFilter && (
                         <div>
-                            <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
-                                TELECALLER
-                            </label>
-                            <div className="relative">
-                                <select
-                                    value={telecallerFilter}
-                                    onChange={(e) => {
-                                        setTelecallerFilter(e.target.value);
-                                        setCurrentPage(1);
-                                    }}
-                                    className="w-full appearance-none rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition focus:border-[#39854a] focus:outline-none dark:border-gray-800 dark:bg-[#121e32] dark:text-gray-200"
-                                >
-                                    {telecallers.map((t) => (
-                                        <option key={t} value={t}>
-                                            {t}
-                                        </option>
-                                    ))}
-                                </select>
-                                <ChevronDown className="pointer-events-none absolute right-2.5 top-2.5 h-3.5 w-3.5 text-gray-400" />
-                            </div>
+                            <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">TELECALLER</label>
+                            <CustomSelect
+                                options={telecallers.filter((o) => o.value !== 'All Telecallers')}
+                                value={state.telecallerFilter !== 'All Telecallers' ? (telecallers.find((o) => o.value === state.telecallerFilter) ?? null) : null}
+                                placeholder="All Telecallers"
+                                isClearable={true}
+                                isSearchable
+                                loadMore={onTelecallerLoadMore}
+                                onChange={(opt) => { setState({ telecallerFilter: opt ? String(opt.value) : 'All Telecallers' }); resetPage(); }} />
                         </div>
                     )}
 
-                    {/* Extra 2 Dropdowns (When showRoleFilter is true) */}
                     {showRoleFilter && (
                         <>
-                            {/* Extra Dropdown 1: Role (Telecaller, Counsellor) */}
                             <div>
-                                <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
-                                    ROLE
-                                </label>
-                                <div className="relative">
-                                    <select
-                                        value={roleFilter}
-                                        onChange={(e) => {
-                                            const selectedRole = e.target.value;
-                                            setRoleFilter(selectedRole);
-                                            if (selectedRole === 'Telecaller') {
-                                                setUserFilter('All Telecallers');
-                                            } else if (selectedRole === 'Counsellor') {
-                                                setUserFilter('All Counsellors');
-                                            } else {
-                                                setUserFilter('All Users');
-                                            }
-                                            setCurrentPage(1);
-                                        }}
-                                        className="w-full appearance-none rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition focus:border-[#39854a] focus:outline-none dark:border-gray-800 dark:bg-[#121e32] dark:text-gray-200"
-                                    >
-                                        <option value="All Roles">All Roles</option>
-                                        <option value="Telecaller">Telecaller</option>
-                                        <option value="Counsellor">Counsellor</option>
-                                    </select>
-                                    <ChevronDown className="pointer-events-none absolute right-2.5 top-2.5 h-3.5 w-3.5 text-gray-400" />
-                                </div>
+                                <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">ROLE</label>
+                                <CustomSelect
+                                    options={rolesOpts.filter((o) => o.value !== 'All Roles')}
+                                    value={state.roleFilter !== 'All Roles' ? (rolesOpts.find((o) => o.value === state.roleFilter) ?? null) : null}
+                                    placeholder="All Roles"
+                                    isClearable={true}
+                                    isSearchable={false}
+                                    onChange={(opt) => {
+                                        const role = opt ? String(opt.value) : 'All Roles';
+                                        setState({
+                                            roleFilter: role,
+                                            userFilter: role === 'Telecaller' ? 'All Telecallers' : role === 'Counsellor' ? 'All Counsellors' : 'All Users',
+                                        });
+                                        resetPage();
+                                    }}
+                                />
                             </div>
-
-                            {/* Extra Dropdown 2: User List (Dependent on selected Role) */}
                             <div>
-                                <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
-                                    {roleFilter === 'Telecaller'
-                                        ? 'TELECALLER'
-                                        : roleFilter === 'Counsellor'
-                                        ? 'COUNSELLOR'
-                                        : 'USER LIST'}
-                                </label>
-                                <div className="relative">
-                                    <select
-                                        value={userFilter}
-                                        onChange={(e) => {
-                                            setUserFilter(e.target.value);
-                                            setCurrentPage(1);
-                                        }}
-                                        className="w-full appearance-none rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition focus:border-[#39854a] focus:outline-none dark:border-gray-800 dark:bg-[#121e32] dark:text-gray-200"
-                                    >
-                                        {userOptions.map((u) => (
-                                            <option key={u} value={u}>
-                                                {u}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <ChevronDown className="pointer-events-none absolute right-2.5 top-2.5 h-3.5 w-3.5 text-gray-400" />
-                                </div>
+                                <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{userDropdownTitle}</label>
+                                <CustomSelect
+                                    options={userOptions.map(toOpt).filter((o) => !['All Users', 'All Telecallers', 'All Counsellors'].includes(String(o.value)))}
+                                    value={!['All Users', 'All Telecallers', 'All Counsellors'].includes(state.userFilter) ? (userOptions.map(toOpt).find((o) => o.value === state.userFilter) ?? null) : null}
+                                    placeholder="All Users"
+                                    isClearable={true}
+                                    isSearchable
+                                    onChange={(opt) => { setState({ userFilter: opt ? String(opt.value) : 'All Users' }); resetPage(); }} />
                             </div>
                         </>
                     )}
 
-                    {/* Admission Stage */}
                     <div className={showRoleFilter ? '' : 'col-span-2 sm:col-span-1'}>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
-                            ADMISSION STAGE
-                        </label>
-                        <div className="relative">
-                            <select
-                                value={stageFilter}
-                                onChange={(e) => {
-                                    setStageFilter(e.target.value);
-                                    setCurrentPage(1);
-                                }}
-                                className="w-full appearance-none rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition focus:border-[#39854a] focus:outline-none dark:border-gray-800 dark:bg-[#121e32] dark:text-gray-200"
-                            >
-                                {stages.map((st) => (
-                                    <option key={st} value={st}>
-                                        {st}
-                                    </option>
-                                ))}
-                            </select>
-                            <ChevronDown className="pointer-events-none absolute right-2.5 top-2.5 h-3.5 w-3.5 text-gray-400" />
-                        </div>
+                        <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">ADMISSION STAGE</label>
+                        <CustomSelect
+                            options={stagesOpts.filter((o) => o.value !== 'All Stages')}
+                            value={state.stageFilter !== 'All Stages' ? (stagesOpts.find((o) => o.value === state.stageFilter) ?? null) : null}
+                            placeholder="All Stages"
+                            isClearable={true}
+                            isSearchable={false}
+                            loadMore={onStageLoadMore}
+                            onChange={(opt) => { setState({ stageFilter: opt ? String(opt.value) : 'All Stages' }); resetPage(); }} />
                     </div>
                 </div>
 
-                {/* Active Category Filter Tag / Close Table Header (Shown only when activeCategory is filtered or onClose is supplied) */}
+                {/* ── Active filter chips ───────────────────────────────── */}
+                {(() => {
+                    const activeFilters = [
+                        state.search.trim() && 
+                        { 
+                        key: 'search', 
+                        label: `Search: "${state.search.trim()}"`, 
+                        clear: () => { setState({ search: '' }); resetPage(); } 
+                        },
+                        state.cityFilter !== 'All Cities' && { key: 'city', label: `City: ${state.cityFilter}`, clear: () => { setState({ cityFilter: 'All Cities' }); resetPage(); } },
+                        state.institutionFilter !== 'All Institutions' && { key: 'institution', label: `Institution: ${state.institutionFilter}`, clear: () => { setState({ institutionFilter: 'All Institutions' }); resetPage(); } },
+                        state.qualificationFilter !== 'All Qualifications' && { key: 'qualification', label: `Qualification: ${state.qualificationFilter}`, clear: () => { setState({ qualificationFilter: 'All Qualifications' }); resetPage(); } },
+                        state.telecallerFilter !== 'All Telecallers' && !showRoleFilter && { key: 'telecaller', label: `Telecaller: ${state.telecallerFilter}`, clear: () => { setState({ telecallerFilter: 'All Telecallers' }); resetPage(); } },
+                        state.roleFilter !== 'All Roles' && showRoleFilter && { key: 'role', label: `Role: ${state.roleFilter}`, clear: () => { setState({ roleFilter: 'All Roles', userFilter: 'All Users' }); resetPage(); } },
+                        !['All Users', 'All Telecallers', 'All Counsellors'].includes(state.userFilter) && showRoleFilter && { key: 'user', label: `User: ${state.userFilter}`, clear: () => { setState({ userFilter: 'All Users' }); resetPage(); } },
+                        state.stageFilter !== 'All Stages' && { key: 'stage', label: `Stage: ${state.stageFilter}`, clear: () => { setState({ stageFilter: 'All Stages' }); resetPage(); } },
+                    ].filter(Boolean) as { key: string; label: string; clear: () => void }[];
+
+                    if (activeFilters.length === 0) return null;
+                    return (
+                        <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3 dark:border-gray-800">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Active Filters:</span>
+                            {activeFilters.map((f) => (
+                                <span
+                                    key={f.key}
+                                    className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-[#39854a] dark:bg-green-950/30 dark:text-green-400"
+                                >
+                                    {f.label}
+                                    <button type="button" onClick={f.clear} className="ml-0.5 rounded-full hover:text-red-500">
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </span>
+                            ))}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setState({
+                                        search: '',
+                                        cityFilter: 'All Cities',
+                                        institutionFilter: 'All Institutions',
+                                        qualificationFilter: 'All Qualifications',
+                                        telecallerFilter: 'All Telecallers',
+                                        roleFilter: 'All Roles',
+                                        userFilter: 'All Users',
+                                        stageFilter: 'All Stages',
+                                        currentPage: 1,
+                                    });
+                                }}
+                                className="ml-auto rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-xs font-bold text-red-600 hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-400"
+                            >
+                                Clear All
+                            </button>
+                        </div>
+                    );
+                })()}
+
+                {/* Active filter tag */}
                 {(showCardFilterTag ?? Boolean(onClose || (activeCategory && activeCategory !== 'all' && activeCategory !== 'total_contacts'))) && (
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-100 dark:border-gray-800 text-xs">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-2 text-xs dark:border-gray-800">
                         <div className="flex items-center gap-2">
                             <span className="font-semibold text-gray-500">Filtered By:</span>
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#eaf5ed] text-[#39854a] font-bold px-3 py-1 text-xs">
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#eaf5ed] px-3 py-1 text-xs font-bold text-[#39854a]">
                                 {categoryTitle || activeCategory} · {totalRecords} Records
                             </span>
                             {onResetCategory && activeCategory && (
-                                <button
-                                    type="button"
-                                    onClick={onResetCategory}
-                                    className="text-xs text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline"
-                                >
+                                <button type="button" onClick={onResetCategory} className="text-xs text-gray-400 underline hover:text-gray-700 dark:hover:text-gray-200">
                                     Show All
                                 </button>
                             )}
                         </div>
                         {onClose && (
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                            >
+                            <button type="button" onClick={onClose} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
                                 <X className="h-3.5 w-3.5 text-red-500" />
                                 <span>Close Table</span>
                             </button>
@@ -471,203 +520,67 @@ const AdmissionsContactsTable: React.FC<AdmissionsContactsTableProps> = ({
                 )}
             </div>
 
-            {/* Table Panel */}
-            <div className="overview-panel p-0 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                        <thead className="border-b border-gray-100 bg-[#fafafa] dark:border-gray-800 dark:bg-[#101b2e] text-sm font-bold text-gray-700 dark:text-gray-200">
-                            <tr>
-                                <th className="p-4 w-10">
-                                    <input
-                                        type="checkbox"
-                                        checked={isAllSelected}
-                                        onChange={handleSelectAll}
-                                        className="h-4 w-4 rounded border-gray-300 accent-[#39854a] text-[#39854a] focus:ring-[#39854a] cursor-pointer"
-                                    />
-                                </th>
-                                <th className="py-3.5 px-4 font-bold">Student Name</th>
-                                <th className="py-3.5 px-4 font-bold">Mobile & Parent</th>
-                                <th className="py-3.5 px-4 font-bold">City / Area</th>
-                                <th className="py-3.5 px-4 font-bold">Target Course</th>
-                                <th className="py-3.5 px-4 font-bold">Assigned To</th>
-                                <th className="py-3.5 px-4 text-center font-bold">Status</th>
-                                <th className="py-3.5 px-4 text-right font-bold">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800 text-xs sm:text-sm">
-                            {paginatedRecords.length === 0 ? (
-                                <tr>
-                                    <td colSpan={8} className="p-8 text-center text-gray-400">
-                                        No contacts found matching criteria.
-                                    </td>
-                                </tr>
-                            ) : (
-                                paginatedRecords.map((item) => {
-                                    const isSelected = selectedIds.includes(item.id);
-                                    const statusLower = item.status.toLowerCase();
-                                    const badgeClass = statusBadgeClasses[statusLower] || 'bg-gray-100 text-gray-700';
+            {/* ── DataTable ────────────────────────────────────────────────── */}
+            <div className="overview-panel overflow-hidden p-0">
+                <DataTable
+                    className="table-responsive"
+                    records={paginatedRecords}
+                    columns={columns}
+                    fetching={false}
+                    minHeight={240}
+                    withBorder={false}
+                    highlightOnHover
+                    noRecordsText="No contacts found matching criteria."
+                    sortStatus={state.sortStatus}
+                    onSortStatusChange={(s) => setState({ sortStatus: s })}
+                    // hide mantine's built-in pagination — we use our own below
+                    totalRecords={paginatedRecords.length}
+                    recordsPerPage={PAGE_SIZE}
+                    page={null}
+                    onPageChange={() => { }}
+                    styles={{
+                        header: {
+                            background: '#fafafa',
+                            borderBottom: '1px solid #f3f4f6',
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            color: '#374151',
+                        },
+                        pagination: { display: 'none' },
+                    }}
+                    paginationText={() => ''}
+                />
 
-                                    return (
-                                        <tr
-                                            key={item.id}
-                                            className={`transition hover:bg-gray-50/70 dark:hover:bg-gray-800/40 ${
-                                                isSelected ? 'bg-green-50/40 dark:bg-green-950/20' : ''
-                                            }`}
-                                        >
-                                            {/* Checkbox */}
-                                            <td className="p-4">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={isSelected}
-                                                    onChange={() => handleSelectRow(item.id)}
-                                                    className="h-4 w-4 rounded border-gray-300 accent-[#39854a] text-[#39854a] focus:ring-[#39854a] cursor-pointer"
-                                                />
-                                            </td>
-
-                                            {/* Student Name */}
-                                            <td className="py-3.5 px-4">
-                                                <div className="flex flex-col">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <span className="font-bold text-gray-900 dark:text-white">
-                                                            {item.student_name}
-                                                        </span>
-                                                        {item.badge && (
-                                                            <span className="rounded-full bg-[#dcfce7] px-2 py-0.5 text-[10px] font-bold text-[#16a34a]">
-                                                                {item.badge}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <span className="text-xs text-gray-400 mt-0.5">
-                                                        {item.enquiry_id} · {item.qualification}
-                                                    </span>
-                                                </div>
-                                            </td>
-
-                                            {/* Mobile & Parent */}
-                                            <td className="py-3.5 px-4">
-                                                <div className="flex flex-col">
-                                                    <span className="font-bold text-gray-900 dark:text-white">
-                                                        {item.phone_number}
-                                                    </span>
-                                                    <span className="text-xs text-gray-400 mt-0.5">
-                                                        P: {item.parent_phone}
-                                                    </span>
-                                                </div>
-                                            </td>
-
-                                            {/* City / Area */}
-                                            <td className="py-3.5 px-4">
-                                                <div className="flex flex-col">
-                                                    <span className="font-bold text-gray-900 dark:text-white">
-                                                        {item.city}
-                                                    </span>
-                                                    <span className="text-xs text-gray-400 mt-0.5">
-                                                        {item.area}
-                                                    </span>
-                                                </div>
-                                            </td>
-
-                                            {/* Target Course */}
-                                            <td className="py-3.5 px-4">
-                                                <div className="flex flex-col max-w-[220px]">
-                                                    <span className="font-bold text-gray-900 dark:text-white truncate">
-                                                        {item.target_course}
-                                                    </span>
-                                                    <span className="text-xs text-gray-400 mt-0.5 truncate">
-                                                        {item.institution}
-                                                    </span>
-                                                </div>
-                                            </td>
-
-                                            {/* Assigned To */}
-                                            <td className="py-3.5 px-4 font-semibold text-gray-800 dark:text-gray-200">
-                                                <div>{item.assigned_to}</div>
-                                                {item.assigned_role && (
-                                                    <span
-                                                        className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${
-                                                            item.assigned_role === 'Counsellor'
-                                                                ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300'
-                                                                : 'bg-emerald-100 text-[#39854a] dark:bg-emerald-950/50 dark:text-emerald-300'
-                                                        }`}
-                                                    >
-                                                        {item.assigned_role}
-                                                    </span>
-                                                )}
-                                            </td>
-
-                                            {/* Status Badge */}
-                                            <td className="py-3.5 px-4 text-center">
-                                                <span className={`inline-block rounded-full px-3 py-0.5 text-xs font-semibold ${badgeClass}`}>
-                                                    {item.status}
-                                                </span>
-                                            </td>
-
-                                            {/* Actions */}
-                                            <td className="py-3.5 px-4 text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setCallingContact(item)}
-                                                        className="p-1.5 rounded-lg border border-gray-200 text-[#39854a] hover:bg-green-50 transition dark:border-gray-700 dark:hover:bg-gray-800"
-                                                        title="Call Student"
-                                                    >
-                                                        <Phone className="h-3.5 w-3.5" />
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setViewingContact(item)}
-                                                        className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
-                                                    >
-                                                        <Eye className="h-3.5 w-3.5" />
-                                                        <span>View</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Pagination Row */}
-                <div className="flex flex-col gap-3 p-4 border-t border-gray-100 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800">
+                {/* Pagination row */}
+                <div className="flex flex-col gap-3 border-t border-gray-100 p-4 dark:border-gray-800 sm:flex-row sm:items-center sm:justify-between">
                     <span className="text-xs text-gray-500">
-                        Showing {totalRecords === 0 ? 0 : startIndex + 1} to{' '}
-                        {Math.min(startIndex + recordsPerPage, totalRecords)} of {totalRecords} entries
+                        Showing {totalRecords === 0 ? 0 : startIndex + 1} to {Math.min(startIndex + PAGE_SIZE, totalRecords)} of {totalRecords} entries
                     </span>
                     <div className="self-center sm:self-auto">
                         <Pagination
-                            currentPage={currentPage}
+                            currentPage={state.currentPage}
                             totalRecords={totalRecords}
-                            onPageChange={(page) => setCurrentPage(page)}
-                            hasNext={startIndex + recordsPerPage < totalRecords}
-                            hasPrevious={currentPage > 1}
-                            recordsPerPage={recordsPerPage}
+                            onPageChange={(page) => setState({ currentPage: page })}
+                            hasNext={startIndex + PAGE_SIZE < totalRecords}
+                            hasPrevious={state.currentPage > 1}
+                            recordsPerPage={PAGE_SIZE}
                         />
                     </div>
                 </div>
             </div>
 
-            {/* Comprehensive Student Details Modal (4 Tabs matching reference images) */}
+            {/* ── Modals ───────────────────────────────────────────────────── */}
             <StudentDetailsModal
-                contact={viewingContact}
-                isOpen={Boolean(viewingContact)}
-                onClose={() => setViewingContact(null)}
-                onLogCall={(contact) => {
-                    setCallingContact(contact);
-                }}
+                contact={state.viewingContact}
+                isOpen={Boolean(state.viewingContact)}
+                onClose={() => setState({ viewingContact: null })}
+                onLogCall={(contact) => setState({ callingContact: contact, viewingContact: null })}
             />
-
-            {/* Log Call Modal (Matching reference Image 5) */}
             <LogCallModal
-                contact={callingContact}
-                isOpen={Boolean(callingContact)}
-                onClose={() => setCallingContact(null)}
-                onSaveCall={(callData) => {
-                    console.log('Call logged successfully:', callData);
-                }}
+                contact={state.callingContact}
+                isOpen={Boolean(state.callingContact)}
+                onClose={() => setState({ callingContact: null })}
+                onSaveCall={(callData) => console.log('Call logged:', callData)}
             />
         </div>
     );

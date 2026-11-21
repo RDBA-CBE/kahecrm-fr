@@ -86,7 +86,10 @@
       "campus": "KAHE - Main Campus, Eachanari",
       "current_stage": "Counselling",
       "notes": "Awaiting marks verification sheet and scholarship slab confirmation.",
-      "session_outcome": null
+      "session_outcome": null,
+      "counsellor": "Dr. K. Swaminathan",
+      "assigned_counsellor": "Dr. K. Swaminathan",
+      "user_id": 10
     },
     {
       "id": "CQ-002",
@@ -108,7 +111,10 @@
       "campus": "KAHE - Main Campus, Eachanari",
       "current_stage": "Applied",
       "notes": "Hostel room pre-reserved; clinical round orientation pending.",
-      "session_outcome": "Campus Visit Scheduled"
+      "session_outcome": "Campus Visit Scheduled",
+      "counsellor": "Dr. K. Swaminathan",
+      "assigned_counsellor": "Dr. K. Swaminathan",
+      "user_id": 10
     },
     {
       "id": "CQ-003",
@@ -130,7 +136,10 @@
       "campus": "KAHE - Main Campus, Eachanari",
       "current_stage": "Admitted",
       "notes": "Token advance received. Original certificates submitted.",
-      "session_outcome": "Spot Provisional Admission Offered"
+      "session_outcome": "Spot Provisional Admission Offered",
+      "counsellor": "S. Saravanan",
+      "assigned_counsellor": "S. Saravanan",
+      "user_id": 11
     },
     {
       "id": "CQ-004",
@@ -152,7 +161,10 @@
       "campus": "KAHE - Main Campus, Eachanari",
       "current_stage": "Counselling",
       "notes": "Met with parents; reviewing scholarship slab based on PCB aggregate.",
-      "session_outcome": null
+      "session_outcome": null,
+      "counsellor": "B. Priyadarshini",
+      "assigned_counsellor": "B. Priyadarshini",
+      "user_id": 12
     }
   ],
   "analytics": {

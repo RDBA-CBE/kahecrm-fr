@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { X, RotateCcw, ArrowRight } from 'lucide-react';
 
 export interface AssignedStudentItem {
@@ -27,14 +28,19 @@ const TelecallerAssignedContactsModal: React.FC<TelecallerAssignedContactsModalP
     onReassignAll,
     onViewProfile,
 }) => {
+    useEffect(() => {
+        document.body.style.overflow = isOpen ? 'hidden' : '';
+        return () => { document.body.style.overflow = ''; };
+    }, [isOpen]);
+
     if (!isOpen) return null;
 
     const total = contacts.length;
     const called = contacts.filter((c) => c.status?.toLowerCase() === 'called').length;
     const pending = total - called;
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm overflow-y-auto">
+    const modal = (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm overflow-y-auto">
             <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-[#0e1726] border border-gray-100 dark:border-gray-800 my-8">
                 {/* Header */}
                 <div className="flex items-start justify-between pb-4 border-b border-gray-100 dark:border-gray-800">
@@ -80,7 +86,6 @@ const TelecallerAssignedContactsModal: React.FC<TelecallerAssignedContactsModalP
                                         {item.city} · {item.target_course}
                                     </p>
                                 </div>
-
                                 <div className="flex items-center gap-3">
                                     <span className="rounded-full bg-[#dcfce7] px-2.5 py-0.5 text-[11px] font-bold text-[#16a34a] dark:bg-green-950/40">
                                         {item.status || 'Called'}
@@ -109,18 +114,17 @@ const TelecallerAssignedContactsModal: React.FC<TelecallerAssignedContactsModalP
                         <RotateCcw className="h-3.5 w-3.5" />
                         <span>Reassign All {total} Contacts</span>
                     </button>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="btn-action-solid px-5 py-2 text-xs font-bold"
-                    >
+                    <button type="button" onClick={onClose} className="btn-action-solid px-5 py-2 text-xs font-bold">
                         Close
                     </button>
                 </div>
             </div>
         </div>
     );
+
+    return typeof window !== 'undefined'
+        ? ReactDOM.createPortal(modal, document.getElementById('modal-portal')!)
+        : null;
 };
 
 export default TelecallerAssignedContactsModal;
-

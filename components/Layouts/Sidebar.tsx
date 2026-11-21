@@ -39,12 +39,28 @@ const Sidebar = () => {
     const router = useRouter();
     const [currentMenu, setCurrentMenu] = useState<string>('');
     const [role, setRole] = useState('');
+    const [currentRole, setCurrentRole] = useState<string>('admin');
+    const [isMounted, setIsMounted] = useState(false);
     const [errorSubMenu, setErrorSubMenu] = useState(false);
     const themeConfig = useSelector((state: IRootState) => state.themeConfig);
     const semidark = useSelector((state: IRootState) => state.themeConfig.semidark);
 
-    const isCounsellor = router.pathname.startsWith('/counsellor') || role?.toUpperCase() === 'COUNSELLOR' || role === 'Counsellor';
-    const isTelecaller = !isCounsellor && (router.pathname.startsWith('/telecaller') || role?.toUpperCase() === 'TELECALLER' || role === 'Telecaller' || (role !== ROLES.ADMIN && role !== 'Admin' && !router.pathname.startsWith('/own_dashboard') && !router.pathname.startsWith('/contacts') && !router.pathname.startsWith('/masters') && !router.pathname.startsWith('/crm_users')));
+    const effectiveRole = isMounted ? (currentRole || role || 'admin').toLowerCase() : 'admin';
+
+    // Counsellor menu:
+    // If logged-in role is 'counsellor', or if an admin is inspecting counsellor routes
+    const isCounsellor =
+        effectiveRole === 'counsellor' ||
+        (effectiveRole === 'admin' && router.pathname.startsWith('/counsellor'));
+
+    // Telecaller menu:
+    // If not counsellor, and logged-in role is 'telecaller', or if an admin is inspecting telecaller routes
+    const isTelecaller =
+        !isCounsellor &&
+        (effectiveRole === 'telecaller' ||
+            (effectiveRole === 'admin' && router.pathname.startsWith('/telecaller')));
+
+    const isAdmin = !isCounsellor && !isTelecaller;
 
     const [state, setState] = useSetState({
         currentLeadPage: 1,
@@ -76,6 +92,7 @@ const Sidebar = () => {
     }, []);
 
     useEffect(() => {
+        setIsMounted(true);
         setActiveRoute();
         if (window.innerWidth < 1024 && themeConfig.sidebar) {
             dispatch(toggleSidebar());
@@ -198,8 +215,16 @@ const Sidebar = () => {
             const userString = localStorage.getItem('crmUser');
             const token = localStorage.getItem('kaheToken') || localStorage.getItem('crmToken');
             const user = userString ? JSON.parse(userString) : null;
+            const storedRole = (
+                localStorage.getItem('role') ||
+                localStorage.getItem('crmRole') ||
+                user?.role ||
+                user?.group ||
+                'admin'
+            ).toLowerCase();
+            setCurrentRole(storedRole);
+            setRole(storedRole);
             if (user) {
-                setRole(user?.group);
                 setState({ userData: user, token, userId: user?.id, role: user?.designation });
             }
         } catch (error) {
@@ -336,7 +361,7 @@ const Sidebar = () => {
                         </button>
                     </div>
                     <PerfectScrollbar className="relative h-[calc(100vh-80px)]">
-                        <ul className="relative space-y-0.5 p-4 py-0 font-semibold">
+                        <ul className="relative space-y-0.5 p-4 py-0 font-semibold" suppressHydrationWarning>
                             {isCounsellor ? (
                                 // =========================================================================
                                 // COUNSELLOR ROLE SIDEBAR (Matching User Request)
@@ -389,21 +414,13 @@ const Sidebar = () => {
                                                     />
                                                     <span>{t('Counselling Queue')}</span>
                                                 </div>
-                                                <span
-                                                    className={`px-2 py-0.5 text-xs font-bold rounded-full ${router.pathname === '/counsellor/queue'
-                                                        ? 'bg-white/20 text-white'
-                                                        : 'bg-[#e8f5e9] text-[#2e7d32] dark:bg-emerald-950 dark:text-emerald-300'
-                                                        }`}
-                                                >
-                                                    2
-                                                </span>
                                             </Link>
                                         </li>
 
                                         {/* 3. Student Profile */}
                                         <li className="nav-item">
                                             <Link
-                                                href="/counsellor/student_profiles"
+                                                href="/contacts/my_contacts"
                                                 className={`group flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-sm transition ${router.pathname === '/counsellor/student_profiles'
                                                     ? '!bg-[#39854a] !text-white shadow-sm'
                                                     : 'text-gray-700 hover:bg-gray-100 hover:text-black dark:text-gray-300 dark:hover:bg-gray-800'
@@ -411,21 +428,13 @@ const Sidebar = () => {
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <IconUsers
-                                                        className={`w-5 h-5 shrink-0 ${router.pathname === '/counsellor/student_profiles'
+                                                        className={`w-5 h-5 shrink-0 ${router.pathname === '/contacts/my_contacts'
                                                             ? '!text-white'
                                                             : 'text-gray-500 group-hover:text-[#39854a]'
                                                             }`}
                                                     />
-                                                    <span>{t('Student Profile')}</span>
+                                                    <span>{t('My Contacts')}</span>
                                                 </div>
-                                                <span
-                                                    className={`px-2 py-0.5 text-xs font-bold rounded-full ${router.pathname === '/counsellor/student_profiles'
-                                                        ? 'bg-white/20 text-white'
-                                                        : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
-                                                        }`}
-                                                >
-                                                    21
-                                                </span>
                                             </Link>
                                         </li>
 
@@ -451,7 +460,7 @@ const Sidebar = () => {
                                         </li>
 
                                         {/* Admin return switch */}
-                                        {(role === ROLES.ADMIN || role === 'Admin') && (
+                                        {effectiveRole === 'admin' && (
                                             <li className="nav-item pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
                                                 <Link
                                                     href="/own_dashboard"
@@ -497,7 +506,7 @@ const Sidebar = () => {
                                         {/* 2. My Contacts */}
                                         <li className="nav-item">
                                             <Link
-                                                href="/telecaller/contacts"
+                                                href="/contacts/my_contacts"
                                                 className={`group flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-sm transition ${router.pathname === '/telecaller/contacts'
                                                     ? '!bg-[#39854a] !text-white shadow-sm'
                                                     : 'text-gray-700 hover:bg-gray-100 hover:text-black dark:text-gray-300 dark:hover:bg-gray-800'
@@ -505,21 +514,13 @@ const Sidebar = () => {
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <IconPhone
-                                                        className={`w-5 h-5 shrink-0 ${router.pathname === '/telecaller/contacts'
+                                                        className={`w-5 h-5 shrink-0 ${router.pathname === '/contacts/my_contacts'
                                                             ? '!text-white'
                                                             : 'text-gray-500 group-hover:text-[#39854a]'
                                                             }`}
                                                     />
                                                     <span>{t('My Contacts')}</span>
                                                 </div>
-                                                <span
-                                                    className={`px-2 py-0.5 text-xs font-bold rounded-full ${router.pathname === '/telecaller/contacts'
-                                                        ? 'bg-white/20 text-white'
-                                                        : 'bg-[#e8f5e9] text-[#2e7d32] dark:bg-emerald-950 dark:text-emerald-300'
-                                                        }`}
-                                                >
-                                                    5
-                                                </span>
                                             </Link>
                                         </li>
 
@@ -541,19 +542,11 @@ const Sidebar = () => {
                                                     />
                                                     <span>{t('Follow-ups & Calls')}</span>
                                                 </div>
-                                                <span
-                                                    className={`px-2 py-0.5 text-xs font-bold rounded-full ${router.pathname === '/telecaller/follow_ups'
-                                                        ? 'bg-white/20 text-white'
-                                                        : 'bg-[#ffebee] text-[#c62828] dark:bg-rose-950 dark:text-rose-300'
-                                                        }`}
-                                                >
-                                                    4
-                                                </span>
                                             </Link>
                                         </li>
 
                                         {/* Admin return switch */}
-                                        {(role === ROLES.ADMIN || role === 'Admin') && (
+                                        {effectiveRole === 'admin' && (
                                             <li className="nav-item pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
                                                 <Link
                                                     href="/own_dashboard"
@@ -602,7 +595,10 @@ const Sidebar = () => {
                                             <AnimateHeight duration={300} height={currentMenu === 'Calendars' ? 'auto' : 0}>
                                                 <ul className="sub-menu text-gray-500">
                                                     <li>
-                                                        <Link href="/contacts/all_contacts">{t('My Contacts')}</Link>
+                                                        <Link href="/contacts/all_contacts">{t('All Contacts')}</Link>
+                                                    </li>
+                                                    <li>
+                                                        <Link href="/contacts/my_contacts">{t('My Contacts')}</Link>
                                                     </li>
 
                                                     <li>
@@ -623,14 +619,33 @@ const Sidebar = () => {
                                                 </div>
                                             </Link>
                                         </li>
+                                        {/* Telecaller Desk Quick Access for Admin */}
                                         <li className="nav-item">
+                                            <Link href="/admin/telecaller/follow_ups" className="group">
+                                                <div className="flex items-center">
+                                                    <IconPhoneCall className="shrink-0 group-hover:!text-[#39854a] group-[.active]:!text-white" />
+                                                    <span className="text-black group-hover:!text-[#39854a] group-[.active]:!text-white dark:text-[#506690] dark:group-hover:!text-[#39854a] ltr:pl-3 rtl:pr-3">{t('Telecaller Desk')}</span>
+                                                </div>
+                                            </Link>
+                                        </li>
+
+                                        {/* Counsellor Desk Quick Access for Admin */}
+                                        <li className="nav-item">
+                                            <Link href="/admin/counsellor/queue" className="group">
+                                                <div className="flex items-center">
+                                                    <IconNotes className="shrink-0 group-hover:!text-[#39854a] group-[.active]:!text-white" />
+                                                    <span className="text-black group-hover:!text-[#39854a] group-[.active]:!text-white dark:text-[#506690] dark:group-hover:!text-[#39854a] ltr:pl-3 rtl:pr-3">{t('Counsellor Desk')}</span>
+                                                </div>
+                                            </Link>
+                                        </li>
+                                        {/* <li className="nav-item">
                                             <Link href="/own_dashboard" className="group">
                                                 <div className="flex items-center">
                                                     <IconMenuCharts className="shrink-0 group-hover:!text-[#39854a] group-[.active]:!text-white" />
                                                     <span className="text-black group-hover:!text-[#39854a] group-[.active]:!text-white dark:text-[#506690] dark:group-hover:!text-[#39854a] ltr:pl-3 rtl:pr-3">{t('Reports & Analytics')}</span>
                                                 </div>
                                             </Link>
-                                        </li>
+                                        </li> */}
                                         <li className="menu nav-item">
                                             <button
                                                 type="button"
@@ -679,25 +694,7 @@ const Sidebar = () => {
                                             </AnimateHeight>
                                         </li>
 
-                                        {/* Telecaller Desk Quick Access for Admin */}
-                                        <li className="nav-item">
-                                            <Link href="/telecaller/dashboard" className="group">
-                                                <div className="flex items-center">
-                                                    <IconPhoneCall className="shrink-0 group-hover:!text-[#39854a] group-[.active]:!text-white" />
-                                                    <span className="text-black group-hover:!text-[#39854a] group-[.active]:!text-white dark:text-[#506690] dark:group-hover:!text-[#39854a] ltr:pl-3 rtl:pr-3">{t('Telecaller Desk')}</span>
-                                                </div>
-                                            </Link>
-                                        </li>
-
-                                        {/* Counsellor Desk Quick Access for Admin */}
-                                        <li className="nav-item">
-                                            <Link href="/counsellor/dashboard" className="group">
-                                                <div className="flex items-center">
-                                                    <IconNotes className="shrink-0 group-hover:!text-[#39854a] group-[.active]:!text-white" />
-                                                    <span className="text-black group-hover:!text-[#39854a] group-[.active]:!text-white dark:text-[#506690] dark:group-hover:!text-[#39854a] ltr:pl-3 rtl:pr-3">{t('Counsellor Desk')}</span>
-                                                </div>
-                                            </Link>
-                                        </li>
+                                        
                                     </ul>
                                 </li>
                             )}

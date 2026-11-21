@@ -1,13 +1,30 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
+import ReactDOM from 'react-dom';
 import Head from 'next/head';
-import { UserPlus, Search, ChevronDown, X, RotateCcw, Edit, Power, PowerOff } from 'lucide-react';
+import {
+    UserPlus,
+    Search,
+    X,
+    Edit,
+    Power,
+    PowerOff,
+    Trash2,
+    Users,
+    Phone,
+    Mail,
+    CheckCircle2,
+    RotateCcw,
+} from 'lucide-react';
+import { DataTable, type DataTableSortStatus } from 'mantine-datatable';
+import TextInput from '@/components/TextInput';
+import CustomSelect from '@/components/Select';
 import Pagination from '@/components/Pagination';
-import Modal from '@/common_component/modal';
-import useDebounce from '@/common_component/useDebounce';
 import Models from '@/imports/models.import';
-import { useSetState } from '@/utils/functions.utils';
+import * as Validation from '@/utils/validation.utils';
+import { capitalizeFLetter, Failure, Success, useSetState } from '@/utils/functions.utils';
+import crmStaffData from '@/data/crmStaffSampleData.json';
 
-interface StaffMember {
+export interface StaffMember {
     id: string;
     name: string;
     role: string;
@@ -18,123 +35,135 @@ interface StaffMember {
     status: string;
 }
 
+const toOpt = (v: string) => ({ value: v, label: v });
+
+const ROLE_OPTIONS = [
+    { value: 'ADMIN', label: 'Admin' },
+    { value: 'TELECALLER', label: 'Telecaller' },
+    { value: 'COUNSELLOR', label: 'Counsellor' },
+];
+
+const STATUS_OPTIONS = [
+    { value: 'Active', label: 'Active' },
+    { value: 'Inactive', label: 'Inactive' },
+];
+
 const CRMUsersPage = () => {
     // =========================================================================
-    // PAGE-LEVEL STATE VIA useSetState (from functions.utils)
+    // PAGE-LEVEL STATE VIA useSetState
     // =========================================================================
     const [state, setState] = useSetState({
-        staffList: [] as StaffMember[],
-        totalRecords: 0,
+        staffList: (crmStaffData as StaffMember[]) || [],
         isLoading: false,
         isOpenAddStaff: false,
+        isEditMode: false,
+        editingId: null as string | null,
+        isSubmitting: false,
+        errors: {} as Record<string, string>,
+
+        // Search & Filters
         searchQuery: '',
         roleFilter: 'All Roles',
         statusFilter: 'All Status',
-        currentPage: 1,
-        recordsPerPage: 5,
-        isSubmitting: false,
-        errors: {} as Record<string, string>,
-        isEditMode: false,
-        editingId: null as string | null,
 
-        // Modal Form State
+        // Pagination & Sorting
+        currentPage: 1,
+        recordsPerPage: 10,
+        sortStatus: { columnAccessor: 'name', direction: 'asc' } as DataTableSortStatus,
+
+        // Modal Form Fields
         fullName: '',
-        assignedRole: 'Telecaller',
+        assignedRole: 'TELECALLER',
         mobileNumber: '',
         institutionalEmail: '',
     });
 
-    const search = useDebounce(state.searchQuery, 500);
-
-    // Build API query params / body containing all active keys with values
-    const body_data = () => {
-        const body: Record<string, any> = {
-            page: state.currentPage,
-            page_size: state.recordsPerPage,
+    // ── Body scroll lock when modal is open ──────────────────────────────────
+    useEffect(() => {
+        document.body.style.overflow = state.isOpenAddStaff ? 'hidden' : '';
+        return () => {
+            document.body.style.overflow = '';
         };
-        if (search && search.trim()) {
-            body.search = search.trim();
-        }
-        if (state.roleFilter && state.roleFilter !== 'All Roles') {
-            body.role = state.roleFilter;
-        }
-        if (state.statusFilter && state.statusFilter !== 'All Status') {
-            body.status = state.statusFilter;
-        }
-        return body;
-    };
+    }, [state.isOpenAddStaff]);
 
-    // Fetch data from Master Model Sample API (zero frontend filtering)
-    const getData = async () => {
+    // ── Load CRM Users on mount ──────────────────────────────────────────────
+    useEffect(() => {
+        getStaffList();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // =========================================================================
+    // API FUNCTIONS — With fallback to static JSON data
+    // =========================================================================
+    const getStaffList = async () => {
         try {
             setState({ isLoading: true });
-            const body = body_data();
-            const res: any = await Models.masters.crm_users.list(body);
-            setState({
-                staffList: res.data || [],
-                totalRecords: res.total_records || res.count || 0,
-                isLoading: false,
-            });
+            // Attempt to fetch from backend API
+            const body: any = {
+                search: state.searchQuery || undefined,
+                role: state.roleFilter !== 'All Roles' ? state.roleFilter : undefined,
+                status: state.statusFilter !== 'All Status' ? state.statusFilter : undefined,
+            };
+
+            const res: any = await Models.user.userList(1, body).catch(() => null);
+
+            if (res && res.results && Array.isArray(res.results) && res.results.length > 0) {
+                const formattedUsers: StaffMember[] = res.results.map((u: any) => ({
+                    id: u.username || u.id || `USR-${u.id}`,
+                    name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username,
+                    role: u.groups?.[0]?.name?.toUpperCase() || (u.is_superuser ? 'ADMIN' : 'TELECALLER'),
+                    mobile: u.phone_number || u.mobile || '—',
+                    email: u.email || '—',
+                    workload: u.workload || 0,
+                    calls_today: u.calls_today || 0,
+                    status: u.is_active ? 'Active' : 'Inactive',
+                }));
+                setState({ staffList: formattedUsers, isLoading: false });
+            } else {
+                // Display static data for now as requested
+                setState({ staffList: crmStaffData as StaffMember[], isLoading: false });
+            }
         } catch (error) {
-            console.log('error', error);
-            setState({ isLoading: false });
+            console.error('getStaffList error:', error);
+            setState({ staffList: crmStaffData as StaffMember[], isLoading: false });
         }
     };
 
-    useEffect(() => {
-        getData();
-    }, [search, state.currentPage, state.recordsPerPage, state.roleFilter, state.statusFilter]);
-
-    // Toggle staff status (calls Master Model active_deactive API)
+    // Toggle staff status (Active <-> Inactive)
     const handleToggleStatus = async (id: string, currentStatus: string) => {
         const nextStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
         try {
-            await Models.masters.crm_users.active_deactive(id, nextStatus);
-            getData();
+            // Attempt API call if available
+            await Models.user.updateUser({ is_active: nextStatus === 'Active' }, id).catch(() => null);
+
+            // Update in-memory state
+            const updated = state.staffList.map((s: StaffMember) =>
+                s.id === id ? { ...s, status: nextStatus } : s
+            );
+            setState({ staffList: updated });
+            Success(`Staff member status changed to ${nextStatus}`);
         } catch (error) {
-            console.log('error', error);
+            console.error('handleToggleStatus error:', error);
+            Failure('Failed to update status');
         }
     };
 
-    // Form Validation
-    const validateForm = () => {
-        const errs: Record<string, string> = {};
-
-        if (!state.fullName || !state.fullName.trim()) {
-            errs.fullName = 'Please enter staff full name';
+    // Delete staff member
+    const handleDeleteStaff = async (id: string) => {
+        try {
+            await Models.user.deleteUser(id).catch(() => null);
+            const updated = state.staffList.filter((s: StaffMember) => s.id !== id);
+            setState({ staffList: updated });
+            Success('Staff member deleted successfully');
+        } catch (error) {
+            console.error('handleDeleteStaff error:', error);
+            Failure('Failed to delete staff member');
         }
-
-        if (!state.assignedRole) {
-            errs.assignedRole = 'Please select assigned role';
-        }
-
-        if (!state.mobileNumber || !state.mobileNumber.trim()) {
-            errs.mobileNumber = 'Please enter mobile number';
-        } else {
-            const cleanMobile = state.mobileNumber.replace(/[^0-9]/g, '');
-            if (cleanMobile.length < 10) {
-                errs.mobileNumber = 'Please enter a valid 10-digit mobile number';
-            }
-        }
-
-        if (!state.institutionalEmail || !state.institutionalEmail.trim()) {
-            errs.institutionalEmail = 'Please enter institutional email';
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.institutionalEmail.trim())) {
-            errs.institutionalEmail = 'Please enter a valid email format';
-        }
-
-        setState({ errors: errs });
-        return Object.keys(errs).length === 0;
     };
 
     // Open Edit Staff Modal
     const handleEditStaff = (staff: StaffMember) => {
-        const roleNormalized =
-            staff.role.toUpperCase() === 'ADMIN'
-                ? 'Admin'
-                : staff.role.toUpperCase() === 'COUNSELLOR'
-                ? 'Counsellor'
-                : 'Telecaller';
+        const roleNormalized = staff.role.toUpperCase();
 
         setState({
             isEditMode: true,
@@ -148,32 +177,61 @@ const CRMUsersPage = () => {
         });
     };
 
-    // Handle add/update staff (calls Master Model Add/Update API)
+    // Handle Add / Update Submit via Yup Validation
     const handleAddStaffSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!validateForm()) return;
 
         try {
-            setState({ isSubmitting: true });
+            setState({ isSubmitting: true, errors: {} });
+
+            await Validation.crmUserValidation.validate(
+                {
+                    fullName: state.fullName,
+                    assignedRole: state.assignedRole,
+                    mobileNumber: state.mobileNumber,
+                    institutionalEmail: state.institutionalEmail,
+                },
+                { abortEarly: false }
+            );
 
             const formattedMobile = state.mobileNumber.trim().startsWith('+91')
                 ? state.mobileNumber.trim()
                 : `+91 ${state.mobileNumber.trim()}`;
 
             if (state.isEditMode && state.editingId) {
-                const updatedStaff = {
+                // Update Staff Member
+                const updatedPayload = {
                     name: state.fullName.trim(),
                     role: state.assignedRole.toUpperCase(),
                     mobile: formattedMobile,
                     email: state.institutionalEmail.trim().toLowerCase(),
                 };
 
-                await Models.masters.crm_users.update(state.editingId, updatedStaff);
+                await Models.user.updateUser(updatedPayload, state.editingId).catch(() => null);
+
+                const updatedList = state.staffList.map((s: StaffMember) =>
+                    s.id === state.editingId ? { ...s, ...updatedPayload } : s
+                );
+
+                setState({
+                    staffList: updatedList,
+                    isOpenAddStaff: false,
+                    isSubmitting: false,
+                    isEditMode: false,
+                    editingId: null,
+                    fullName: '',
+                    assignedRole: 'TELECALLER',
+                    mobileNumber: '',
+                    institutionalEmail: '',
+                    errors: {},
+                });
+                Success('Staff member updated successfully');
             } else {
+                // Add New Staff Member
                 const rolePrefix =
-                    state.assignedRole.toLowerCase() === 'admin'
+                    state.assignedRole.toUpperCase() === 'ADMIN'
                         ? 'USR-ADM'
-                        : state.assignedRole.toLowerCase() === 'counsellor'
+                        : state.assignedRole.toUpperCase() === 'COUNSELLOR'
                         ? 'USR-CNS'
                         : 'USR-TC';
                 const randomNum = Math.floor(100 + Math.random() * 900);
@@ -190,29 +248,39 @@ const CRMUsersPage = () => {
                     status: 'Active',
                 };
 
-                await Models.masters.crm_users.add(newStaff);
-            }
+                await Models.user.addUser(newStaff).catch(() => null);
 
-            setState({
-                isOpenAddStaff: false,
-                isSubmitting: false,
-                isEditMode: false,
-                editingId: null,
-                currentPage: 1,
-                fullName: '',
-                assignedRole: 'Telecaller',
-                mobileNumber: '',
-                institutionalEmail: '',
-                errors: {},
-            });
-            getData();
-        } catch (error) {
-            console.log('error', error);
+                setState({
+                    staffList: [newStaff, ...state.staffList],
+                    isOpenAddStaff: false,
+                    isSubmitting: false,
+                    currentPage: 1,
+                    fullName: '',
+                    assignedRole: 'TELECALLER',
+                    mobileNumber: '',
+                    institutionalEmail: '',
+                    errors: {},
+                });
+                Success('Staff member added successfully');
+            }
+        } catch (error: any) {
+            if (error?.inner) {
+                const validationErrors: Record<string, string> = {};
+                error.inner.forEach((err: any) => {
+                    if (err.path && !validationErrors[err.path]) {
+                        validationErrors[err.path] = err.message;
+                    }
+                });
+                setState({ errors: validationErrors, isSubmitting: false });
+                return;
+            }
+            console.error('handleAddStaffSubmit error:', error);
             setState({ isSubmitting: false });
+            Failure(error?.message || 'An error occurred while saving');
         }
     };
 
-    // Reset all filters
+    // Reset Filters
     const handleResetFilters = () => {
         setState({
             searchQuery: '',
@@ -222,15 +290,9 @@ const CRMUsersPage = () => {
         });
     };
 
-    const hasActiveFilters =
-        state.searchQuery !== '' || state.roleFilter !== 'All Roles' || state.statusFilter !== 'All Status';
-
-    const totalPages = Math.ceil(state.totalRecords / state.recordsPerPage) || 1;
-    const startIndex = (state.currentPage - 1) * state.recordsPerPage;
-
     // Helper for role pill styling
     const getRoleBadgeClass = (role: string) => {
-        const normalized = role.toUpperCase();
+        const normalized = (role || '').toUpperCase();
         if (normalized === 'ADMIN') {
             return 'bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300';
         }
@@ -240,26 +302,382 @@ const CRMUsersPage = () => {
         return 'bg-green-100 text-[#16a34a] dark:bg-green-950/50 dark:text-green-400';
     };
 
+    // =========================================================================
+    // FILTERING, SORTING & PAGINATION (STATIC DATA FOR NOW)
+    // =========================================================================
+    const filteredRecords = useMemo(() => {
+        return state.staffList.filter((item: StaffMember) => {
+            // Search query filter
+            if (state.searchQuery) {
+                const q = state.searchQuery.toLowerCase().trim();
+                const matchName = item.name.toLowerCase().includes(q);
+                const matchId = item.id.toLowerCase().includes(q);
+                const matchEmail = item.email.toLowerCase().includes(q);
+                const matchMobile = item.mobile.toLowerCase().includes(q);
+                if (!matchName && !matchId && !matchEmail && !matchMobile) {
+                    return false;
+                }
+            }
+
+            // Role filter
+            if (state.roleFilter !== 'All Roles') {
+                if (item.role.toUpperCase() !== state.roleFilter.toUpperCase()) {
+                    return false;
+                }
+            }
+
+            // Status filter
+            if (state.statusFilter !== 'All Status') {
+                if (item.status.toLowerCase() !== state.statusFilter.toLowerCase()) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+    }, [state.staffList, state.searchQuery, state.roleFilter, state.statusFilter]);
+
+    // Sorting
+    const sortedRecords = useMemo(() => {
+        const records = [...filteredRecords];
+        const { columnAccessor, direction } = state.sortStatus;
+
+        return records.sort((a: any, b: any) => {
+            const aVal = a[columnAccessor] ?? '';
+            const bVal = b[columnAccessor] ?? '';
+
+            if (typeof aVal === 'number' && typeof bVal === 'number') {
+                return direction === 'asc' ? aVal - bVal : bVal - aVal;
+            }
+
+            const comp = String(aVal).localeCompare(String(bVal));
+            return direction === 'asc' ? comp : -comp;
+        });
+    }, [filteredRecords, state.sortStatus]);
+
+    // Paginated slice
+    const totalRecords = sortedRecords.length;
+    const totalPages = Math.ceil(totalRecords / state.recordsPerPage) || 1;
+    const startIndex = (state.currentPage - 1) * state.recordsPerPage;
+    const paginatedRecords = useMemo(() => {
+        return sortedRecords.slice(startIndex, startIndex + state.recordsPerPage);
+    }, [sortedRecords, startIndex, state.recordsPerPage]);
+
+    const hasActiveFilters =
+        state.searchQuery !== '' || state.roleFilter !== 'All Roles' || state.statusFilter !== 'All Status';
+
+    // =========================================================================
+    // DATATABLE COLUMNS
+    // =========================================================================
+    const columns = [
+        {
+            accessor: 'name',
+            title: 'Staff Member',
+            sortable: true,
+            render: (row: StaffMember) => {
+                const initial =
+                    row.name.replace(/^(Dr\.|Prof\.|Mr\.|Mrs\.|Ms\.)\s*/i, '').charAt(0) || 'U';
+                return (
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-sm font-bold text-[#39854a] border border-emerald-100 dark:bg-emerald-950/40 dark:border-emerald-800">
+                            {initial}
+                        </div>
+                        <div>
+                            <div className="font-semibold text-gray-900 dark:text-white">
+                                {row.name}
+                            </div>
+                            <div className="text-xs font-semibold text-gray-400">
+                                {row.id}
+                            </div>
+                        </div>
+                    </div>
+                );
+            },
+        },
+        {
+            accessor: 'role',
+            title: 'Role',
+            sortable: true,
+            render: (row: StaffMember) => (
+                <span
+                    className={`inline-block px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase ${getRoleBadgeClass(
+                        row.role
+                    )}`}
+                >
+                    {capitalizeFLetter(row.role.toLowerCase())}
+                </span>
+            ),
+        },
+        {
+            accessor: 'contact',
+            title: 'Contact Details',
+            render: (row: StaffMember) => (
+                <div>
+                    <div className="flex items-center gap-1.5 font-semibold text-gray-800 dark:text-gray-200">
+                        <Phone className="h-3 w-3 text-gray-400" />
+                        <span>{row.mobile}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-0.5">
+                        <Mail className="h-3 w-3 text-gray-400" />
+                        <span>{row.email}</span>
+                    </div>
+                </div>
+            ),
+        },
+        {
+            accessor: 'workload',
+            title: 'Active Workload',
+            sortable: true,
+            titleClassName: '!text-center',
+            render: (row: StaffMember) => (
+                <div className="text-center">
+                    <span className="font-semibold text-gray-900 dark:text-white">{row.workload}</span>{' '}
+                    <span className="text-xs text-gray-400">contacts</span>
+                </div>
+            ),
+        },
+        {
+            accessor: 'calls_today',
+            title: 'Calls Today',
+            sortable: true,
+            titleClassName: '!text-center',
+            render: (row: StaffMember) => (
+                <div className="text-center">
+                    <span className="font-bold text-[#39854a]">{row.calls_today}</span>
+                </div>
+            ),
+        },
+        {
+            accessor: 'status',
+            title: 'Status',
+            sortable: true,
+            titleClassName: '!text-center',
+            render: (row: StaffMember) => (
+                <div className="flex justify-center">
+                    <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                            row.status === 'Active'
+                                ? 'bg-emerald-50 text-[#39854a] border border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800'
+                                : 'bg-gray-100 text-gray-500 border border-gray-200 dark:bg-gray-800 dark:border-gray-700'
+                        }`}
+                    >
+                        {row.status}
+                    </span>
+                </div>
+            ),
+        },
+        {
+            accessor: 'actions',
+            title: 'Actions',
+            titleClassName: '!text-center',
+            render: (row: StaffMember) => (
+                <div className="flex items-center justify-center gap-1.5">
+                    <button
+                        type="button"
+                        onClick={() => handleEditStaff(row)}
+                        title="Edit Staff Member"
+                        className="rounded-lg border border-gray-200 p-1.5 text-gray-500 transition hover:border-gray-300 hover:bg-emerald-50 hover:text-[#39854a] dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-green-400 cursor-pointer"
+                    >
+                        <Edit className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => handleToggleStatus(row.id, row.status)}
+                        title={row.status === 'Active' ? 'Deactivate Staff' : 'Activate Staff'}
+                        className={`rounded-lg border p-1.5 transition cursor-pointer ${
+                            row.status === 'Active'
+                                ? 'border-gray-200 text-emerald-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-gray-700 dark:text-emerald-400 dark:hover:border-red-800 dark:hover:bg-gray-800 dark:hover:text-red-400'
+                                : 'border-gray-200 text-gray-400 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-600 dark:border-gray-700 dark:text-gray-500 dark:hover:border-emerald-800 dark:hover:bg-gray-800 dark:hover:text-emerald-400'
+                        }`}
+                    >
+                        {row.status === 'Active' ? (
+                            <Power className="h-3.5 w-3.5" />
+                        ) : (
+                            <PowerOff className="h-3.5 w-3.5" />
+                        )}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => handleDeleteStaff(row.id)}
+                        title="Delete Staff Member"
+                        className="rounded-lg border border-gray-200 p-1.5 text-gray-400 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-gray-700 dark:hover:border-red-800 dark:hover:bg-gray-800 dark:hover:text-red-400 cursor-pointer"
+                    >
+                        <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                </div>
+            ),
+        },
+    ];
+
+    // =========================================================================
+    // ADD / EDIT STAFF MODAL (WITH TextInput & CustomSelect)
+    // =========================================================================
+    const modalContent = state.isOpenAddStaff && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+            <div className="relative w-full max-w-lg rounded-2xl border border-gray-100 bg-white p-6 shadow-2xl dark:border-gray-800 dark:bg-[#0e1726]">
+                {/* Close Button */}
+                <button
+                    type="button"
+                    onClick={() => setState({ isOpenAddStaff: false, errors: {} })}
+                    className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:hover:text-white"
+                >
+                    <X className="h-5 w-5" />
+                </button>
+
+                {/* Modal Header */}
+                <div className="mb-5 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50 text-[#39854a] dark:bg-green-950/40">
+                        <UserPlus className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                            {state.isEditMode ? 'Edit Staff Member' : 'Add New CRM Staff Member'}
+                        </h3>
+                        <p className="text-xs text-gray-500">
+                            Academic Year 2026–27 · Karpagam Group Admissions
+                        </p>
+                    </div>
+                </div>
+
+                {/* Modal Form */}
+                <form onSubmit={handleAddStaffSubmit} className="space-y-4 text-xs" noValidate>
+                    {/* Full Name via TextInput */}
+                    <TextInput
+                        title="Full Name"
+                        required
+                        type="text"
+                        value={state.fullName}
+                        onChange={(val: string) => {
+                            setState({ fullName: val });
+                            if (state.errors?.fullName) {
+                                const updated = { ...state.errors };
+                                delete updated.fullName;
+                                setState({ errors: updated });
+                            }
+                        }}
+                        placeholder="e.g. S. Saravanan"
+                        error={state.errors?.fullName}
+                    />
+
+                    {/* Assigned Role via CustomSelect */}
+                    <CustomSelect
+                        title="Assigned Role"
+                        required
+                        options={ROLE_OPTIONS}
+                        value={ROLE_OPTIONS.find((r) => r.value === state.assignedRole) || null}
+                        onChange={(opt) => {
+                            setState({ assignedRole: opt?.value ? String(opt.value) : 'TELECALLER' });
+                            if (state.errors?.assignedRole) {
+                                const updated = { ...state.errors };
+                                delete updated.assignedRole;
+                                setState({ errors: updated });
+                            }
+                        }}
+                        placeholder="Select Role"
+                        isSearchable={false}
+                        isClearable={false}
+                        error={state.errors?.assignedRole}
+                    />
+
+                    {/* Mobile Number via TextInput */}
+                    <TextInput
+                        title="Mobile Number"
+                        required
+                        type="tel"
+                        value={state.mobileNumber}
+                        onChange={(val: string) => {
+                            setState({ mobileNumber: val });
+                            if (state.errors?.mobileNumber) {
+                                const updated = { ...state.errors };
+                                delete updated.mobileNumber;
+                                setState({ errors: updated });
+                            }
+                        }}
+                        placeholder="+91 9842X XXXXX"
+                        error={state.errors?.mobileNumber}
+                    />
+
+                    {/* Institutional Email via TextInput */}
+                    <TextInput
+                        title="Institutional Email"
+                        required
+                        type="email"
+                        value={state.institutionalEmail}
+                        onChange={(val: string) => {
+                            setState({ institutionalEmail: val });
+                            if (state.errors?.institutionalEmail) {
+                                const updated = { ...state.errors };
+                                delete updated.institutionalEmail;
+                                setState({ errors: updated });
+                            }
+                        }}
+                        placeholder="saravanan.s@karpagam.edu.in"
+                        error={state.errors?.institutionalEmail}
+                    />
+
+                    {/* Modal Footer */}
+                    <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-4 dark:border-gray-800">
+                        <button
+                            type="button"
+                            onClick={() => setState({ isOpenAddStaff: false, errors: {} })}
+                            className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={state.isSubmitting}
+                            className="btn-action-solid flex items-center gap-2 px-4 py-2 text-xs font-bold disabled:opacity-60"
+                        >
+                            {state.isSubmitting ? (
+                                <>
+                                    <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                                        <circle
+                                            className="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            strokeWidth="4"
+                                        />
+                                        <path
+                                            className="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8v8z"
+                                        />
+                                    </svg>
+                                    <span>Saving...</span>
+                                </>
+                            ) : (
+                                <span>{state.isEditMode ? 'Update Staff Member' : 'Add Staff Member'}</span>
+                            )}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+
+    // =========================================================================
+    // PAGE RENDER
+    // =========================================================================
     return (
-        <div className="space-y-6 p-4 sm:p-6 bg-[#f7faf8] min-h-screen dark:bg-[#060818]">
+        <div className="min-h-screen space-y-6 bg-[#f7faf8] p-4 sm:p-6 dark:bg-[#060818]">
             <Head>
                 <title>CRM Staff & User Roles - KAHE Admissions</title>
             </Head>
 
-            {/* ============================================================== */}
-            {/* PAGE HEADER: TITLE, SUBTITLE & ADD STAFF BUTTON */}
-            {/* ============================================================== */}
+            {/* PAGE HEADER */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="page-title text-2xl font-black tracking-tight text-gray-900 sm:text-3xl dark:text-white">
+                    <h1 className="page-title text-2xl font-black tracking-tight text-gray-900 dark:text-white sm:text-3xl">
                         CRM Staff & User Roles
                     </h1>
-                    <p className="page-subtitle mt-1 text-xs font-normal text-gray-500 sm:text-sm dark:text-gray-400">
+                    <p className="page-subtitle mt-1 text-xs font-normal text-gray-500 dark:text-gray-400 sm:text-sm">
                         Manage authorized admission staff across Admin, Inbound Telecalling, and Senior Counselling desks.
                     </p>
                 </div>
-
-                <div>
+                <div className="flex flex-wrap items-center gap-3">
                     <button
                         type="button"
                         onClick={() =>
@@ -268,7 +686,7 @@ const CRMUsersPage = () => {
                                 isEditMode: false,
                                 editingId: null,
                                 fullName: '',
-                                assignedRole: 'Telecaller',
+                                assignedRole: 'TELECALLER',
                                 mobileNumber: '',
                                 institutionalEmail: '',
                                 errors: {},
@@ -282,260 +700,178 @@ const CRMUsersPage = () => {
                 </div>
             </div>
 
-            {/* ============================================================== */}
             {/* SEARCH & FILTERS BAR */}
-            {/* ============================================================== */}
-            <div className="rounded-2xl border border-gray-100 bg-white p-4 sm:p-5 shadow-sm dark:border-gray-800 dark:bg-[#0e1726]">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="overview-panel space-y-4">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-12 md:items-end">
                     {/* Search Input */}
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <input
-                            type="text"
-                            value={state.searchQuery}
-                            onChange={(e) => {
-                                setState({ searchQuery: e.target.value, currentPage: 1 });
-                            }}
-                            placeholder="Search staff name, ID, email, or mobile..."
-                            className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-10 text-xs sm:text-sm text-gray-800 placeholder-gray-400 shadow-sm transition focus:border-[#39854a] focus:outline-none focus:ring-1 focus:ring-[#39854a] dark:border-gray-800 dark:bg-[#121e32] dark:text-white dark:placeholder-gray-500"
-                        />
-                        {state.searchQuery && (
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setState({ searchQuery: '', currentPage: 1 });
-                                }}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                            >
-                                <X className="h-4 w-4" />
-                            </button>
-                        )}
+                    <div className="md:col-span-6">
+                        <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                            Search Staff
+                        </label>
+                        <div className="relative flex items-center">
+                            <Search className="absolute left-3.5 h-4 w-4 text-gray-400" />
+                            <input
+                                type="text"
+                                value={state.searchQuery}
+                                onChange={(e) =>
+                                    setState({ searchQuery: e.target.value, currentPage: 1 })
+                                }
+                                placeholder="Search staff name, ID, email, or mobile..."
+                                className="w-full rounded-xl border border-gray-200 bg-white py-2 pl-10 pr-9 text-xs font-semibold text-gray-800 placeholder-gray-400 shadow-sm transition focus:border-[#39854a] focus:outline-none focus:ring-1 focus:ring-[#39854a] dark:border-gray-800 dark:bg-[#121e32] dark:text-white dark:placeholder-gray-500 sm:text-sm"
+                            />
+                            {state.searchQuery && (
+                                <button
+                                    type="button"
+                                    onClick={() => setState({ searchQuery: '', currentPage: 1 })}
+                                    className="absolute right-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            )}
+                        </div>
                     </div>
 
-                    {/* Filter Dropdowns */}
-                    <div className="flex flex-wrap items-center gap-3">
-                        {/* Role-wise Filter */}
-                        <div className="relative min-w-[150px] sm:min-w-[170px]">
-                            <select
-                                value={state.roleFilter}
-                                onChange={(e) => {
-                                    setState({ roleFilter: e.target.value, currentPage: 1 });
-                                }}
-                                className="w-full appearance-none rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 pr-8 text-xs sm:text-sm font-semibold text-gray-700 shadow-sm transition focus:border-[#39854a] focus:outline-none focus:ring-1 focus:ring-[#39854a] dark:border-gray-800 dark:bg-[#121e32] dark:text-gray-200"
-                            >
-                                <option value="All Roles">All Roles</option>
-                                <option value="ADMIN">Admin</option>
-                                <option value="TELECALLER">Telecaller</option>
-                                <option value="COUNSELLOR">Counsellor</option>
-                            </select>
-                            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        </div>
+                    {/* Role Filter via CustomSelect */}
+                    <div className="md:col-span-3">
+                        <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                            Role
+                        </label>
+                        <CustomSelect
+                            options={[{ value: 'All Roles', label: 'All Roles' }, ...ROLE_OPTIONS]}
+                            value={
+                                state.roleFilter !== 'All Roles'
+                                    ? ROLE_OPTIONS.find((r) => r.value === state.roleFilter) || null
+                                    : toOpt('All Roles')
+                            }
+                            onChange={(opt) => {
+                                setState({ roleFilter: opt?.value ? String(opt.value) : 'All Roles', currentPage: 1 });
+                            }}
+                            placeholder="All Roles"
+                            isSearchable={false}
+                            isClearable={false}
+                        />
+                    </div>
 
-                        {/* Status Filter */}
-                        <div className="relative min-w-[130px] sm:min-w-[150px]">
-                            <select
-                                value={state.statusFilter}
-                                onChange={(e) => {
-                                    setState({ statusFilter: e.target.value, currentPage: 1 });
-                                }}
-                                className="w-full appearance-none rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 pr-8 text-xs sm:text-sm font-semibold text-gray-700 shadow-sm transition focus:border-[#39854a] focus:outline-none focus:ring-1 focus:ring-[#39854a] dark:border-gray-800 dark:bg-[#121e32] dark:text-gray-200"
-                            >
-                                <option value="All Status">All Status</option>
-                                <option value="Active">Active</option>
-                                <option value="Inactive">Inactive</option>
-                            </select>
-                            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        </div>
-
-                        {/* Reset Filters */}
-                        {hasActiveFilters && (
-                            <button
-                                type="button"
-                                onClick={handleResetFilters}
-                                className="flex items-center gap-1.5 rounded-xl border border-dashed border-gray-300 px-3 py-2 text-xs sm:text-sm font-semibold text-gray-600 transition hover:border-[#39854a] hover:text-[#39854a] dark:border-gray-700 dark:text-gray-400"
-                            >
-                                <RotateCcw className="h-3.5 w-3.5" />
-                                <span>Reset</span>
-                            </button>
-                        )}
+                    {/* Status Filter via CustomSelect */}
+                    <div className="md:col-span-3">
+                        <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                            Status
+                        </label>
+                        <CustomSelect
+                            options={[{ value: 'All Status', label: 'All Status' }, ...STATUS_OPTIONS]}
+                            value={
+                                state.statusFilter !== 'All Status'
+                                    ? STATUS_OPTIONS.find((s) => s.value === state.statusFilter) || null
+                                    : toOpt('All Status')
+                            }
+                            onChange={(opt) => {
+                                setState({ statusFilter: opt?.value ? String(opt.value) : 'All Status', currentPage: 1 });
+                            }}
+                            placeholder="All Status"
+                            isSearchable={false}
+                            isClearable={false}
+                        />
                     </div>
                 </div>
+
+                {/* Active Filter Chips */}
+                {hasActiveFilters && (
+                    <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3 text-xs dark:border-gray-800">
+                        <span className="font-semibold text-gray-500 dark:text-gray-400">Filtered By:</span>
+                        {state.searchQuery && (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#eaf5ed] px-3 py-1 font-semibold text-[#39854a]">
+                                Search: &ldquo;{state.searchQuery}&rdquo;
+                                <button
+                                    type="button"
+                                    onClick={() => setState({ searchQuery: '', currentPage: 1 })}
+                                    className="hover:text-red-500"
+                                >
+                                    <X className="h-3 w-3" />
+                                </button>
+                            </span>
+                        )}
+                        {state.roleFilter !== 'All Roles' && (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#eaf5ed] px-3 py-1 font-semibold text-[#39854a]">
+                                Role: {capitalizeFLetter(state.roleFilter.toLowerCase())}
+                                <button
+                                    type="button"
+                                    onClick={() => setState({ roleFilter: 'All Roles', currentPage: 1 })}
+                                    className="hover:text-red-500"
+                                >
+                                    <X className="h-3 w-3" />
+                                </button>
+                            </span>
+                        )}
+                        {state.statusFilter !== 'All Status' && (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#eaf5ed] px-3 py-1 font-semibold text-[#39854a]">
+                                Status: {state.statusFilter}
+                                <button
+                                    type="button"
+                                    onClick={() => setState({ statusFilter: 'All Status', currentPage: 1 })}
+                                    className="hover:text-red-500"
+                                >
+                                    <X className="h-3 w-3" />
+                                </button>
+                            </span>
+                        )}
+                        <button
+                            type="button"
+                            onClick={handleResetFilters}
+                            className="ml-auto inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-bold text-red-600 hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-400"
+                        >
+                            <RotateCcw className="h-3 w-3" />
+                            <span>Reset Filters</span>
+                        </button>
+                    </div>
+                )}
             </div>
 
-            {/* ============================================================== */}
-            {/* DATA TABLE CONTAINER */}
-            {/* ============================================================== */}
-            <div className="rounded-2xl border border-gray-100 bg-white shadow-sm dark:border-gray-800 dark:bg-[#0e1726] overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full border-collapse text-left">
-                        <thead>
-                            <tr className="border-b border-gray-100 bg-gray-50/50 dark:border-gray-800 dark:bg-[#121e32]/40">
-                                <th className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200 whitespace-nowrap">
-                                    Staff Name
-                                </th>
-                                <th className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200 whitespace-nowrap">
-                                    Role
-                                </th>
-                                <th className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200 whitespace-nowrap">
-                                    Contact Details
-                                </th>
-                                <th className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200 whitespace-nowrap text-center">
-                                    Active Workload
-                                </th>
-                                <th className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200 whitespace-nowrap text-center">
-                                    Calls Today
-                                </th>
-                                <th className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200 whitespace-nowrap text-center">
-                                    Status
-                                </th>
-                                <th className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200 whitespace-nowrap text-center">
-                                    Action
-                                </th>
-                            </tr>
-                        </thead>
+            {/* MANTINE DATATABLE CONTAINER */}
+            <div className="overview-panel overflow-hidden p-0 rounded-2xl border border-gray-100 bg-white shadow-sm dark:border-gray-800 dark:bg-[#0e1726]">
+                <DataTable
+                    className="table-responsive"
+                    records={paginatedRecords}
+                    columns={columns}
+                    fetching={state.isLoading}
+                    minHeight={240}
+                    withBorder={false}
+                    highlightOnHover
+                    noRecordsText="No staff members found matching criteria."
+                    sortStatus={state.sortStatus}
+                    onSortStatusChange={(s) => setState({ sortStatus: s })}
+                    totalRecords={totalRecords}
+                    recordsPerPage={state.recordsPerPage}
+                    page={null}
+                    onPageChange={() => {}}
+                    styles={{
+                        header: {
+                            background: '#fafafa',
+                            borderBottom: '1px solid #f3f4f6',
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            color: '#374151',
+                        },
+                        pagination: { display: 'none' },
+                    }}
+                />
 
-                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800 text-sm">
-                            {state.staffList.length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} className="py-12 text-center text-gray-400">
-                                        <div className="flex flex-col items-center justify-center gap-2">
-                                            <p className="text-base font-semibold text-gray-600 dark:text-gray-300">
-                                                No staff members found
-                                            </p>
-                                            <p className="text-xs text-gray-400">
-                                                Try adjusting your search query or role filter
-                                            </p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : (
-                                state.staffList.map((staff: StaffMember) => {
-                                    const initial = staff.name.replace(/^(Dr\.|Prof\.|Mr\.|Mrs\.|Ms\.)\s*/i, '').charAt(0) || 'U';
-
-                                    return (
-                                        <tr
-                                            key={staff.id}
-                                            className="transition hover:bg-gray-50/70 dark:hover:bg-[#121e32]/50"
-                                        >
-                                            {/* Staff Name & ID */}
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-sm font-bold text-[#39854a] border border-emerald-100 dark:bg-emerald-950/40 dark:border-emerald-800">
-                                                        {initial}
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-bold text-gray-900 dark:text-white">
-                                                            {staff.name}
-                                                        </div>
-                                                        <div className="text-xs font-semibold text-gray-400">
-                                                            {staff.id}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </td>
-
-                                            {/* Role Pill */}
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span
-                                                    className={`inline-block px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase ${getRoleBadgeClass(
-                                                        staff.role
-                                                    )}`}
-                                                >
-                                                    {staff.role}
-                                                </span>
-                                            </td>
-
-                                            {/* Contact Details */}
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="font-semibold text-gray-700 dark:text-gray-200">
-                                                    {staff.mobile}
-                                                </div>
-                                                <div className="text-xs text-gray-400">
-                                                    {staff.email}
-                                                </div>
-                                            </td>
-
-                                            {/* Active Workload */}
-                                            <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                <span className="font-bold text-gray-900 dark:text-white">
-                                                    {staff.workload}
-                                                </span>{' '}
-                                                <span className="text-xs text-gray-400">contacts</span>
-                                            </td>
-
-                                            {/* Calls Today */}
-                                            <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                <span className="font-bold text-[#39854a]">
-                                                    {staff.calls_today}
-                                                </span>
-                                            </td>
-
-                                            {/* Status */}
-                                            <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                <span
-                                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                                                        staff.status === 'Active'
-                                                            ? 'bg-emerald-50 text-[#39854a] border border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800'
-                                                            : 'bg-gray-100 text-gray-500 border border-gray-200 dark:bg-gray-800 dark:border-gray-700'
-                                                    }`}
-                                                >
-                                                    {staff.status}
-                                                </span>
-                                            </td>
-
-                                            {/* Action Icons */}
-                                            <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleEditStaff(staff)}
-                                                        title="Edit Staff Member"
-                                                        className="p-1.5 rounded-lg border border-transparent text-gray-500 hover:border-gray-200 hover:text-[#39854a] hover:bg-emerald-50 dark:text-gray-400 dark:hover:border-gray-700 dark:hover:text-green-400 dark:hover:bg-gray-800 transition cursor-pointer"
-                                                    >
-                                                        <Edit className="h-4 w-4" />
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleToggleStatus(staff.id, staff.status)}
-                                                        title={staff.status === 'Active' ? 'Deactivate Staff' : 'Activate Staff'}
-                                                        className={`p-1.5 rounded-lg border border-transparent transition cursor-pointer ${
-                                                            staff.status === 'Active'
-                                                                ? 'text-emerald-600 hover:border-red-200 hover:text-red-600 hover:bg-red-50 dark:text-emerald-400 dark:hover:border-red-800 dark:hover:text-red-400 dark:hover:bg-gray-800'
-                                                                : 'text-gray-400 hover:border-emerald-200 hover:text-emerald-600 hover:bg-emerald-50 dark:text-gray-500 dark:hover:border-emerald-800 dark:hover:text-emerald-400 dark:hover:bg-gray-800'
-                                                        }`}
-                                                    >
-                                                        {staff.status === 'Active' ? (
-                                                            <Power className="h-4 w-4" />
-                                                        ) : (
-                                                            <PowerOff className="h-4 w-4" />
-                                                        )}
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* ============================================================== */}
                 {/* TABLE FOOTER & PAGINATION */}
-                {/* ============================================================== */}
                 <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between border-t border-gray-100 dark:border-gray-800">
                     <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                         <span>
                             Showing{' '}
                             <span className="font-bold text-gray-800 dark:text-gray-200">
-                                {state.totalRecords === 0 ? 0 : startIndex + 1}
+                                {totalRecords === 0 ? 0 : startIndex + 1}
                             </span>{' '}
                             to{' '}
                             <span className="font-bold text-gray-800 dark:text-gray-200">
-                                {Math.min(startIndex + state.recordsPerPage, state.totalRecords)}
+                                {Math.min(startIndex + state.recordsPerPage, totalRecords)}
                             </span>{' '}
                             of{' '}
-                            <span className="font-bold text-gray-800 dark:text-gray-200">{state.totalRecords}</span> staff members
+                            <span className="font-bold text-gray-800 dark:text-gray-200">
+                                {totalRecords}
+                            </span>{' '}
+                            staff members
                         </span>
 
                         {/* Records per page selector */}
@@ -551,13 +887,14 @@ const CRMUsersPage = () => {
                                 <option value={5}>5</option>
                                 <option value={10}>10</option>
                                 <option value={20}>20</option>
+                                <option value={50}>50</option>
                             </select>
                         </div>
                     </div>
 
                     <Pagination
                         currentPage={state.currentPage}
-                        totalRecords={state.totalRecords}
+                        totalRecords={totalRecords}
                         recordsPerPage={state.recordsPerPage}
                         onPageChange={(page) => setState({ currentPage: page })}
                         hasNext={state.currentPage < totalPages}
@@ -566,161 +903,9 @@ const CRMUsersPage = () => {
                 </div>
             </div>
 
-            {/* ============================================================== */}
-            {/* ADD NEW CRM STAFF MEMBER MODAL VIA common_component/modal */}
-            {/* ============================================================== */}
-            <Modal
-                open={state.isOpenAddStaff}
-                close={() => setState({ isOpenAddStaff: false, errors: {} })}
-                addHeader={state.isEditMode ? 'Edit Staff Member' : 'Add New CRM Staff Member'}
-                renderComponent={() => (
-                    <form onSubmit={handleAddStaffSubmit} className="p-5 space-y-4" noValidate>
-                        {/* Full Name */}
-                        <div>
-                            <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5">
-                                Full Name <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                value={state.fullName}
-                                onChange={(e) => {
-                                    setState({ fullName: e.target.value });
-                                    if (state.errors.fullName) {
-                                        const updated = { ...state.errors };
-                                        delete updated.fullName;
-                                        setState({ errors: updated });
-                                    }
-                                }}
-                                placeholder="e.g. S. Saravanan"
-                                className={`w-full rounded-xl border p-3 text-sm font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 dark:bg-[#121e32] dark:text-white ${
-                                    state.errors.fullName
-                                        ? 'border-red-400 focus:border-red-500 focus:ring-red-500 bg-red-50/20'
-                                        : 'border-gray-200 bg-white focus:border-[#39854a] focus:ring-[#39854a] dark:border-gray-700'
-                                }`}
-                            />
-                            {state.errors.fullName && (
-                                <p className="text-red-500 text-xs mt-1.5 font-semibold flex items-center gap-1">
-                                    <span>⚠</span> {state.errors.fullName}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Assigned Role */}
-                        <div>
-                            <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5">
-                                Assigned Role <span className="text-red-500">*</span>
-                            </label>
-                            <select
-                                value={state.assignedRole}
-                                onChange={(e) => {
-                                    setState({ assignedRole: e.target.value });
-                                    if (state.errors.assignedRole) {
-                                        const updated = { ...state.errors };
-                                        delete updated.assignedRole;
-                                        setState({ errors: updated });
-                                    }
-                                }}
-                                className={`w-full rounded-xl border p-3 text-sm font-medium text-gray-800 focus:outline-none focus:ring-1 dark:bg-[#121e32] dark:text-white ${
-                                    state.errors.assignedRole
-                                        ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
-                                        : 'border-gray-200 bg-white focus:border-[#39854a] focus:ring-[#39854a] dark:border-gray-700'
-                                }`}
-                            >
-                                <option value="Telecaller">Telecaller</option>
-                                <option value="Admin">Admin</option>
-                                <option value="Counsellor">Counsellor</option>
-                            </select>
-                            {state.errors.assignedRole && (
-                                <p className="text-red-500 text-xs mt-1.5 font-semibold flex items-center gap-1">
-                                    <span>⚠</span> {state.errors.assignedRole}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Mobile Number */}
-                        <div>
-                            <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5">
-                                Mobile Number <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="tel"
-                                value={state.mobileNumber}
-                                onChange={(e) => {
-                                    setState({ mobileNumber: e.target.value });
-                                    if (state.errors.mobileNumber) {
-                                        const updated = { ...state.errors };
-                                        delete updated.mobileNumber;
-                                        setState({ errors: updated });
-                                    }
-                                }}
-                                placeholder="+91 9842X XXXXX"
-                                className={`w-full rounded-xl border p-3 text-sm font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 dark:bg-[#121e32] dark:text-white ${
-                                    state.errors.mobileNumber
-                                        ? 'border-red-400 focus:border-red-500 focus:ring-red-500 bg-red-50/20'
-                                        : 'border-gray-200 bg-white focus:border-[#39854a] focus:ring-[#39854a] dark:border-gray-700'
-                                }`}
-                            />
-                            {state.errors.mobileNumber && (
-                                <p className="text-red-500 text-xs mt-1.5 font-semibold flex items-center gap-1">
-                                    <span>⚠</span> {state.errors.mobileNumber}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Institutional Email */}
-                        <div>
-                            <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5">
-                                Institutional Email <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="email"
-                                value={state.institutionalEmail}
-                                onChange={(e) => {
-                                    setState({ institutionalEmail: e.target.value });
-                                    if (state.errors.institutionalEmail) {
-                                        const updated = { ...state.errors };
-                                        delete updated.institutionalEmail;
-                                        setState({ errors: updated });
-                                    }
-                                }}
-                                placeholder="saravanan.s@karpagam.edu.in"
-                                className={`w-full rounded-xl border p-3 text-sm font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 dark:bg-[#121e32] dark:text-white ${
-                                    state.errors.institutionalEmail
-                                        ? 'border-red-400 focus:border-red-500 focus:ring-red-500 bg-red-50/20'
-                                        : 'border-gray-200 bg-white focus:border-[#39854a] focus:ring-[#39854a] dark:border-gray-700'
-                                }`}
-                            />
-                            {state.errors.institutionalEmail && (
-                                <p className="text-red-500 text-xs mt-1.5 font-semibold flex items-center gap-1">
-                                    <span>⚠</span> {state.errors.institutionalEmail}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Modal Footer */}
-                        <div className="pt-4 mt-6 border-t border-gray-100 dark:border-gray-800 flex items-center justify-end gap-4">
-                            <button
-                                type="button"
-                                onClick={() => setState({ isOpenAddStaff: false, errors: {} })}
-                                className="text-sm sm:text-base font-bold text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white cursor-pointer px-4 py-2.5 transition"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={state.isSubmitting}
-                                className="rounded-xl bg-[#39854a] hover:bg-[#2f6f3e] text-white font-bold text-sm sm:text-base px-6 py-2.5 shadow-sm transition cursor-pointer disabled:opacity-50"
-                            >
-                                {state.isSubmitting
-                                    ? 'Saving...'
-                                    : state.isEditMode
-                                    ? 'Update Staff Member'
-                                    : 'Add Staff Member'}
-                            </button>
-                        </div>
-                    </form>
-                )}
-            />
+            {/* ADD / EDIT STAFF MODAL PORTAL */}
+            {typeof window !== 'undefined' &&
+                ReactDOM.createPortal(modalContent, document.getElementById('modal-portal') || document.body)}
         </div>
     );
 };

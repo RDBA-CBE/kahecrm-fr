@@ -2,13 +2,23 @@ import instance from '@/utils/axios.utils';
 import initialTelecallerData from '@/data/telecallerSampleData.json';
 import initialCounsellorData from '@/data/counsellorSampleData.json';
 import initialAdmissionsData from '@/data/admissionsSampleData.json';
+import initialAssignmentData from '@/data/assignmentSampleData.json';
 
 // In-memory persistent store for telecaller desk operations
-const telecallerStore = {
+const telecallerStore: any = {
     telecaller: { ...initialTelecallerData.telecaller },
     today_queue: [...(initialTelecallerData.today_queue || [])],
     my_contacts: [...(initialTelecallerData.my_contacts || [])],
     follow_ups: [...(initialTelecallerData.follow_ups || [])],
+};
+
+// In-memory persistent store for contact assignment operations
+const assignmentStore: any = {
+    stats: { ...initialAssignmentData.stats },
+    unassignedQueue: [...initialAssignmentData.unassignedQueue],
+    telecallerWorkloads: [...initialAssignmentData.telecallerWorkloads],
+    telecallerAssignedContacts: { ...initialAssignmentData.telecallerAssignedContacts },
+    assignmentLogs: [...initialAssignmentData.assignmentLogs],
 };
 
 // In-memory persistent store for counsellor desk operations
@@ -26,29 +36,73 @@ const contact = {
         let promise = new Promise((resolve, reject) => {
             let url = `crm/contacts/?page=${page}&page_size=10&get_has_lead=false&achieved=False`;
 
-              if (body?.userId) {
+            if (body?.userId) {
                 url += `&user_id=${encodeURIComponent(body?.userId)}`;
             }
 
-               if (body?.team == 'Yes') {
+            if (body?.team == 'Yes') {
                 url += `&teams=${encodeURIComponent(true)}`;
+            }
+
+            if (body?.contact_type) {
+                url += `&contact_type=${encodeURIComponent(body?.contact_type)}`;
+            }
+
+            if (body?.filter_type) {
+                url += `&filter_type=${encodeURIComponent(body?.filter_type)}`;
+            }
+
+            if (body?.created_contacts == 'Yes' || body?.created_contacts === true) {
+                url += `&created_contacts=${encodeURIComponent(true)}`;
+            }
+
+            if (body?.assigned_contacts == 'Yes' || body?.assigned_contacts === true) {
+                url += `&assigned_contacts=${encodeURIComponent(true)}`;
+            }
+
+            if (body?.my_contacts == 'Yes' || body?.my_contacts === true) {
+                url += `&my_contacts=${encodeURIComponent(true)}`;
+            }
+
+            if (body?.created_by) {
+                url += `&created_by=${encodeURIComponent(body?.created_by)}`;
+            }
+
+            if (body?.assigned_to) {
+                url += `&assigned_to=${encodeURIComponent(body?.assigned_to)}`;
+            }
+
+            if (body?.assigned_to_user) {
+                url += `&assigned_to_user=${encodeURIComponent(body?.assigned_to_user)}`;
             }
 
             if (body?.search) {
                 url += `&search=${encodeURIComponent(body?.search)}`;
             }
 
-            if (body.status) {
+            if (body?.status) {
                 url += `&status=${encodeURIComponent(body.status)}`;
             }
 
-            if (body.from_date) {
+            if (body?.city) {
+                url += `&city=${encodeURIComponent(body.city)}`;
+            }
+
+            if (body?.institution) {
+                url += `&institution=${encodeURIComponent(body.institution)}`;
+            }
+
+            if (body?.qualification) {
+                url += `&qualification=${encodeURIComponent(body.qualification)}`;
+            }
+
+            if (body?.from_date) {
                 url += `&from_date=${encodeURIComponent(body.from_date)}`;
             }
-            if (body.to_date) {
+            if (body?.to_date) {
                 url += `&to_date=${encodeURIComponent(body.to_date)}`;
             }
-            if(body.ordering){
+            if(body?.ordering){
                 url += `&ordering=${encodeURIComponent(body.ordering)}`;
             }
 
@@ -238,8 +292,22 @@ const contact = {
                     resolve(res.data);
                 })
                 .catch((error) => {
+                    const sample =
+                        initialAdmissionsData?.find(
+                            (item: any) => String(item.id) === String(contactId) || String(item.enquiry_id) === String(contactId)
+                        ) ||
+                        telecallerStore.today_queue?.find(
+                            (item: any) => String(item.id) === String(contactId) || String(item.enquiry_id) === String(contactId)
+                        ) ||
+                        telecallerStore.my_contacts?.find(
+                            (item: any) => String(item.id) === String(contactId) || String(item.enquiry_id) === String(contactId)
+                        );
+                    if (sample) {
+                        resolve(sample);
+                        return;
+                    }
                     if (error.response) {
-                        reject(error.response.message);
+                        reject(error.response.data?.message || error.response.data || error.response.message);
                     } else {
                         reject(error);
                     }
@@ -293,10 +361,18 @@ const contact = {
                     resolve(res.data);
                 })
                 .catch((error) => {
-                    if (error.response.data.company_name) {
+                    const sample = initialAdmissionsData?.find(
+                        (item: any) => String(item.id) === String(id) || String(item.enquiry_id) === String(id)
+                    );
+                    if (sample) {
+                        Object.assign(sample, data);
+                        resolve(sample);
+                        return;
+                    }
+                    if (error.response?.data?.company_name) {
                         reject(error.response.data.company_name[0]);
                     } else if (error.response) {
-                        reject(error.response.data.message);
+                        reject(error.response.data?.message || error.response.data || error.response.message);
                     } else {
                         reject(error);
                     }
@@ -496,6 +572,16 @@ const contact = {
                     if (params?.tab && params.tab !== 'all' && params.tab !== 'All') {
                         const targetTab = String(params.tab).toLowerCase();
                         items = items.filter((item) => String(item.status).toLowerCase() === targetTab);
+                    }
+
+                    // Filter by telecaller / user_id
+                    if (params?.telecaller || params?.user_id || params?.telecaller_id) {
+                        const target = String(params.telecaller || params.user_id || params.telecaller_id).toLowerCase().trim();
+                        items = items.filter((item: any) =>
+                            (item.assigned_telecaller && item.assigned_telecaller.toLowerCase().includes(target)) ||
+                            (item.user_id && String(item.user_id).toLowerCase() === target) ||
+                            (item.telecaller_id && String(item.telecaller_id).toLowerCase() === target)
+                        );
                     }
 
                     const page = Number(params?.page) || 1;
@@ -727,6 +813,18 @@ const contact = {
                         items = items.filter((item) => item.priority?.toLowerCase() === body.priority.toLowerCase());
                     }
 
+                    // Filter by counsellor / user_id
+                    if (body?.counsellor || body?.user_id || body?.counsellor_id) {
+                        const target = String(body.counsellor || body.user_id || body.counsellor_id).toLowerCase().trim();
+                        items = items.filter((item: any) =>
+                            (item.counsellor && item.counsellor.toLowerCase().includes(target)) ||
+                            (item.assigned_counsellor && item.assigned_counsellor.toLowerCase().includes(target)) ||
+                            (item.referred_by && item.referred_by.toLowerCase().includes(target)) ||
+                            (item.user_id && String(item.user_id).toLowerCase() === target) ||
+                            (item.counsellor_id && String(item.counsellor_id).toLowerCase() === target)
+                        );
+                    }
+
                     const pendingCount = counsellorStore.queue_items.filter((q) => q.tab === 'pending').length;
                     const inProgressCount = counsellorStore.queue_items.filter((q) => q.tab === 'in_progress').length;
                     const completedCount = counsellorStore.queue_items.filter((q) => q.tab === 'completed').length;
@@ -954,6 +1052,193 @@ const contact = {
                         stats: counsellorStore.counsellor.stats,
                     });
                 }, 100);
+            });
+        },
+    },
+
+    assignment: {
+        stats: (params: any = {}) => {
+            return new Promise((resolve) => {
+                let url = `crm/contacts/assignment_stats/`;
+                instance()
+                    .get(url, { params })
+                    .then((res) => resolve(res.data))
+                    .catch(() => {
+                        resolve({
+                            success: true,
+                            data: assignmentStore.stats,
+                            stats: assignmentStore.stats,
+                        });
+                    });
+            });
+        },
+
+        queue: (page: number = 1, params: any = {}) => {
+            return new Promise((resolve) => {
+                let url = `crm/contacts/assignment_queue/?page=${page}&page_size=10`;
+                if (params?.search) url += `&search=${encodeURIComponent(params.search)}`;
+                if (params?.filter) url += `&filter=${encodeURIComponent(params.filter)}`;
+                instance()
+                    .get(url)
+                    .then((res) => resolve(res.data))
+                    .catch(() => {
+                        let list = [...assignmentStore.unassignedQueue];
+                        if (params?.filter === 'unassigned') {
+                            list = list.filter((item: any) => item.status === 'Unassigned');
+                        } else if (params?.filter === 'new_imports') {
+                            list = list.filter((item: any) => item.is_new);
+                        }
+                        if (params?.search) {
+                            const q = params.search.toLowerCase().trim();
+                            list = list.filter(
+                                (item: any) =>
+                                    item.student_name?.toLowerCase().includes(q) ||
+                                    item.phone_number?.includes(q) ||
+                                    item.city?.toLowerCase().includes(q) ||
+                                    item.target_course?.toLowerCase().includes(q) ||
+                                    item.enquiry_id?.toLowerCase().includes(q)
+                            );
+                        }
+                        resolve({
+                            success: true,
+                            count: list.length,
+                            results: list,
+                            data: list,
+                        });
+                    });
+            });
+        },
+
+        workloads: (page: number = 1, params: any = {}) => {
+            return new Promise((resolve) => {
+                let url = `crm/contacts/team_workloads/?page=${page}&page_size=10`;
+                if (params?.search) url += `&search=${encodeURIComponent(params.search)}`;
+                instance()
+                    .get(url)
+                    .then((res) => resolve(res.data))
+                    .catch(() => {
+                        let list = [...assignmentStore.telecallerWorkloads];
+                        if (params?.search) {
+                            const q = params.search.toLowerCase().trim();
+                            list = list.filter(
+                                (item: any) =>
+                                    item.name?.toLowerCase().includes(q) ||
+                                    item.phone?.includes(q) ||
+                                    item.status?.toLowerCase().includes(q)
+                            );
+                        }
+                        resolve({
+                            success: true,
+                            count: list.length,
+                            results: list,
+                            data: list,
+                        });
+                    });
+            });
+        },
+
+        history: (page: number = 1, params: any = {}) => {
+            return new Promise((resolve) => {
+                let url = `crm/contacts/assignment_history/?page=${page}&page_size=10`;
+                if (params?.search) url += `&search=${encodeURIComponent(params.search)}`;
+                if (params?.telecaller) url += `&telecaller=${encodeURIComponent(params.telecaller)}`;
+                if (params?.academic_year) url += `&academic_year=${encodeURIComponent(params.academic_year)}`;
+                if (params?.from_date) url += `&from_date=${encodeURIComponent(params.from_date)}`;
+                if (params?.to_date) url += `&to_date=${encodeURIComponent(params.to_date)}`;
+                instance()
+                    .get(url)
+                    .then((res) => resolve(res.data))
+                    .catch(() => {
+                        let list = [...assignmentStore.assignmentLogs];
+                        if (params?.telecaller) {
+                            list = list.filter((item: any) => item.telecaller === params.telecaller);
+                        }
+                        if (params?.academic_year) {
+                            list = list.filter((item: any) => item.academic_year === params.academic_year);
+                        }
+                        if (params?.search) {
+                            const q = params.search.toLowerCase().trim();
+                            list = list.filter(
+                                (item: any) =>
+                                    item.telecaller?.toLowerCase().includes(q) ||
+                                    item.assigned_by?.toLowerCase().includes(q) ||
+                                    item.action_type?.toLowerCase().includes(q) ||
+                                    item.date?.includes(q)
+                            );
+                        }
+                        resolve({
+                            success: true,
+                            count: list.length,
+                            results: list,
+                            data: list,
+                        });
+                    });
+            });
+        },
+
+        assign: (data: any) => {
+            return new Promise((resolve) => {
+                let url = `crm/contacts/assign/`;
+                instance()
+                    .post(url, data)
+                    .then((res) => resolve(res.data))
+                    .catch(() => {
+                        // Update in-memory counts
+                        const assignedCount = data.selected_contact_ids?.length || data.contact_ids?.length || 1;
+                        assignmentStore.stats.assigned += assignedCount;
+                        assignmentStore.stats.unassigned = Math.max(0, assignmentStore.stats.unassigned - assignedCount);
+
+                        // Remove from queue
+                        if (Array.isArray(data.selected_contact_ids)) {
+                            assignmentStore.unassignedQueue = assignmentStore.unassignedQueue.filter(
+                                (q) => !data.selected_contact_ids.includes(q.id)
+                            );
+                        }
+
+                        // Add to history log
+                        assignmentStore.assignmentLogs.unshift({
+                            id: `LOG-${Date.now()}`,
+                            date: new Date().toISOString().split('T')[0],
+                            telecaller: data.telecaller || 'P. Malathi',
+                            count: assignedCount,
+                            assigned_by: 'Prof. R. Natarajan (Admin)',
+                            academic_year: 'AY 2026–27',
+                            action_type: data.mode === 'equal' ? 'Equal Split Allocation' : 'Manual Allocation',
+                        });
+
+                        resolve({
+                            success: true,
+                            message: `Successfully allocated ${assignedCount} contacts to telecallers`,
+                            data,
+                        });
+                    });
+            });
+        },
+
+        reassign: (data: any) => {
+            return new Promise((resolve) => {
+                let url = `crm/contacts/reassign/`;
+                instance()
+                    .post(url, data)
+                    .then((res) => resolve(res.data))
+                    .catch(() => {
+                        const count = data.count || data.totalCount || 1;
+                        assignmentStore.assignmentLogs.unshift({
+                            id: `LOG-${Date.now()}`,
+                            date: new Date().toISOString().split('T')[0],
+                            telecaller: data.new_telecaller || data.newTelecaller || 'S. Ramesh Kumar',
+                            count: count,
+                            assigned_by: 'Prof. R. Natarajan (Admin)',
+                            academic_year: 'AY 2026–27',
+                            action_type: 'Reassignment',
+                        });
+
+                        resolve({
+                            success: true,
+                            message: `Successfully reassigned ${count} contacts to ${data.new_telecaller || data.newTelecaller || 'telecaller'}`,
+                            data,
+                        });
+                    });
             });
         },
     },

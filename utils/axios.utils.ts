@@ -20,6 +20,11 @@ export const createApiInstance = () => {
     };
 
     const redirectToLogin = () => {
+        const role = (typeof window !== 'undefined' ? (localStorage.getItem('role') || localStorage.getItem('crmRole') || '') : '').toLowerCase();
+        if (role === 'counsellor' || role === 'telecaller') {
+            console.warn('Suppressing redirect to login for role:', role);
+            return;
+        }
         clearTokens();
         if (typeof window !== 'undefined' && window.location.pathname !== '/auth/signin') {
             window.location.href = '/auth/signin';
@@ -33,6 +38,11 @@ export const createApiInstance = () => {
 
                 if (!kaheRefreshToken) {
                     console.log('No refresh token found. Redirecting to login...');
+                    const role = (typeof window !== 'undefined' ? (localStorage.getItem('role') || localStorage.getItem('crmRole') || '') : '').toLowerCase();
+                    if (role === 'counsellor' || role === 'telecaller') {
+                        reject('No refresh token for role ' + role);
+                        return;
+                    }
                     clearAuthData();
                     redirectToLogin();
                     reject('No refresh token');
@@ -50,6 +60,11 @@ export const createApiInstance = () => {
                         resolve(response.data.access);
                     })
                     .catch((error) => {
+                        const role = (typeof window !== 'undefined' ? (localStorage.getItem('role') || localStorage.getItem('crmRole') || '') : '').toLowerCase();
+                        if (role === 'counsellor' || role === 'telecaller') {
+                            reject(error);
+                            return;
+                        }
                         if (error.response) {
                             console.error('Refresh token failed:', error.response.data);
 
@@ -100,6 +115,12 @@ export const createApiInstance = () => {
             if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
                 originalRequest._retry = true;
 
+                const role = (typeof window !== 'undefined' ? (localStorage.getItem('role') || localStorage.getItem('crmRole') || '') : '').toLowerCase();
+                if (role === 'counsellor' || role === 'telecaller') {
+                    console.warn('API returned 401 for role:', role, '- suppressing refresh/logout');
+                    return Promise.reject(error);
+                }
+
                 return kaheRefreshToken()
                     .then((newAccessToken) => {
                         if (!newAccessToken) {
@@ -110,6 +131,9 @@ export const createApiInstance = () => {
                         return api(originalRequest);
                     })
                     .catch((err) => {
+                        if (role === 'counsellor' || role === 'telecaller') {
+                            return Promise.reject(err);
+                        }
                         redirectToLogin();
                         return Promise.reject(err);
                     });

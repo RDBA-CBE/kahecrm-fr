@@ -1,31 +1,66 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
+import ReactDOM from 'react-dom';
+import { useRouter } from 'next/router';
 import {
     Phone,
     MessageCircle,
     X,
-    Edit3,
     GraduationCap,
     Clock,
-    Calendar,
-    Send,
-    Check,
-    ChevronRight,
+    Pencil,
     User,
     BookOpen,
-    Heart,
-    FileText,
+    Award,
+    Building,
+    Star,
+    Mail,
+    MapPin,
+    Calendar,
+    Loader2,
 } from 'lucide-react';
+import Models from '@/imports/models.import';
+import moment from 'moment';
+import { useSetState } from '@/utils/functions.utils';
 import { AdmissionContact } from './AdmissionsContactsTable';
 
 export interface StudentDetailsModalProps {
-    contact: AdmissionContact | null;
+    contact: AdmissionContact | any | null;
     isOpen: boolean;
     onClose: () => void;
     onLogCall: (contact: AdmissionContact) => void;
     onWhatsApp?: (contact: AdmissionContact) => void;
 }
 
-type TabType = 'personal' | 'academic' | 'preferences' | 'activity';
+type TabType = 'personal' | 'academic' | 'preferences' | 'assessment';
+
+const InfoItem = ({
+    label,
+    value,
+    icon: Icon,
+    badge,
+}: {
+    label: string;
+    value?: React.ReactNode;
+    icon?: any;
+    badge?: React.ReactNode;
+}) => (
+    <div className="rounded-xl border border-gray-200/90 bg-[#f8faf9] p-3.5 transition dark:border-gray-700/80 dark:bg-[#152033]">
+        <div className="mb-1.5 flex items-center justify-between">
+            <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-gray-600 dark:text-gray-300">
+                {Icon && <Icon className="h-3.5 w-3.5 text-[#39854a]" />}
+                {label}
+            </span>
+            {badge}
+        </div>
+        <div className="break-words text-sm font-bold text-gray-900 dark:text-white">
+            {value != null && value !== '' ? (
+                value
+            ) : (
+                <span className="font-medium text-gray-400 dark:text-gray-500">Not specified</span>
+            )}
+        </div>
+    </div>
+);
 
 const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({
     contact,
@@ -34,42 +69,84 @@ const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({
     onLogCall,
     onWhatsApp,
 }) => {
-    if (!isOpen || !contact) return null;
+    const router = useRouter();
+    const [state, setState] = useSetState({
+        activeTab: 'personal' as TabType,
+        fullContact: contact || null,
+        loadingDetails: false,
+    });
 
-    const [activeTab, setActiveTab] = useState<TabType>('personal');
-    const [currentStage, setCurrentStage] = useState(contact.status || 'Contacted');
-    const [isEditing, setIsEditing] = useState(false);
+    const { activeTab, fullContact, loadingDetails } = state;
 
-    // Dynamic initials
-    const initials = contact.student_name
+    // Sync prop contact and fetch enriched details if available
+    useEffect(() => {
+        if (contact) {
+            setState({ fullContact: contact });
+            const contactId = contact.id || contact.enquiry_id;
+            if (contactId) {
+                setState({ loadingDetails: true });
+                Models.contact
+                    .details(contactId)
+                    .then((res: any) => {
+                        if (res) {
+                            setState({
+                                fullContact: { ...contact, ...res },
+                            });
+                        }
+                    })
+                    .catch((err) => {
+                        console.log('Details fetch error in modal:', err);
+                    })
+                    .finally(() => {
+                        setState({ loadingDetails: false });
+                    });
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [contact]);
+
+    useEffect(() => {
+        document.body.style.overflow = isOpen ? 'hidden' : '';
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isOpen]);
+
+    if (!isOpen || !fullContact) return null;
+
+    const studentName = fullContact.student_name || 'Student';
+    const enquiryId = fullContact.enquiry_id || fullContact.id || '—';
+    const phone = fullContact.phone_number || '';
+    const city = fullContact.city?.city_name || fullContact.city || '—';
+    const area = fullContact.area || fullContact.address || '';
+    const targetCourse = fullContact.course_specialization?.name || fullContact.target_course || 'Academic Course';
+    const institution =
+        fullContact.preferred_institution?.name || fullContact.institution || 'Karpagam Academy of Higher Education';
+    const currentStage = fullContact.status?.status || fullContact.status || 'Contacted';
+    const assignedStaff =
+        typeof fullContact.assigned_to === 'object' && fullContact.assigned_to
+            ? `${fullContact.assigned_to.first_name || ''} ${fullContact.assigned_to.last_name || ''}`.trim() ||
+              fullContact.assigned_to.username
+            : fullContact.assigned_to || 'Unassigned';
+
+    const initials = studentName
         .split(' ')
-        .map((w) => w.charAt(0))
+        .map((w: string) => w.charAt(0))
         .join('')
         .slice(0, 2)
         .toUpperCase();
 
-    const stages = [
-        'New',
-        'Contacted',
-        'Interested',
-        'Counselling',
-        'Applied',
-        'Admitted',
-        'Not Interested',
-    ];
-
     const handleWhatsAppClick = () => {
         if (onWhatsApp) {
-            onWhatsApp(contact);
+            onWhatsApp(fullContact);
         } else {
-            const cleanPhone = contact.phone_number.replace(/[^0-9]/g, '');
+            const cleanPhone = String(phone).replace(/[^0-9]/g, '');
             window.open(`https://wa.me/${cleanPhone}`, '_blank');
         }
     };
 
-    // Helper for degree type
     const getDegreeType = (course: string) => {
-        const lower = course.toLowerCase();
+        const lower = String(course).toLowerCase();
         if (lower.includes('pharmacy')) return 'B.Pharm';
         if (lower.includes('nursing')) return 'B.Sc';
         if (lower.includes('business') || lower.includes('bba')) return 'BBA';
@@ -77,43 +154,52 @@ const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({
         return 'B.Tech';
     };
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-6 backdrop-blur-sm overflow-y-auto">
-            <div className="relative w-full max-w-4xl rounded-3xl bg-white shadow-2xl dark:bg-[#0e1726] border border-gray-100 dark:border-gray-800 my-6">
-                {/* ============================================================== */}
+    const modal = (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center overflow-y-auto bg-black/60 p-3 backdrop-blur-sm sm:p-6">
+            <div className="relative my-6 w-full max-w-4xl rounded-3xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-[#0e1726]">
+                {/* PINNED CLOSE BUTTON (ALWAYS TOP-RIGHT ON ALL SCREEN SIZES) */}
+                <button
+                    type="button"
+                    onClick={onClose}
+                    aria-label="Close modal"
+                    className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-600 shadow-sm transition hover:bg-gray-200 hover:text-gray-900 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white sm:right-6 sm:top-6"
+                >
+                    <X className="h-5 w-5" />
+                </button>
+
                 {/* MODAL HEADER */}
-                {/* ============================================================== */}
-                <div className="flex flex-col gap-4 p-5 sm:p-6 border-b border-gray-100 dark:border-gray-800">
-                    <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-col gap-4 border-b border-gray-200 p-5 pr-14 dark:border-gray-800 sm:p-6 sm:pr-16">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-3.5">
-                            {/* Avatar Initials Circle */}
-                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#f0f4f1] text-[#39854a] font-bold text-sm tracking-wider dark:bg-green-950/40">
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#f0f4f1] text-sm font-bold tracking-wider text-[#39854a] dark:bg-green-950/40">
                                 {initials}
                             </div>
-                            <div>
+                            <div className="min-w-0 flex-1">
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                                        {contact.student_name}
+                                    <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white truncate">
+                                        {studentName}
                                     </h2>
-                                    <span className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-xs font-mono font-medium text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                                        {contact.enquiry_id}
+                                    <span className="rounded-md border border-gray-300 bg-gray-100 px-2.5 py-1 font-mono text-xs font-bold text-gray-800 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
+                                        {enquiryId}
                                     </span>
+                                    {loadingDetails && (
+                                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500">
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin text-[#39854a]" /> Loading details...
+                                        </span>
+                                    )}
                                 </div>
-                                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                                    {contact.city}, {contact.area} · Preferred:{' '}
-                                    <span className="font-semibold text-[#39854a]">
-                                        {contact.target_course}
-                                    </span>{' '}
-                                    · AY 2026–27
+                                <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                    {city}
+                                    {area ? `, ${area}` : ''} · Preferred:{' '}
+                                    <span className="font-bold text-[#2e743e] dark:text-emerald-400">{targetCourse}</span> · AY 2026–27
                                 </p>
                             </div>
                         </div>
 
-                        {/* Top Action Buttons */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 sm:self-center">
                             <button
                                 type="button"
-                                onClick={() => onLogCall(contact)}
+                                onClick={() => onLogCall(fullContact)}
                                 className="inline-flex items-center gap-1.5 rounded-xl bg-[#39854a] px-3.5 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-[#2e6d3c]"
                             >
                                 <Phone className="h-3.5 w-3.5" />
@@ -127,256 +213,178 @@ const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({
                                 <MessageCircle className="h-3.5 w-3.5" />
                                 <span>WhatsApp</span>
                             </button>
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="rounded-xl p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-                            >
-                                <X className="h-5 w-5" />
-                            </button>
                         </div>
                     </div>
 
-                    {/* Admission Stage Selector Row */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-gray-100 dark:border-gray-800/80">
-                        <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-xs font-bold text-gray-800 dark:text-gray-200">
-                                Admission Stage:
+                    {/* Status & Staff Banner */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 pt-3.5 dark:border-gray-800">
+                        <div className="flex items-center gap-2.5">
+                            <span className="text-sm font-bold text-gray-700 dark:text-gray-200">Admission Stage:</span>
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#dcfce7] px-3.5 py-1 text-xs font-bold text-[#15803d] dark:bg-green-950/60 dark:text-green-300">
+                                <span className="h-2 w-2 rounded-full bg-[#16a34a]" />
+                                {currentStage}
                             </span>
-                            <div className="flex flex-wrap items-center gap-1.5">
-                                {stages.map((st) => {
-                                    const isActive = currentStage.toLowerCase() === st.toLowerCase();
-                                    return (
-                                        <button
-                                            key={st}
-                                            type="button"
-                                            onClick={() => setCurrentStage(st)}
-                                            className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
-                                                isActive
-                                                    ? 'bg-[#39854a] text-white font-bold shadow-sm'
-                                                    : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
-                                            }`}
-                                        >
-                                            {st}
-                                        </button>
-                                    );
-                                })}
-                            </div>
                         </div>
-
-                        {/* Assigned Telecaller Box */}
-                        <div className="flex items-center gap-2 text-xs">
-                            <span className="text-gray-500 font-medium">Assigned Telecaller:</span>
-                            <span className="rounded-lg border border-gray-200 bg-white px-3 py-1 font-bold text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 shadow-sm">
-                                {contact.assigned_to}
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-gray-700 dark:text-gray-200">Assigned Staff:</span>
+                            <span className="rounded-lg border border-gray-300 bg-white px-3.5 py-1 text-xs font-bold text-gray-900 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 sm:text-sm">
+                                {assignedStaff}
                             </span>
                         </div>
                     </div>
 
-                    {/* Summary Info Strip */}
-                    <div className="rounded-2xl border border-gray-200 bg-[#fbfdfb] p-3.5 dark:border-gray-800 dark:bg-[#121e32]/60">
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5 text-xs">
-                            {/* Last Contacted */}
+                    {/* Summary Strip */}
+                    <div className="rounded-2xl border border-gray-200 bg-[#f3f7f4] p-4 dark:border-gray-700 dark:bg-[#132238]">
+                        <div className="grid grid-cols-2 gap-4 text-xs sm:grid-cols-4">
                             <div>
-                                <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                                    LAST CONTACTED
+                                <span className="block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                                    PHONE NUMBER
                                 </span>
-                                <span className="font-bold text-gray-800 dark:text-gray-200 mt-1 inline-block">
-                                    2026-05-02
+                                <span className="mt-1 inline-block text-sm font-bold text-gray-900 dark:text-white">
+                                    {phone || '—'}
                                 </span>
                             </div>
-
-                            {/* Last Outcome */}
                             <div>
-                                <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                                    LAST OUTCOME
+                                <span className="block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                                    EMAIL ID
                                 </span>
-                                <span className="inline-block mt-1 rounded bg-[#dcfce7] px-2 py-0.5 text-[11px] font-bold text-[#16a34a] dark:bg-green-950/40">
-                                    Interested
+                                <span className="mt-1 inline-block max-w-[190px] truncate text-sm font-bold text-gray-900 dark:text-white">
+                                    {fullContact.email || '—'}
                                 </span>
                             </div>
-
-                            {/* Next Action */}
-                            <div className="col-span-2 sm:col-span-1">
-                                <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                                    NEXT ACTION
-                                </span>
-                                <p className="font-semibold text-gray-700 dark:text-gray-300 mt-1 line-clamp-2">
-                                    Confirm lab visit slot and calculate provisional merit concession
-                                </p>
-                            </div>
-
-                            {/* Follow-up Time */}
                             <div>
-                                <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                                    FOLLOW-UP TIME
+                                <span className="block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                                    TARGET INSTITUTION
                                 </span>
-                                <span className="font-bold text-gray-800 dark:text-gray-200 mt-1 inline-block">
-                                    2026-05-05 @ 10:30 hrs
+                                <span className="mt-1 inline-block max-w-[190px] truncate text-sm font-bold text-[#2e743e] dark:text-emerald-400">
+                                    {institution}
                                 </span>
                             </div>
-
-                            {/* Assigned Telecaller */}
-                            <div className="col-span-2 sm:col-span-1">
-                                <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">
-                                    ASSIGNED TELECALLER:
+                            <div>
+                                <span className="block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                                    CURRENT STATUS
                                 </span>
-                                <span className="inline-block rounded-lg border border-gray-200 bg-white px-2.5 py-0.5 font-bold text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
-                                    {contact.assigned_to}
+                                <span className="mt-1 inline-block rounded-full bg-[#dcfce7] px-3 py-1 text-xs font-bold text-[#15803d] dark:bg-green-950/70 dark:text-green-300">
+                                    {currentStage}
                                 </span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* ============================================================== */}
                 {/* NAVIGATION TABS */}
-                {/* ============================================================== */}
-                <div className="flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-800">
-                    <div className="flex items-center gap-6 overflow-x-auto">
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab('personal')}
-                            className={`py-3.5 text-xs font-bold transition border-b-2 whitespace-nowrap ${
-                                activeTab === 'personal'
-                                    ? 'border-[#39854a] text-[#39854a]'
-                                    : 'border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white'
-                            }`}
-                        >
-                            Personal & Family
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab('academic')}
-                            className={`py-3.5 text-xs font-bold transition border-b-2 whitespace-nowrap ${
-                                activeTab === 'academic'
-                                    ? 'border-[#39854a] text-[#39854a]'
-                                    : 'border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white'
-                            }`}
-                        >
-                            Academic Qualifications
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab('preferences')}
-                            className={`py-3.5 text-xs font-bold transition border-b-2 whitespace-nowrap ${
-                                activeTab === 'preferences'
-                                    ? 'border-[#39854a] text-[#39854a]'
-                                    : 'border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white'
-                            }`}
-                        >
-                            Admission Preferences
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab('activity')}
-                            className={`py-3.5 text-xs font-bold transition border-b-2 whitespace-nowrap ${
-                                activeTab === 'activity'
-                                    ? 'border-[#39854a] text-[#39854a]'
-                                    : 'border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white'
-                            }`}
-                        >
-                            Activity & History (3)
-                        </button>
+                <div className="flex items-center justify-between border-b border-gray-200 px-6 dark:border-gray-800">
+                    <div className="flex items-center gap-7 overflow-x-auto">
+                        {(['personal', 'academic', 'preferences', 'assessment'] as TabType[]).map((tab) => {
+                            const labels: Record<TabType, string> = {
+                                personal: 'Personal & Family',
+                                academic: 'Academic Qualifications',
+                                preferences: 'Admission Preferences',
+                                assessment: 'Assessment & Remarks',
+                            };
+                            return (
+                                <button
+                                    key={tab}
+                                    type="button"
+                                    onClick={() => setState({ activeTab: tab })}
+                                    className={`whitespace-nowrap border-b-2 py-4 text-sm font-bold transition ${
+                                        activeTab === tab
+                                            ? 'border-[#39854a] text-[#39854a]'
+                                            : 'border-transparent text-gray-600 hover:text-gray-950 dark:text-gray-300 dark:hover:text-white'
+                                    }`}
+                                >
+                                    {labels[tab]}
+                                </button>
+                            );
+                        })}
                     </div>
-
-                    <button
-                        type="button"
-                        onClick={() => setIsEditing(!isEditing)}
-                        className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 transition dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                    >
-                        <Edit3 className="h-3.5 w-3.5" />
-                        <span>{isEditing ? 'Cancel Editing' : 'Edit Profile'}</span>
-                    </button>
                 </div>
 
-                {/* ============================================================== */}
-                {/* TAB CONTENTS */}
-                {/* ============================================================== */}
-                <div className="p-6 max-h-[50vh] overflow-y-auto custom-scroll">
+                {/* TAB CONTENTS — VIEW DETAILS */}
+                <div className="custom-scroll max-h-[45vh] overflow-y-auto p-6">
                     {/* TAB 1: PERSONAL & FAMILY */}
                     {activeTab === 'personal' && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
-                            {/* Full Name */}
+                        <div className="space-y-6">
                             <div>
-                                <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">
-                                    Full Name
-                                </label>
-                                <div className="rounded-xl border border-gray-200 bg-white p-3 font-semibold text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white shadow-sm">
-                                    {contact.student_name}
+                                <h4 className="mb-3.5 flex items-center gap-2.5 text-sm font-bold uppercase tracking-wider text-gray-800 dark:text-gray-100">
+                                    <span className="h-3 w-1 rounded-full bg-[#39854a]" />
+                                    Personal Information
+                                </h4>
+                                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+                                    <InfoItem label="Student Name" value={studentName} icon={User} />
+                                    <InfoItem label="Student Mobile" value={phone} icon={Phone} />
+                                    <InfoItem label="Email ID" value={fullContact.email} icon={Mail} />
+                                    <InfoItem label="Alternate Email" value={fullContact.alternate_email} icon={Mail} />
+                                    <InfoItem
+                                        label="Date of Birth"
+                                        value={
+                                            fullContact.dob
+                                                ? `${moment(fullContact.dob).format('DD MMM YYYY')} (${moment().diff(
+                                                      moment(fullContact.dob),
+                                                      'years'
+                                                  )} yrs)`
+                                                : null
+                                        }
+                                        icon={Calendar}
+                                    />
+                                    <InfoItem
+                                        label="Contact Status"
+                                        value={
+                                            <span className="inline-block rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-[#39854a] dark:bg-emerald-950/40 dark:text-emerald-300">
+                                                {currentStage}
+                                            </span>
+                                        }
+                                    />
+                                    <InfoItem label="City / District" value={city} icon={MapPin} />
+                                    <InfoItem
+                                        label="State"
+                                        value={fullContact.state?.state_name || fullContact.state}
+                                        icon={MapPin}
+                                    />
+                                    <InfoItem
+                                        label="Country"
+                                        value={fullContact.country?.country_name || fullContact.country}
+                                        icon={MapPin}
+                                    />
+                                    <InfoItem label="Address / Area" value={area} icon={MapPin} />
+                                    <InfoItem label="Pincode" value={fullContact.pincode} />
+                                    <InfoItem
+                                        label="Archived"
+                                        value={fullContact.achieved || fullContact.is_archive ? 'Yes' : 'No'}
+                                    />
                                 </div>
                             </div>
 
-                            {/* Date of Birth & Age */}
                             <div>
-                                <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">
-                                    Date of Birth (Age: 18 yrs)
-                                </label>
-                                <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-3 font-semibold text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white shadow-sm">
-                                    <span>2008-04-12</span>
-                                    <span className="text-gray-500 text-xs">18 years old</span>
-                                </div>
-                            </div>
-
-                            {/* Student Mobile */}
-                            <div>
-                                <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">
-                                    Student Mobile
-                                </label>
-                                <div className="rounded-xl border border-gray-200 bg-white p-3 font-semibold text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white shadow-sm">
-                                    {contact.phone_number}
-                                </div>
-                            </div>
-
-                            {/* City / District */}
-                            <div>
-                                <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">
-                                    City / District
-                                </label>
-                                <div className="rounded-xl border border-gray-200 bg-white p-3 font-semibold text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white shadow-sm">
-                                    {contact.city}
-                                </div>
-                            </div>
-
-                            {/* Area / Locality */}
-                            <div>
-                                <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">
-                                    Area / Locality
-                                </label>
-                                <div className="rounded-xl border border-gray-200 bg-white p-3 font-semibold text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white shadow-sm">
-                                    {contact.area}
-                                </div>
-                            </div>
-
-                            {/* Parent / Guardian Mobile */}
-                            <div>
-                                <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">
-                                    Parent / Guardian Mobile
-                                </label>
-                                <div className="rounded-xl border border-gray-200 bg-white p-3 font-semibold text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white shadow-sm">
-                                    {contact.parent_phone && contact.parent_phone !== '-'
-                                        ? contact.parent_phone
-                                        : 'Not provided'}
-                                </div>
-                            </div>
-
-                            {/* Father's Name */}
-                            <div>
-                                <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">
-                                    Father's Name
-                                </label>
-                                <div className="rounded-xl border border-gray-200 bg-white p-3 font-semibold text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white shadow-sm">
-                                    —
-                                </div>
-                            </div>
-
-                            {/* Mother's Name */}
-                            <div>
-                                <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">
-                                    Mother's Name
-                                </label>
-                                <div className="rounded-xl border border-gray-200 bg-white p-3 font-semibold text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white shadow-sm">
-                                    —
+                                <h4 className="mb-3.5 flex items-center gap-2.5 text-sm font-bold uppercase tracking-wider text-gray-800 dark:text-gray-100">
+                                    <span className="h-3 w-1 rounded-full bg-[#39854a]" />
+                                    Family Details
+                                </h4>
+                                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+                                    <InfoItem
+                                        label="Father's Name"
+                                        value={fullContact.father_name || fullContact.parent_name}
+                                    />
+                                    <InfoItem label="Mother's Name" value={fullContact.mother_name} />
+                                    <InfoItem
+                                        label="Parent / Guardian Mobile"
+                                        value={
+                                            fullContact.secondary_phone_number ||
+                                            fullContact.parent_phone ||
+                                            fullContact.parent_mobile
+                                        }
+                                        icon={Phone}
+                                    />
+                                    <InfoItem label="Parent Designation" value={fullContact.parent_designation} />
+                                    <InfoItem
+                                        label="Annual Family Income"
+                                        value={
+                                            fullContact.annual_income
+                                                ? `₹ ${Number(fullContact.annual_income).toLocaleString('en-IN')}`
+                                                : null
+                                        }
+                                    />
+                                    <InfoItem label="Siblings Count" value={fullContact.siblings_count} />
                                 </div>
                             </div>
                         </div>
@@ -384,59 +392,92 @@ const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({
 
                     {/* TAB 2: ACADEMIC QUALIFICATIONS */}
                     {activeTab === 'academic' && (
-                        <div className="space-y-4 text-xs">
-                            {/* Current Qualification Box */}
-                            <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-800/40">
-                                <label className="block font-bold text-gray-800 dark:text-gray-200 mb-1">
+                        <div className="space-y-6">
+                            <div>
+                                <h4 className="mb-3.5 flex items-center gap-2.5 text-sm font-bold uppercase tracking-wider text-gray-800 dark:text-gray-100">
+                                    <span className="h-3 w-1 rounded-full bg-[#39854a]" />
                                     Current Qualification
-                                </label>
-                                <p className="text-sm font-bold text-[#39854a]">
-                                    {contact.qualification}
-                                </p>
+                                </h4>
+                                <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 dark:border-emerald-800 dark:bg-emerald-950/30">
+                                    <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                                        Highest Education Level
+                                    </span>
+                                    <p className="text-lg font-black text-[#2e743e] dark:text-emerald-300">
+                                        {fullContact.education_qualification?.qualification ||
+                                            fullContact.qualification ||
+                                            '12th Standard'}
+                                    </p>
+                                </div>
                             </div>
 
-                            {/* School & Higher Secondary Details */}
-                            <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-800/40 space-y-4">
-                                <h4 className="font-bold text-gray-900 dark:text-white pb-2 border-b border-gray-100 dark:border-gray-800">
-                                    School & Higher Secondary Details
+                            <div>
+                                <h4 className="mb-3.5 flex items-center gap-2.5 text-sm font-bold uppercase tracking-wider text-gray-800 dark:text-gray-100">
+                                    <span className="h-3 w-1 rounded-full bg-[#39854a]" />
+                                    12th Higher Secondary Details
                                 </h4>
+                                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+                                    <InfoItem
+                                        label="School Name (12th)"
+                                        value={fullContact.twelfth_school_name || fullContact.school_name}
+                                        icon={Building}
+                                    />
+                                    <InfoItem
+                                        label="12th Group / Major"
+                                        value={fullContact.twelfth_group}
+                                        icon={BookOpen}
+                                    />
+                                    <InfoItem
+                                        label="Board Result Status"
+                                        value={fullContact.twelfth_board_result}
+                                    />
+                                    <InfoItem
+                                        label="12th Marks / %"
+                                        value={fullContact.twelfth_marks ? `${fullContact.twelfth_marks}%` : null}
+                                        icon={Award}
+                                    />
+                                </div>
+                            </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <span className="block text-gray-500 dark:text-gray-400 mb-1">
-                                            School Name & Town
-                                        </span>
-                                        <p className="font-semibold text-gray-900 dark:text-white">
-                                            Suburban Higher Secondary School, Ramnagar
-                                        </p>
-                                    </div>
+                            <div>
+                                <h4 className="mb-3.5 flex items-center gap-2.5 text-sm font-bold uppercase tracking-wider text-gray-800 dark:text-gray-100">
+                                    <span className="h-3 w-1 rounded-full bg-[#39854a]" />
+                                    10th Secondary Schooling Details
+                                </h4>
+                                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
+                                    <InfoItem
+                                        label="School Name (10th)"
+                                        value={fullContact.tenth_school_name}
+                                        icon={Building}
+                                    />
+                                    <InfoItem label="Board Result (10th)" value={fullContact.tenth_board_result} />
+                                    <InfoItem
+                                        label="10th Marks / %"
+                                        value={fullContact.tenth_marks ? `${fullContact.tenth_marks}%` : null}
+                                        icon={Award}
+                                    />
+                                </div>
+                            </div>
 
-                                    <div>
-                                        <span className="block text-gray-500 dark:text-gray-400 mb-1">
-                                            10th Standard (SSLC) Marks / %
-                                        </span>
-                                        <p className="font-semibold text-gray-900 dark:text-white">
-                                            445 / 500 (89.0%)
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <span className="block text-gray-500 dark:text-gray-400 mb-1">
-                                            12th Subject Group
-                                        </span>
-                                        <p className="font-semibold text-gray-900 dark:text-white">
-                                            Maths, Physics, Chemistry, Computer Science
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <span className="block text-gray-500 dark:text-gray-400 mb-1">
-                                            12th Board Result Status
-                                        </span>
-                                        <p className="font-semibold text-gray-900 dark:text-white">
-                                            Result Pending
-                                        </p>
-                                    </div>
+                            <div>
+                                <h4 className="mb-3.5 flex items-center gap-2.5 text-sm font-bold uppercase tracking-wider text-gray-800 dark:text-gray-100">
+                                    <span className="h-3 w-1 rounded-full bg-[#39854a]" />
+                                    Other Academic Records
+                                </h4>
+                                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+                                    <InfoItem label="Board Name" value={fullContact.board_name} />
+                                    <InfoItem label="Graduation Year" value={fullContact.graduation_year} />
+                                    <InfoItem
+                                        label="UG Marks / CGPA"
+                                        value={fullContact.ug_marks ? `${fullContact.ug_marks}%` : null}
+                                    />
+                                    <InfoItem
+                                        label="Entrance Exam Score"
+                                        value={fullContact.entrance_exam_score}
+                                    />
+                                    <InfoItem
+                                        label="Score in Core Subjects"
+                                        value={fullContact.score_in_subjects}
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -444,150 +485,147 @@ const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({
 
                     {/* TAB 3: ADMISSION PREFERENCES */}
                     {activeTab === 'preferences' && (
-                        <div className="space-y-4 text-xs">
-                            {/* Karpagam Institution & Course Preference */}
-                            <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-800/40 space-y-4">
-                                <h4 className="font-bold text-gray-900 dark:text-white">
-                                    Karpagam Institution & Course Preference
+                        <div className="space-y-6">
+                            <div>
+                                <h4 className="mb-3.5 flex items-center gap-2.5 text-sm font-bold uppercase tracking-wider text-gray-800 dark:text-gray-100">
+                                    <span className="h-3 w-1 rounded-full bg-[#39854a]" />
+                                    Institution & Programme Selection
                                 </h4>
-
-                                <div>
-                                    <label className="block text-gray-500 dark:text-gray-400 mb-1">
-                                        Preferred Institution
-                                    </label>
-                                    <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-3 font-semibold text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white">
-                                        {contact.institution.length > 5
-                                            ? contact.institution
-                                            : `Karpagam Academy of Higher Education (${contact.institution})`}
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <span className="block text-gray-500 dark:text-gray-400 mb-1">
-                                            Degree Type
-                                        </span>
-                                        <p className="font-bold text-gray-900 dark:text-white">
-                                            {getDegreeType(contact.target_course)}
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <span className="block text-gray-500 dark:text-gray-400 mb-1">
-                                            Course & Specialization
-                                        </span>
-                                        <p className="font-bold text-[#39854a]">
-                                            {contact.target_course}
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <span className="block text-gray-500 dark:text-gray-400 mb-1">
-                                            Student Interest Level
-                                        </span>
-                                        <p className="font-bold text-gray-900 dark:text-white">
-                                            High
-                                        </p>
-                                    </div>
+                                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+                                    <InfoItem
+                                        label="Preferred Institution"
+                                        value={institution}
+                                        icon={Building}
+                                    />
+                                    <InfoItem
+                                        label="Target Course / Specialization"
+                                        value={targetCourse}
+                                        icon={BookOpen}
+                                    />
+                                    <InfoItem
+                                        label="Degree Type"
+                                        value={
+                                            fullContact.degree_type ||
+                                            getDegreeType(targetCourse)
+                                        }
+                                        icon={GraduationCap}
+                                    />
+                                    <InfoItem
+                                        label="Student Interest Level"
+                                        value={
+                                            <span className="inline-block rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-[#39854a] dark:bg-emerald-950/40 dark:text-emerald-300">
+                                                {fullContact.student_interest_level || 'High'}
+                                            </span>
+                                        }
+                                    />
+                                    <InfoItem
+                                        label="Preferred Campus Location"
+                                        value={fullContact.preferred_location || city}
+                                        icon={MapPin}
+                                    />
+                                    <InfoItem
+                                        label="Best Time to Contact"
+                                        value={fullContact.best_time_to_contact}
+                                        icon={Clock}
+                                    />
                                 </div>
                             </div>
 
-                            {/* Reference Details */}
-                            <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-800/40 space-y-2">
-                                <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
-                                    <h4 className="font-bold text-gray-900 dark:text-white">
-                                        Reference Details
-                                    </h4>
-                                    <span className="text-[11px] text-gray-400">
-                                        Lead attribution source
-                                    </span>
-                                </div>
-                                <div className="pt-1">
-                                    <span className="block text-gray-500 dark:text-gray-400 mb-1">
-                                        Reference Type
-                                    </span>
-                                    <p className="font-bold text-[#39854a]">
-                                        Coimbatore Education Fair Direct Lead
-                                    </p>
+                            <div>
+                                <h4 className="mb-3.5 flex items-center gap-2.5 text-sm font-bold uppercase tracking-wider text-gray-800 dark:text-gray-100">
+                                    <span className="h-3 w-1 rounded-full bg-[#39854a]" />
+                                    Lead Attribution & Reference
+                                </h4>
+                                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+                                    <InfoItem
+                                        label="Reference Type"
+                                        value={fullContact.reference_type || 'Education Fair / Walk-In'}
+                                    />
+                                    <InfoItem
+                                        label="Source Details"
+                                        value={fullContact.source_details || 'Direct admissions desk enquiry'}
+                                    />
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* TAB 4: ACTIVITY & HISTORY (3) */}
-                    {activeTab === 'activity' && (
-                        <div className="space-y-4 text-xs">
-                            {/* Card 1: Senior Counsellor Referral (High Priority) */}
-                            <div className="rounded-2xl border border-emerald-200 bg-[#f0fdf4] p-4 dark:border-emerald-900/60 dark:bg-green-950/20 space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-1.5 font-bold text-gray-900 dark:text-white">
-                                        <GraduationCap className="h-4 w-4 text-[#39854a]" />
-                                        <span>Senior Counsellor Referral (High Priority)</span>
-                                    </div>
-                                    <span className="rounded-full bg-[#dcfce7] px-2.5 py-0.5 text-[11px] font-bold text-[#16a34a] dark:bg-green-900/60 dark:text-green-300">
-                                        Status: Pending
-                                    </span>
-                                </div>
-                                <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                                    <span className="font-bold">Reason:</span> Student waiting for 12th PCM results. Father enquired about 50% merit scholarship and AI Lab facilities.
-                                </p>
-                            </div>
-
-                            {/* Card 2: Scheduled Follow-up */}
-                            <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-800/40">
-                                <div className="flex flex-wrap items-center gap-3">
-                                    <div className="flex items-center gap-1.5 font-bold text-gray-900 dark:text-white">
-                                        <Clock className="h-4 w-4 text-gray-500" />
-                                        <span>Scheduled Follow-up: 2026-05-05 at 10:30</span>
-                                    </div>
-                                    <span className="rounded bg-green-50 px-2 py-0.5 text-[10px] font-bold text-green-700 border border-green-200 dark:bg-green-950/40 dark:text-green-300">
-                                        Scheduled
-                                    </span>
-                                    <p className="text-gray-600 dark:text-gray-400">
-                                        Father enquired about 50% merit scholarship cutoff and AI lab visit. Scheduled callback today morning.
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Section 3: Interaction & Calling Log */}
-                            <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-800/40 space-y-4">
-                                <h4 className="font-bold text-gray-900 dark:text-white">
-                                    Interaction & Calling Log
+                    {/* TAB 4: ASSESSMENT & REMARKS */}
+                    {activeTab === 'assessment' && (
+                        <div className="space-y-6">
+                            <div>
+                                <h4 className="mb-3.5 flex items-center gap-2.5 text-sm font-bold uppercase tracking-wider text-gray-800 dark:text-gray-100">
+                                    <span className="h-3 w-1 rounded-full bg-[#39854a]" />
+                                    Assignment & Desk Operations
                                 </h4>
+                                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+                                    <InfoItem
+                                        label="Assigned Role"
+                                        value={
+                                            fullContact.assigned_role ||
+                                            fullContact.contact_assign_role?.label ||
+                                            'Telecaller'
+                                        }
+                                    />
+                                    <InfoItem
+                                        label="Assigned Staff Member"
+                                        value={assignedStaff}
+                                        icon={User}
+                                    />
+                                </div>
+                            </div>
 
-                                <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-green-200 dark:before:bg-green-900">
-                                    {/* Item 1 */}
-                                    <div className="relative">
-                                        <div className="absolute -left-6 top-1 h-3 w-3 rounded-full bg-[#39854a] ring-4 ring-green-100 dark:ring-green-950" />
-                                        <div className="flex items-center justify-between">
-                                            <span className="font-bold text-gray-900 dark:text-white">
-                                                Assigned to Telecaller {contact.assigned_to}
-                                            </span>
-                                            <span className="text-[11px] text-gray-400">
-                                                2026-05-01 10:15
-                                            </span>
-                                        </div>
-                                        <p className="text-gray-600 dark:text-gray-300 mt-0.5">
-                                            Enquiry imported from Coimbatore Education Fair lead sheet.
-                                        </p>
-                                        <span className="text-[11px] text-gray-400 mt-1 block">
-                                            By: Admin (ADMIN)
+                            <div>
+                                <h4 className="mb-3.5 flex items-center gap-2.5 text-sm font-bold uppercase tracking-wider text-gray-800 dark:text-gray-100">
+                                    <span className="h-3 w-1 rounded-full bg-[#39854a]" />
+                                    Internal Ratings
+                                </h4>
+                                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+                                    <InfoItem
+                                        label="Interview Rating"
+                                        value={
+                                            fullContact.interview_rating != null ? (
+                                                <div className="flex items-center gap-1.5 text-sm font-bold text-[#2e743e] dark:text-emerald-400">
+                                                    <Star className="h-4 w-4 fill-[#39854a] text-[#39854a]" />
+                                                    <span>{fullContact.interview_rating} / 5</span>
+                                                </div>
+                                            ) : null
+                                        }
+                                    />
+                                    <InfoItem
+                                        label="Internal Rating"
+                                        value={
+                                            fullContact.internal_rating != null ? (
+                                                <div className="flex items-center gap-1.5 text-sm font-bold text-[#2e743e] dark:text-emerald-400">
+                                                    <Star className="h-4 w-4 fill-[#39854a] text-[#39854a]" />
+                                                    <span>{fullContact.internal_rating} / 5</span>
+                                                </div>
+                                            ) : null
+                                        }
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 className="mb-3.5 flex items-center gap-2.5 text-sm font-bold uppercase tracking-wider text-gray-800 dark:text-gray-100">
+                                    <span className="h-3 w-1 rounded-full bg-[#39854a]" />
+                                    Counselor & Staff Remarks
+                                </h4>
+                                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+                                    <div className="rounded-xl border border-gray-200/90 bg-[#f8faf9] p-4 dark:border-gray-700/80 dark:bg-[#152033]">
+                                        <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                                            General Remark
                                         </span>
+                                        <p className="whitespace-pre-wrap text-sm font-medium leading-relaxed text-gray-900 dark:text-gray-100">
+                                            {fullContact.remark || 'No general remark logged.'}
+                                        </p>
                                     </div>
-
-                                    {/* Item 2 */}
-                                    <div className="relative">
-                                        <div className="absolute -left-6 top-1 h-3 w-3 rounded-full bg-[#39854a] ring-4 ring-green-100 dark:ring-green-950" />
-                                        <div className="flex items-center justify-between">
-                                            <span className="font-bold text-gray-900 dark:text-white">
-                                                Initial Discovery Call
-                                            </span>
-                                            <span className="text-[11px] text-gray-400">
-                                                2026-05-02 11:40
-                                            </span>
-                                        </div>
-                                        <p className="text-gray-600 dark:text-gray-300 mt-0.5">
-                                            Connected with student {contact.student_name}. Highly interested in {contact.target_course}. Cutoff is declared (91.3%).
+                                    <div className="rounded-xl border border-gray-200/90 bg-[#f8faf9] p-4 dark:border-gray-700/80 dark:bg-[#152033]">
+                                        <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                                            Personal Remarks
+                                        </span>
+                                        <p className="whitespace-pre-wrap text-sm font-medium leading-relaxed text-gray-900 dark:text-gray-100">
+                                            {fullContact.personal_remarks || 'No personal remarks logged.'}
                                         </p>
                                     </div>
                                 </div>
@@ -596,25 +634,37 @@ const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({
                     )}
                 </div>
 
-                {/* ============================================================== */}
                 {/* MODAL FOOTER */}
-                {/* ============================================================== */}
-                <div className="flex items-center justify-between p-4 px-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-[#121e32]/50 rounded-b-3xl">
-                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                        Enquiry Registered for AY 2026–27
+                <div className="flex items-center justify-between rounded-b-3xl border-t border-gray-200 bg-gray-50/80 p-4 px-6 dark:border-gray-800 dark:bg-[#121e32]">
+                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:text-sm">
+                        Contact Record · Academic Year 2026–27
                     </span>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="rounded-xl border border-gray-200 bg-white px-5 py-2 text-xs font-bold text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 shadow-sm"
-                    >
-                        Close
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                onClose();
+                                router.push(`/contacts/edit_contact/${fullContact.id || fullContact.enquiry_id}`);
+                            }}
+                            className="inline-flex items-center gap-2 rounded-xl border border-[#39854a]/40 bg-white px-4 py-2.5 text-xs font-bold text-[#2e743e] shadow-sm transition hover:bg-[#39854a]/10 dark:border-[#39854a]/60 dark:bg-gray-800 dark:text-emerald-400 sm:text-sm"
+                        >
+                            <Pencil className="h-4 w-4" />
+                            <span>Edit Contact</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-xs font-bold text-gray-800 shadow-sm transition hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 sm:text-sm"
+                        >
+                            Close
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     );
+
+    return typeof window !== 'undefined' ? ReactDOM.createPortal(modal, document.getElementById('modal-portal')!) : null;
 };
 
 export default StudentDetailsModal;
-
