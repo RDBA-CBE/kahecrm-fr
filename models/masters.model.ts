@@ -32,11 +32,13 @@ const filterSampleRecords = (records: any[], params: any = {}) => {
         });
     }
 
-    // Category / Desk / Stream filter
-    if (params?.category && String(params.category).trim() && !String(params.category).startsWith('All')) {
-        const cat = String(params.category).toLowerCase().trim();
+    // Category / Degree Level / Desk / Stream filter
+    const catFilter = params?.category || params?.degree_level || params?.stream || params?.level;
+    if (catFilter && String(catFilter).trim() && !String(catFilter).startsWith('All')) {
+        const cat = String(catFilter).toLowerCase().trim();
         result = result.filter((item) => {
             const itemCat = String(
+                item.degree_level ||
                 item.category ||
                 item.type ||
                 item.level ||
@@ -58,7 +60,10 @@ const filterSampleRecords = (records: any[], params: any = {}) => {
     // Status filter
     if (params?.status && String(params.status).trim() && !String(params.status).startsWith('All')) {
         const status = String(params.status).toLowerCase().trim();
-        result = result.filter((item) => String(item.status || '').toLowerCase().trim() === status);
+        result = result.filter((item) => {
+            const itemStatus = String(item.status || (item.is_active === false ? 'Inactive' : 'Active')).toLowerCase().trim();
+            return itemStatus === status;
+        });
     }
 
     const total = result.length;
@@ -82,9 +87,17 @@ const createMasterApi = (entityKey: string, endpoint: string) => {
     return {
         /**
          * 1. LIST API: GET endpoint with query parameters (search, category, status, page, page_size)
+         * Supports both list(params) and list(pageNumber, bodyParams) call patterns
          */
-        list: (params: any = {}) => {
+        list: (pageOrParams: any = {}, bodyParams: any = {}) => {
             return new Promise((resolve) => {
+                let params: any = {};
+                if (typeof pageOrParams === 'number' || typeof pageOrParams === 'string') {
+                    params = { page: Number(pageOrParams) || 1, ...(bodyParams && typeof bodyParams === 'object' ? bodyParams : {}) };
+                } else if (pageOrParams && typeof pageOrParams === 'object') {
+                    params = { ...pageOrParams, ...(bodyParams && typeof bodyParams === 'object' ? bodyParams : {}) };
+                }
+
                 const query = new URLSearchParams();
                 if (params && typeof params === 'object') {
                     Object.keys(params).forEach((key) => {
@@ -169,23 +182,39 @@ const createMasterApi = (entityKey: string, endpoint: string) => {
         active_deactive: (id: string | number, status?: string) => {
             return new Promise((resolve) => {
                 const current = (sampleStore[entityKey] || []).find((item) => String(item.id) === String(id));
-                const nextStatus = status || (current?.status === 'Active' ? 'Inactive' : 'Active');
-                const url = `${endpoint}${id}/status/`;
+                const nextStatus = status || (current?.status === 'Active' || current?.is_active === true ? 'Inactive' : 'Active');
+                const is_active = nextStatus === 'Active';
+                const payload = { status: nextStatus, is_active };
 
+                // First try standard PATCH to endpoint/id/
                 instance()
-                    .patch(url, { status: nextStatus })
+                    .patch(`${endpoint}${id}/`, payload)
                     .then((res) => {
+                        sampleStore[entityKey] = (sampleStore[entityKey] || []).map((item) =>
+                            String(item.id) === String(id) ? { ...item, status: nextStatus, is_active } : item
+                        );
                         resolve(res.data);
                     })
                     .catch(() => {
-                        sampleStore[entityKey] = (sampleStore[entityKey] || []).map((item) =>
-                            String(item.id) === String(id) ? { ...item, status: nextStatus } : item
-                        );
-                        resolve({
-                            status: 200,
-                            message: `Record ${nextStatus === 'Active' ? 'activated' : 'deactivated'} successfully (Sample API)`,
-                            status_value: nextStatus,
-                        });
+                        // Fallback to /status/ sub-route if backend requires it
+                        instance()
+                            .patch(`${endpoint}${id}/status/`, payload)
+                            .then((res) => {
+                                sampleStore[entityKey] = (sampleStore[entityKey] || []).map((item) =>
+                                    String(item.id) === String(id) ? { ...item, status: nextStatus, is_active } : item
+                                );
+                                resolve(res.data);
+                            })
+                            .catch(() => {
+                                sampleStore[entityKey] = (sampleStore[entityKey] || []).map((item) =>
+                                    String(item.id) === String(id) ? { ...item, status: nextStatus, is_active } : item
+                                );
+                                resolve({
+                                    status: 200,
+                                    message: `Record ${nextStatus === 'Active' ? 'activated' : 'deactivated'} successfully`,
+                                    status_value: nextStatus,
+                                });
+                            });
                     });
             });
         },

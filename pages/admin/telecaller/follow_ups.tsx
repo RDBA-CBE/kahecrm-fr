@@ -1169,7 +1169,7 @@ const renderCallUpdateModal = ({
                                         type="date"
                                         label="New Callback Date"
                                         value={callbackDate}
-                                        onChange={(e: any) => onCallbackDateChange(e.target.value)}
+                                        onChange={(val: any) => onCallbackDateChange(typeof val === 'string' ? val : val?.target?.value ?? '')}
                                     />
                                 </div>
                                 <div>
@@ -1177,7 +1177,7 @@ const renderCallUpdateModal = ({
                                         type="text"
                                         label="New Callback Time"
                                         value={callbackTime}
-                                        onChange={(e: any) => onCallbackTimeChange(e.target.value)}
+                                        onChange={(val: any) => onCallbackTimeChange(typeof val === 'string' ? val : val?.target?.value ?? '')}
                                         placeholder="11:00 AM"
                                     />
                                 </div>
@@ -1287,14 +1287,14 @@ const renderRescheduleModal = ({
                             label="New Date"
                             required
                             value={newDate}
-                            onChange={(e: any) => onDateChange(e.target.value)}
+                            onChange={(val: any) => onDateChange(typeof val === 'string' ? val : val?.target?.value ?? '')}
                         />
                         <TextInput
                             type="text"
                             label="New Time"
                             required
                             value={newTime}
-                            onChange={(e: any) => onTimeChange(e.target.value)}
+                            onChange={(val: any) => onTimeChange(typeof val === 'string' ? val : val?.target?.value ?? '')}
                             placeholder="11:30 AM"
                         />
                     </div>

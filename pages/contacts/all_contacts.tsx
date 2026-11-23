@@ -477,10 +477,88 @@ const AllContactsPage = () => {
         return body;
     };
 
-    // ── 7. Table Data Mapper (Same pattern as /leads tableData) ──────────────
+    // ── 7. Client-side Search & Param Filter Fallback ────────────────────────
+    const filterContactListByParams = (list: any[]) => {
+        let result = [...list];
+        const query = (state.search || '').trim().toLowerCase();
+        if (query) {
+            result = result.filter((item: any) => {
+                const sName = String(item?.student_name || '').toLowerCase();
+                const pName = String(item?.parent_name || item?.father_name || item?.mother_name || item?.name || item?.contact_person || '').toLowerCase();
+                const phone = String(item?.phone_number || item?.mobile || item?.contact_number || '').toLowerCase();
+                const pPhone = String(item?.secondary_phone_number || item?.parent_phone || '').toLowerCase();
+                const enqId = String(item?.enquiry_id || item?.id || '').toLowerCase();
+                const course = String(item?.target_course || item?.course || item?.education_qualification?.qualification || '').toLowerCase();
+                const city = String(item?.city?.city_name || item?.city || '').toLowerCase();
+                const area = String(item?.preferred_location || item?.address || item?.location || item?.area || item?.batch || '').toLowerCase();
+                const assigned = String(
+                    item?.assigned_to?.first_name ? `${item.assigned_to.first_name} ${item.assigned_to.last_name || ''}` : (item?.assigned_to || '')
+                ).toLowerCase();
+
+                return (
+                    sName.includes(query) ||
+                    pName.includes(query) ||
+                    phone.includes(query) ||
+                    pPhone.includes(query) ||
+                    enqId.includes(query) ||
+                    course.includes(query) ||
+                    city.includes(query) ||
+                    area.includes(query) ||
+                    assigned.includes(query)
+                );
+            });
+        }
+
+        if (state.cityFilter && state.cityFilter !== 'All Cities') {
+            const cFilter = state.cityFilter.toLowerCase();
+            result = result.filter((item: any) => {
+                const c = String(item?.city?.city_name || item?.city || '').toLowerCase();
+                return c.includes(cFilter);
+            });
+        }
+
+        if (state.institutionFilter && state.institutionFilter !== 'All Institutions') {
+            const instFilter = state.institutionFilter.toLowerCase();
+            result = result.filter((item: any) => {
+                const inst = String(item?.preferred_institution?.name || item?.institution || '').toLowerCase();
+                return inst.includes(instFilter);
+            });
+        }
+
+        if (state.qualificationFilter && state.qualificationFilter !== 'All Qualifications') {
+            const qFilter = state.qualificationFilter.toLowerCase();
+            result = result.filter((item: any) => {
+                const q = String(item?.education_qualification?.qualification || item?.qualification || '').toLowerCase();
+                return q.includes(qFilter);
+            });
+        }
+
+        if (state.telecallerFilter && state.telecallerFilter !== 'All Telecallers') {
+            const tFilter = state.telecallerFilter.toLowerCase();
+            result = result.filter((item: any) => {
+                const t = String(
+                    item?.assigned_to?.first_name ? `${item.assigned_to.first_name} ${item.assigned_to.last_name || ''}` : (item?.assigned_to || '')
+                ).toLowerCase();
+                return t.includes(tFilter);
+            });
+        }
+
+        if (state.stageFilter && state.stageFilter !== 'All Stages') {
+            const sFilter = state.stageFilter.toLowerCase();
+            result = result.filter((item: any) => {
+                const s = String(item?.status?.status || item?.status || '').toLowerCase();
+                return s.includes(sFilter);
+            });
+        }
+
+        return result;
+    };
+
+    // ── 7b. Table Data Mapper (Same pattern as /leads tableData) ──────────────
     const tableData = (res: any) => {
         const rawList = res?.results || res?.data || (Array.isArray(res) ? res : []);
-        const data = rawList.map((item: any) => {
+        const filteredList = filterContactListByParams(rawList);
+        const data = filteredList.map((item: any) => {
             return {
                 ...item,
                 allData: item,
@@ -509,7 +587,12 @@ const AllContactsPage = () => {
         });
         console.log('✌️data --->', data);
 
-        setState({ contactList: data, allData: res });
+        setState({
+            contactList: data,
+            allData: res,
+            totalRecords: (state.search?.trim() || state.cityFilter !== 'All Cities' || state.institutionFilter !== 'All Institutions' || state.qualificationFilter !== 'All Qualifications' || state.telecallerFilter !== 'All Telecallers' || state.stageFilter !== 'All Stages') ? data.length : (res?.count ?? data.length),
+            count: (state.search?.trim() || state.cityFilter !== 'All Cities' || state.institutionFilter !== 'All Institutions' || state.qualificationFilter !== 'All Qualifications' || state.telecallerFilter !== 'All Telecallers' || state.stageFilter !== 'All Stages') ? data.length : (res?.count ?? data.length),
+        });
     };
 
     // ── 8. Get Contact List API Function (Filtered by Created vs Assigned) ───
@@ -551,11 +634,9 @@ const AllContactsPage = () => {
             tableData(res);
             setState({
                 isLoading: false,
-                count: res?.count ?? (res?.results?.length || 0),
                 next: res?.next ?? null,
                 previous: res?.previous ?? null,
                 currentPage: page,
-                totalRecords: res?.count ?? (res?.results?.length || 0),
             });
         } catch (error) {
             setState({ isLoading: false });

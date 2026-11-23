@@ -310,10 +310,10 @@ const CRMUsersPage = () => {
             // Search query filter
             if (state.searchQuery) {
                 const q = state.searchQuery.toLowerCase().trim();
-                const matchName = item.name.toLowerCase().includes(q);
-                const matchId = item.id.toLowerCase().includes(q);
-                const matchEmail = item.email.toLowerCase().includes(q);
-                const matchMobile = item.mobile.toLowerCase().includes(q);
+                const matchName = String(item?.name || '').toLowerCase().includes(q);
+                const matchId = String(item?.id ?? '').toLowerCase().includes(q);
+                const matchEmail = String(item?.email || '').toLowerCase().includes(q);
+                const matchMobile = String(item?.mobile || '').toLowerCase().includes(q);
                 if (!matchName && !matchId && !matchEmail && !matchMobile) {
                     return false;
                 }
@@ -321,14 +321,14 @@ const CRMUsersPage = () => {
 
             // Role filter
             if (state.roleFilter !== 'All Roles') {
-                if (item.role.toUpperCase() !== state.roleFilter.toUpperCase()) {
+                if (String(item?.role || '').toUpperCase() !== state.roleFilter.toUpperCase()) {
                     return false;
                 }
             }
 
             // Status filter
             if (state.statusFilter !== 'All Status') {
-                if (item.status.toLowerCase() !== state.statusFilter.toLowerCase()) {
+                if (String(item?.status || '').toLowerCase() !== state.statusFilter.toLowerCase()) {
                     return false;
                 }
             }
@@ -404,7 +404,7 @@ const CRMUsersPage = () => {
                         row.role
                     )}`}
                 >
-                    {capitalizeFLetter(row.role.toLowerCase())}
+                    {capitalizeFLetter(String(row?.role || '').toLowerCase())}
                 </span>
             ),
         },
@@ -792,7 +792,7 @@ const CRMUsersPage = () => {
                         )}
                         {state.roleFilter !== 'All Roles' && (
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-[#eaf5ed] px-3 py-1 font-semibold text-[#39854a]">
-                                Role: {capitalizeFLetter(state.roleFilter.toLowerCase())}
+                                Role: {capitalizeFLetter(String(state?.roleFilter || '').toLowerCase())}
                                 <button
                                     type="button"
                                     onClick={() => setState({ roleFilter: 'All Roles', currentPage: 1 })}

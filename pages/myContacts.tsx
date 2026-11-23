@@ -171,7 +171,17 @@ const Contacts = () => {
     };
 
     const tableData = (res: any) => {
-        const data = res?.results?.map((item) => {
+        let raw = res?.results || [];
+        const searchTerm = (state.search || '').trim().toLowerCase();
+        if (searchTerm) {
+            raw = raw.filter((item: any) => {
+                const sName = String(item?.student_name || '').toLowerCase();
+                const pName = String(item?.name || item?.contact_person || '').toLowerCase();
+                const phone = String(item?.phone_number || '').toLowerCase();
+                return sName.includes(searchTerm) || pName.includes(searchTerm) || phone.includes(searchTerm);
+            });
+        }
+        const data = raw.map((item: any) => {
             return {
                 ...item,
                 student_name: item?.student_name ? capitalizeFLetter(item?.student_name) : '',
@@ -187,7 +197,13 @@ const Contacts = () => {
         });
         console.log('data: ', data);
 
-        setState({ contactList: data, next: res.next, previous: res.previous, totalRecords: res.count });
+        setState({
+            contactList: data,
+            next: res.next,
+            previous: res.previous,
+            totalRecords: searchTerm ? data.length : (res.count ?? data.length),
+            count: searchTerm ? data.length : (res.count ?? data.length),
+        });
     };
 
     const contactStatusList = async () => {

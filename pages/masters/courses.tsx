@@ -140,15 +140,51 @@ const CoursesPage = () => {
             }
             if (state.categoryFilter && state.categoryFilter !== 'All Degree Levels') {
                 body.degree_level = state.categoryFilter;
+                body.category = state.categoryFilter;
             }
             if (state.statusFilter && state.statusFilter !== 'All Status') {
                 body.status = state.statusFilter;
             }
 
             const res: any = await Models.courses.list(pageNumber, body);
+            const rawList: any[] = res.data || res.results || (Array.isArray(res) ? res : []);
+            let formatted: CourseItem[] = rawList.map((item: any) => ({
+                ...item,
+                status: item.status
+                    ? item.status
+                    : item.is_active === false || item.is_active === 0 || item.isActive === false
+                    ? 'Inactive'
+                    : 'Active',
+            }));
+
+            // Fallback client-side filter if backend returned unfiltered dataset
+            if (state.search.trim()) {
+                const query = state.search.trim().toLowerCase();
+                formatted = formatted.filter((item: CourseItem) => {
+                    return (
+                        String(item.name || '').toLowerCase().includes(query) ||
+                        String(item.code || '').toLowerCase().includes(query) ||
+                        String(item.degree_level || '').toLowerCase().includes(query) ||
+                        String(item.institution || '').toLowerCase().includes(query)
+                    );
+                });
+            }
+            if (state.categoryFilter && state.categoryFilter !== 'All Degree Levels') {
+                const cat = state.categoryFilter.toLowerCase();
+                formatted = formatted.filter((item: CourseItem) =>
+                    String(item.degree_level || '').toLowerCase() === cat
+                );
+            }
+            if (state.statusFilter && state.statusFilter !== 'All Status') {
+                const st = state.statusFilter.toLowerCase();
+                formatted = formatted.filter((item: CourseItem) =>
+                    String(item.status || '').toLowerCase() === st
+                );
+            }
+
             setState({
-                data: res.data || res.results || [],
-                totalRecords: res.total_records || res.count || (res.data || []).length,
+                data: formatted,
+                totalRecords: state.search.trim() ? formatted.length : (res.total_records || res.count || formatted.length),
                 currentPage: pageNumber,
                 isLoading: false,
             });
@@ -261,6 +297,15 @@ const CoursesPage = () => {
     // ── Toggle Status ────────────────────────────────────────────────────────
     const handleToggleStatus = async (item: CourseItem) => {
         const nextStatus = item.status === 'Active' ? 'Inactive' : 'Active';
+        // Optimistic UI state update
+        setState((prev) => ({
+            ...prev,
+            data: prev.data.map((c) =>
+                String(c.id) === String(item.id)
+                    ? { ...c, status: nextStatus, is_active: nextStatus === 'Active' }
+                    : c
+            ),
+        }));
         try {
             await Models.courses.active_deactive(item.id, nextStatus);
             Success(`Course "${item.code}" marked as ${nextStatus}`);
@@ -268,6 +313,7 @@ const CoursesPage = () => {
         } catch (error: any) {
             console.error('handleToggleStatus error:', error);
             Failure('Failed to update course status');
+            getData();
         }
     };
 

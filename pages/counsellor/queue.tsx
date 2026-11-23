@@ -1377,12 +1377,12 @@ const CounsellorQueuePage = () => {
             </div>
 
             {/* ============================================================== */}
-            {/* 2. FILTER TABS & SEARCH BAR (Compact and aligned) */}
+            {/* 2. FILTER TABS & SEARCH BAR (Two clean responsive rows) */}
             {/* ============================================================== */}
-            <div className="overview-panel space-y-3">
-                <div className="flex flex-col lg:flex-row lg:items-center gap-2.5 lg:gap-3">
-                    {/* Small Compact Filter Tabs */}
-                    <div className="inline-flex shrink-0 self-start lg:self-auto rounded-xl bg-gray-100 p-0.5 dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 overflow-x-auto max-w-full">
+            <div className="overview-panel space-y-3.5">
+                {/* Row 1: Filter Tabs */}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="inline-flex shrink-0 rounded-xl bg-gray-100 p-1 dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 overflow-x-auto max-w-full">
                         {[
                             { id: 'pending' as TabType, label: 'Pending Enquiries', count: state.counts.pending },
                             { id: 'in_progress' as TabType, label: 'In Progress Enquiries', count: state.counts.in_progress },
@@ -1395,7 +1395,7 @@ const CounsellorQueuePage = () => {
                                     key={tab.id}
                                     type="button"
                                     onClick={() => setState({ activeTab: tab.id, currentPage: 1 })}
-                                    className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs font-semibold transition cursor-pointer whitespace-nowrap ${
+                                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer whitespace-nowrap ${
                                         isActive
                                             ? 'bg-[#39854a] text-white shadow-xs font-bold'
                                             : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
@@ -1415,7 +1415,10 @@ const CounsellorQueuePage = () => {
                             );
                         })}
                     </div>
+                </div>
 
+                {/* Row 2: Search Input & Priority Filter */}
+                <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3">
                     {/* Big Expanded Search Input */}
                     <div className="relative flex-1 min-w-[240px]">
                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -1438,7 +1441,7 @@ const CounsellorQueuePage = () => {
                     </div>
 
                     {/* Priority Filter via CustomSelect */}
-                    <div className="flex items-center gap-2 self-start lg:self-auto shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                         <span className="text-xs font-bold text-gray-600 dark:text-gray-300 whitespace-nowrap">
                             Priority:
                         </span>
